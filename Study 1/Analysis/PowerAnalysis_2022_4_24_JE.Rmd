@@ -1,0 +1,55 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(simr)
+library(lme4)
+library(lmerTest)
+```
+
+```{r}
+#setwd("/Volumes/Research Project/Competing Motives/Data Analysis/")
+setwd("~/Google Drive/Volumes/")
+reValDf <- read.csv("./Research Project/Competing Motives/Data Analysis/Study2/output/reEvalDf.csv")
+```
+
+
+```{r}
+reValDf2 <- reValDf[!is.na(reValDf$selfResp),]
+reValDf2 <- reValDf[!is.na(reValDf$SV_F),]
+reValDf2$subID <- as.factor(reValDf2$subID)
+reValDf2 <- reValDf[c("subID","trait","SV_F","selfResp")]
+reValDf2$SV_Fz <- scale(reValDf$SV_F)
+reValDf2$selfRespz <- scale(reValDf$selfResp)
+reValDf2$subID <- as.factor(reValDf2$subID)
+
+
+m3 <- lmer( selfRespz ~ SV_Fz +
+    ( SV_Fz | subID) + (1 | trait), data = reValDf2, control = lmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)))
+summary(m3)
+```
+
+## simulate model with random slopes, 800 times, alpha of .05
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+powerVE <- powerSim(m3, fixed("SV_Fz", "t"), seed = 2, nsim = 800, alpha = .05)
+```
+
+```{r}
+powerVE
+```
+
+##Power curve for feedback, random slopes then fixed slopes
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+VE.power.curve <- powerCurve(m3, test = fixed("SV_Fz", "t"), along ="subID" , nsim=800)
+```
+
+###plotting the power curves
+```{r plot curve function on sim data}
+plot(VE.power.curve)
+VE.power.curve
+```

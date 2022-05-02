@@ -1,0 +1,235 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(lmerTest)
+library(ggeffects)
+library(dplyr)
+```
+
+```{r}
+fullTest <- read.csv("../Cleaning/output/fullTest.csv")
+```
+
+```{r}
+
+m <- glmer( as.factor(ingChoiceN) ~ 1 + ( 1 | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE) + scale(desirability) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(oSE) + ( scale(oSE) | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(iSE) + ( scale(iSE) | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel) + scale(desirability) + ( scale(SE) + as.factor(novel) | subID) + (  1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "novel")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(RSE) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "RSE")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(SCC) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "SCC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(DS) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "DS")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(NFC) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "NFC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(SING.Ind) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "SING.Ind")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(SING.Inter) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "SING.Inter")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(Proto) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "Proto")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(SI) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "SI")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*scale(NTB) + ( scale(SE) | subID) + ( scale(SE) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "NTB")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(RSE) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "RSE")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(SCC) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "SCC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(DS) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "DS")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(NFC) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "NFC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(SING.Ind) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "SING.Ind")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(SING.Inter) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "SING.Inter")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(Proto) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "Proto")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(SI) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "SI")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability)*scale(NTB) + ( scale(desirability) | subID) + ( scale(desirability) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability", "NTB")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(RSE) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)*as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "novel","RSE")) %>% plot()
+```
+
+```{r}
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(SCC) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)+as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE","novel","SCC")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(DS) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)+as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE","novel","DS")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(NFC) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)+as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE","novel", "NFC")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(SING.Ind) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)+as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE","novel","SING.Ind")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(SING.Inter) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)+as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE","novel","SING.Inter")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(Proto) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)+as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "Proto")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(SI) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)+as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE","novel","SI")) %>% plot()
+```
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(SE)*as.factor(novel)*scale(NTB) + ( scale(SE)+as.factor(novel) | subID) + ( scale(SE)+as.factor(novel) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("SE", "novel", "NTB")) %>% plot()
+```
+
+
