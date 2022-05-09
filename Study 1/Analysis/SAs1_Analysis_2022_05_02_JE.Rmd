@@ -20,7 +20,52 @@ fullTest$SE.Z <- scale(fullTest$SE)
 fullTest$iSE.Z <- scale(fullTest$iSE)
 fullTest$oSE.Z <- scale(fullTest$oSE)
 
+traitsFreqs <- read.csv("../Cleaning/output/traitFreqOverUnder.csv")
+
+uSubs <- unique(fullTest$subID)
+
+library(performance)
 ```
+
+```{r}
+m <- glmer( ingChoiceN ~ trait + ( 1 | subID) , data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+
+fullTest$trait <- as.factor(fullTest$trait)
+contrasts(fullTest$trait) <- contr.sum(148)
+m <- glm(optionChoiceN ~ trait, family = binomial,
+          data = fullTest
+         )
+summary(m)
+```
+
+
+```{r}
+traitsFreqs$trait <- as.factor(traitsFreqs$trait)
+contrasts(traitsFreqs$trait) <- contr.sum(148)
+m <- glm(optionChoiceN ~ 1, family = binomial,
+          data = traitsFreqs
+         )
+summary(m)
+check_overdispersion(m)
+check_model(m)
+
+m <- glm(optionChoiceN ~ trait, family = quasibinomial,
+          data = traitsFreqs
+         )
+check_overdispersion(m)
+check_model(m)
+
+t.test()
+
+m <- glm(optionChoiceN ~ trait, family = poisson,
+          data = traitsFreqs
+         )
+check_overdispersion(m)
+check_model(m)
+```
+
 
 # Replication of prior self-anchoring findings: Self-evaluations predicting ingroup evaluations
 

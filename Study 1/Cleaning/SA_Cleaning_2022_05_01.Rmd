@@ -355,7 +355,8 @@ write.csv(fullTest, "./output/fullTest.csv", row.names = F)
 
 ```{r}
 fullTest$optionChoiceN <- ifelse(fullTest$optionChoice=="Overestimator", 1, 0)
-traitFreqOverUnder <- Rmisc::summarySE(fullTest, measurevar="optionChoiceN", groupvars = "trait")
-write.csv(fullTest, "./output/traitFreqOverUnder.csv", row.names = F)
+
+traitFreqOverUnder <- Rmisc::summarySE(fullTest, measurevar="optionChoiceN", groupvars = "trait", na.rm = T)
+write.csv(traitFreqOverUnder, "./output/traitFreqOverUnder.csv", row.names = F)
 ```
 
