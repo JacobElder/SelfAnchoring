@@ -4,6 +4,7 @@ output: html_document
 ---
 
 ```{r}
+library(ggeffects)
 library(compiler)
 library(readbulk) 
 library(psych)
@@ -36,9 +37,6 @@ setwd("~/Google Drive/Volumes/")
 posDf <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_p.csv")
 posMat <- as.matrix(posDf)
 posGraph <- graph.adjacency(posMat)
-negDf <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_n.csv")
-negMat <- as.matrix(negDf)
-negGraph <- graph.adjacency(negMat)
 ```
 
 ```{r}
@@ -49,9 +47,13 @@ allCombCents <- rbind(allPosCents, allNegCents)
 allCombCents$Idx <- 1:296
 ```
 
+
 ```{r}
-mergedRaw <- read_bulk(directory = "./input/Task Data/", extension = ".csv", fun = read.csv)
+setwd("/Volumes/Research Project/Self-Anchoring/Cleaning/input/")
+mergedRaw <- read_bulk(directory = ".", extension = ".csv", fun = read.csv)
+paste0("There are ", length(unique(mergedRaw$File)), " unique participants")
 ```
+
 
 
 ```{r}
@@ -67,7 +69,8 @@ mergedRaw <- mergedRaw %>% rename(subID = participant,
                      trialTotalT1 = trials_2.thisTrialN, 
                      trialTotalT2 = choices.thisTrialN,
                      selfResp = SE.keys,
-                     sideChoice = choiceResp)
+                     sideChoice = choiceResp,
+                     RT = resp.rt)
 
 mergedRaw$trialTotalT1 <- mergedRaw$trialTotalT1 + 1
 mergedRaw$trialTotalT2 <- mergedRaw$trialTotalT2 + 1
@@ -84,7 +87,7 @@ rawTrain <- mergedRawtrain %>%
   select(subID, trait, trialTotalT1, selfResp)
 
 rawTest <- mergedRawtest %>%
-  select(subID, traitC, trialTotalT2, sideChoice, optionChoice, optionLeft, optionRight)
+  select(subID, traitC, trialTotalT2, sideChoice, optionChoice, optionLeft, optionRight, RT)
 
 rawTest <- rawTest %>%
   rename(trait = traitC)
@@ -100,21 +103,49 @@ mergeTrain <- rawTrain %>% inner_join(allCombCents, by="trait")
 mergeTest$ingChoice <- ifelse(mergeTest$optionChoice==mergeTest$Estimator, "Ingroup", "Outgroup")
 mergeTest$ingChoice <- as.factor(mergeTest$ingChoice)
 mergeTest$ingChoiceN <- ifelse(mergeTest$ingChoice=="Ingroup", 1, 0)
-
 ```
 
 ```{r}
+sigmoid <- function(feed, slope=1, shift=0){
+  feed = feed - 4
+  output = 1 / (1 + exp(slope * -(feed) - shift ) )
+  output = (output * 6) + 1
+  return(output)
+}
+
+entropy <- function(x){
+  inds<-which(x!=0)
+  -sum(x[inds] * log2(x[inds]))
+}
+
+computeNeighbors <- function(graph, label, type = "all"){
+  curNeigh <- neighbors(graph, label, mode = type)
+  curGraph <- induced.subgraph(graph, curNeigh)
+  impInd <- which(!is.na(V(curGraph)$SE))
+  impGraph <- induced.subgraph(curGraph, impInd)
+  neighAveSE <- mean(V(impGraph)$SE, na.rm = TRUE)
+  return(neighAveSE)
+}
+```
+
+
+```{r}
+
 uSubs <- unique(mergeTest$subID)
 mergeTest$SE <- NA
 mergeTest$novel <- 0
+simMat <- similarity.dice(posGraph)
+allPosCents$Idx <- 1:148
 
 for(i in uSubs){
   testSub <- subset(mergeTest, subID==i)
   trainSub <- subset(mergeTrain, subID==i)
-  simMat <- similarity.dice(posGraph)
   
   curNovel <- setdiff(testSub$Idx, trainSub$Idx)
   mergeTest$novel[which(mergeTest$subID==i & mergeTest$Idx %in% curNovel)] <- 1
+  
+  
+  subAllSelf <- trainSub %>% select(Idx, selfResp) %>% full_join(allPosCents, by = "Idx") %>% arrange(Idx)
   
   for(t in 1:nrow(testSub)){
     trialNum <- testSub$trialTotalT2[t]
@@ -132,14 +163,149 @@ for(i in uSubs){
     weightedAve <- sum(curSelf * curSims) / sum(curSelf)
     weightedOutAve <- sum(curSelf * curOut * curSims) / sum(curOut * curSelf)
     weightedInAve <- sum(curSelf * curIn * curSims) / sum(curIn * curSelf)
+    weightedAveS <- sum(sigmoid(curSelf) * curSims) / sum(sigmoid(curSelf))
+    
     mergeTest$SE[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- weightedAve
     mergeTest$oSE[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- weightedOutAve
     mergeTest$iSE[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- weightedInAve
+    mergeTest$sSE[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- weightedAveS
+    mergeTest$eSE[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- exp(weightedAve)
     
+    weightedAve <- sum(curSelf * curSims) / sum(curSims)
+    weightedOutAve <- sum(curSelf * curOut * curSims) / sum(curOut * curSims)
+    weightedInAve <- sum(curSelf * curIn * curSims) / sum(curIn * curSims)
+    
+    mergeTest$WSR[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- weightedAve
+    mergeTest$oWSR[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- weightedOutAve
+    mergeTest$iWSR[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- weightedInAve
+    
+    mergeTest$fam[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- sum(curSims)
+    
+    classMat <- matrix(nrow=7,ncol=1)
+    sumSims <- sum(curSims)
+    for(e in 1:7){
+      classIndices<-which(curSelf==e)
+      classIdx<-trainSub$Idx[classIndices]
+      classMat[e] <- sum(simMat[classIdx,testSub$Idx[t]])/sumSims
+      #classSim <- simMat[trainSub$Idx[classIndices],testSub$Idx[t]]
+      
+    }
+    mergeTest$entropy[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- entropy(classMat)
+    classMat<-cbind(classMat,1:7)
+    classMat <- as.data.frame(classMat)
+    mergeTest$slope[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <-lm(classMat$V1 ~ classMat$V2)$coefficients[[2]]
+    mergeTest$nlslope[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- MannKendall(classMat$V1)$tau[[1]]
+    
+    V(posGraph)$SE <- subAllSelf$selfResp
+    
+  traitIdx <- mergeTest$Idx[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum]
+  curLabel <- paste0("V",traitIdx)
+  
+  mergeTest$neighAveInSE[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- computeNeighbors(posGraph, curLabel, "in")
+  mergeTest$neighAveOutSE[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- computeNeighbors(posGraph, curLabel, "out")
+  mergeTest$neighAveAllSE[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- computeNeighbors(posGraph, curLabel, "all")
+   
   }
   
 }
 ```
+
+```{r}
+trainSimMat <- matrix(ncol=7,nrow=0)
+testSimMat <- matrix(ncol=6,nrow=0)
+for(i in uSubs){
+  testSub <- subset(mergeTest, subID==i)
+  trainSub <- subset(mergeTrain, subID==i)
+  
+  curNovel <- setdiff(testSub$Idx, trainSub$Idx)
+  mergeTest$novel[which(mergeTest$subID==i & mergeTest$Idx %in% curNovel)] <- 1
+  
+  allIdx <- trainSub$Idx
+  allSelf <- trainSub$selfResp
+  allIdxTest <- testSub %>% filter(novel==1) %>% select(Idx) %>% pull(Idx)
+  for(t in 1:nrow(trainSub)){
+    curIdx <- trainSub$Idx[t]
+    curSelf <- trainSub$selfResp[t]
+    allSim <- simMat[curIdx, allIdx]
+    
+    WeightAve <- sum(allSim*allSelf, na.rm = T)/sum(allSim, na.rm = T)
+    
+    curMat <- cbind(rep(i,length(allSelf)),
+                    rep(curSelf,length(allSelf)),
+                    rep(curIdx,length(allSelf)),
+                    allIdx,
+                    allSelf,
+                    allSim,
+                    WeightAve
+                    )
+    trainSimMat <- rbind(trainSimMat,curMat)
+  
+    allSimTest <- simMat[curIdx, allIdxTest]
+    curMatTest <- cbind(rep(i, length(allSimTest)),
+                        rep(curSelf,length(allSimTest)),
+                        rep(curIdx,length(allSimTest)),
+                        allIdxTest, 
+                        allSimTest,
+                        WeightAve
+                        )
+    testSimMat <- rbind(testSimMat,curMatTest)
+    
+    
+  trialNumT1 <- trainSub$trialTotalT1[t]
+  mergeTrain$inGsim[mergeTrain$subID==i & mergeTrain$trialTotalT1==trialNumT1] <- mean(simMat[trainSub$Idx[t],testSub$Idx[which(testSub$ingChoiceN==1)]])
+  mergeTrain$outGsim[mergeTrain$subID==i & mergeTrain$trialTotalT1==trialNumT1] <- mean(simMat[trainSub$Idx[t],testSub$Idx[which(testSub$ingChoiceN==0)]])
+    
+    
+  }
+  
+  V(posGraph)$C <- testSub$ingChoice[order(testSub$Idx)]
+  mergeTest$groupHomoph[mergeTest$subID==i] <- netseg::assort(posGraph, "C")
+  
+}
+colnames(trainSimMat) <- c("subID","self", "Idx", "targetIdx", "targetSelf", "similarity", "WA")
+colnames(testSimMat) <- c("subID","self", "Idx", "targetIdx", "similarity", "WA")
+trainSimDf <- as.data.frame(trainSimMat)
+testSimDf <- as.data.frame(testSimMat)
+
+mergeTrain$inOutDiff <- mergeTrain$inGsim - mergeTrain$outGsim
+```
+
+```{r}
+    # curDfTrain<-as.data.frame(curMat)
+    # colnames(curDfTrain) <- c("subID","self", "Idx", "targetIdx", "targetSelf", "similarity")
+    # curDfTest<-as.data.frame(curMatTest)
+    # colnames(curDfTest) <- c("subID","self", "Idx", "targetIdx", "similarity")
+    # lm(targetSelf ~ scale(self) * scale(similarity), data=curDfTrain )
+    # curMatTest <- cbind(curMatTest, predict(m, curDfTest))
+```
+
+
+```{r}
+library(lmerTest)
+m <- lmer(targetSelf ~ scale(self) * scale(similarity) + ( scale(self) + scale(similarity) | subID) + ( 1 | Idx), data = trainSimDf)
+summary(m)
+ggpredict(m, c("self","similarity")) %>% plot(show.title=F)+ xlab("Reference Self-Descriptiveness") + ylab("Target Self-Descriptiveness") + jtools::theme_apa()  + scale_color_discrete(labels = c("Low Similarity","Moderate Similarity", "High Similarity"))
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/TrainingPredictedEffects.tiff",dpi=600)
+trainSimDf$predicted <- predict(m, trainSimDf)
+testSimDf$predicted <- predict(m, testSimDf)
+
+trainAvePredicted <- Rmisc::summarySE(data=trainSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"))
+testAvePredicted <- Rmisc::summarySE(data=testSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"), na.rm=T)
+trainAvePredicted <- trainAvePredicted %>% rename(Idx = targetIdx)
+testAvePredicted <- testAvePredicted %>% rename(Idx = targetIdx)
+
+predictedEvals <- rbind(testAvePredicted, trainAvePredicted)
+allPosCents$Idx <- 1:148
+predictedEvals <- merge(predictedEvals, allPosCents, by = "Idx")
+```
+
+
+
+
+
+
+
+
 
 # 59353 has two CSVs. I deleted the first
 
@@ -153,20 +319,23 @@ for(i in uSubs){
 
 
 ```{r}
-mergeTest2 <- mergeTrain %>% select(subID, trait, selfResp) %>% right_join(mergeTest, by = c("subID","trait"))
-mergeTest3 <- merge(mergeTest, mergeTrain[c("subID","trait","selfResp")], by = c("subID","trait"), all.x = T)
+mergeTest2 <- mergeTrain %>% select(subID, trait, selfResp) %>% full_join(mergeTest, by = c("subID","trait"))
+#mergeTest3 <- merge(mergeTest, mergeTrain[c("subID","trait","selfResp")], by = c("subID","trait"), all.x = T)
 mergeTest2<-mergeTest2[order(mergeTest2$subID, mergeTest2$trialTotalT2),]
+```
 
-# for(i in uSubs){
-#   print(i)
-#   print(  nrow(mergeTest[mergeTest$subID==i,]) )
-#   print( nrow(mergeTest2[mergeTest2$subID==i,]) )
-# }
-
-mergeTest <- mergeTest2
+```{r}
+nrow(subset(mergeTest2, subID==uSubs[1]))
 ```
 
 
+```{r}
+mergeTest4 <- predictedEvals %>% select(subID, trait, predicted) %>% full_join(mergeTest2, by = c("subID","trait"))
+#mergeTest3 <- merge(mergeTest, mergeTrain[c("subID","trait","selfResp")], by = c("subID","trait"), all.x = T)
+mergeTest4<-mergeTest4[order(mergeTest4$subID, mergeTest4$trialTotalT2),]
+
+mergeTest <- mergeTest4
+```
 
 # Flag careless task participant
 
@@ -191,12 +360,12 @@ sketchMat <- as.data.frame(sketchMat)
 # Over 95% of same choices
 # Over 40% missing responses for self-evaluations
 # Over 40% missing responses for choices
-sketchMat$sketch <- ifelse(sketchMat$propSelf > .80 | sketchMat$propChoice > .95 | sketchMat$naSelf > .40 | sketchMat$naChoice > .40, 1, 0)
+sketchMat$sketch <- ifelse(sketchMat$propSelf > .80 | sketchMat$propChoice > .90 | sketchMat$naSelf > .40 | sketchMat$naChoice > .40, 1, 0)
 ```
 
 ```{r}
-postQs <- read.csv("./input/Qualtrics Data/SA1postQs.csv")
-preQs <- read.csv("./input/Qualtrics Data/SA1preQs.csv")
+postQs <- read.csv("/Volumes/Research Project/Self-Anchoring/Cleaning/Qualtrics Data/SA1postQs.csv")
+preQs <- read.csv("/Volumes/Research Project/Self-Anchoring/Cleaning/Qualtrics Data/SA1preQs.csv")
 preQs$id[which(duplicated(preQs$id))]
 preQs <- preQs %>% group_by(id) %>% filter(duplicated(id) | n()==1)
 
@@ -207,6 +376,8 @@ indDiff <- postQs %>% left_join(preQs, by="id")
 
 # Duplicate IDs?
 indDiff$id[which(duplicated(indDiff$id))]
+
+indDiff <- indDiff[!duplicated(indDiff$id),]
 
 indDiff <- indDiff %>% rename(subID = id)
 ```
@@ -327,7 +498,7 @@ indDiffs <- indDiff %>% select(subID, ConDeb, conf, decep, Serious, UnderstandIn
 
 sketchMat <- indDiffs %>% select(subID, ConDeb, conf, decep, Serious, UnderstandIns, UnderstandTr, Usable) %>% inner_join(sketchMat, by = "subID")
 
-sketchMat$remove <- ifelse(sketchMat$sketch > 0 | sketchMat$ConDeb == 2 | sketchMat$Usable == 2 | sketchMat$Serious < 4, 1, 0 | sketchMat$decep == 3)
+sketchMat$remove <- ifelse(sketchMat$sketch > 0 | sketchMat$ConDeb == 2 | sketchMat$Usable == 2 | sketchMat$Serious < 5, 1, 0 | sketchMat$decep < 1)
 ```
 
 ```{r}
@@ -351,6 +522,7 @@ unique(indDiffsclean$subID)
 ```{r}
 fullTest <- cleanTest %>% inner_join(indDiffsclean, by = "subID")
 write.csv(fullTest, "./output/fullTest.csv", row.names = F)
+write.csv(cleanTrain, "./output/fullTrain.csv", row.names = F)
 ```
 
 ```{r}
