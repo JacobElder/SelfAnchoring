@@ -10,6 +10,7 @@ library(dplyr)
 library(report)
 library(r2glmm)
 library(performance)
+library(corrr)
 library(broom.mixed)
 ```
 
@@ -105,9 +106,8 @@ propMatrix <- propMatrix[order(propMatrix$p),]
 ```
 
 ```{r}
-library(corrr)
 x <- indDiffs %>% 
-    select(groupHomoph, DS:SING.Inter) %>%
+    select(groupHomoph, seHomoph, DS:SING.Inter) %>%
   correlate() %>% 
   focus(groupHomoph) %>%
     arrange(groupHomoph)
@@ -123,6 +123,7 @@ x %>%
         axis.title=element_text(size=9,face="bold")) + theme(legend.text = element_text(size=9)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"))
 ```
+
 # Familiarity predicts Reaction Time
 
 ```{r}

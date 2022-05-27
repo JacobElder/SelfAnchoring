@@ -33,6 +33,11 @@ cOptimx <- cmpfun(optimx)
 ```
 
 ```{r}
+library(devtools)
+source_url("https://raw.githubusercontent.com/JacobElder/Miscellaneous-R-Functions/master/assortativityNA.R")
+```
+
+```{r}
 setwd("~/Google Drive/Volumes/")
 posDf <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_p.csv")
 posMat <- as.matrix(posDf)
@@ -104,6 +109,21 @@ mergeTest$ingChoice <- ifelse(mergeTest$optionChoice==mergeTest$Estimator, "Ingr
 mergeTest$ingChoice <- as.factor(mergeTest$ingChoice)
 mergeTest$ingChoiceN <- ifelse(mergeTest$ingChoice=="Ingroup", 1, 0)
 ```
+
+# 59353 has two CSVs. I deleted the first
+
+```{r}
+for(i in uSubs){
+  if(nrow(mergeTest[mergeTest$subID==i,])>148){
+    print(paste0("Subject ", i, " has more than one CSV"))
+  }
+}
+```
+
+```{r}
+test<-mergeTest[mergeTest$subID==59353,]
+```
+
 
 ```{r}
 sigmoid <- function(feed, slope=1, shift=0){
@@ -197,6 +217,8 @@ for(i in uSubs){
     mergeTest$nlslope[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum] <- MannKendall(classMat$V1)$tau[[1]]
     
     V(posGraph)$SE <- subAllSelf$selfResp
+    
+    mergeTest$seHomoph[mergeTest$subID==i] <- assortativityNA(posGraph, V(posGraph)$SE+.001)
     
   traitIdx <- mergeTest$Idx[mergeTest$subID==i & mergeTest$trialTotalT2==trialNum]
   curLabel <- paste0("V",traitIdx)
@@ -297,24 +319,6 @@ testAvePredicted <- testAvePredicted %>% rename(Idx = targetIdx)
 predictedEvals <- rbind(testAvePredicted, trainAvePredicted)
 allPosCents$Idx <- 1:148
 predictedEvals <- merge(predictedEvals, allPosCents, by = "Idx")
-```
-
-
-
-
-
-
-
-
-
-# 59353 has two CSVs. I deleted the first
-
-```{r}
-for(i in uSubs){
-  if(nrow(mergeTest[mergeTest$subID==i,])>148){
-    print(paste0("Subject ", i, " has more than one CSV"))
-  }
-}
 ```
 
 
