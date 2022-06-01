@@ -471,6 +471,7 @@ for(i in uSubs){
       curSims <- curSims[-curRem]
       curOut <- curOut[-curRem]
       curIn <- curIn[-curRem]
+      curMDS <- curMDS[-curRem]
     }
     weightedAve <- sum(curSelf * curSims) / sum(curSelf)
     weightedOutAve <- sum(curSelf * curOut * curSims) / sum(curOut * curSelf)
