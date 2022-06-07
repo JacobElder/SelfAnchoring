@@ -643,18 +643,47 @@ cleanTest4 <- predictedEvals %>% select(subID, trait, predicted) %>% full_join(c
 cleanTest4<-cleanTest4[order(cleanTest4$subID, cleanTest4$trialTotalT2),]
 
 cleanTest <- cleanTest4
-```
 
-```{r}
 fullTest <- cleanTest %>% inner_join(indDiffsclean, by = "subID")
-write.csv(fullTest, "./output/fullTest.csv", row.names = F)
-write.csv(cleanTrain, "./output/fullTrain.csv", row.names = F)
 ```
 
 ```{r}
 fullTest$optionChoiceN <- ifelse(fullTest$optionChoice=="Overestimator", 1, 0)
-
 traitFreqOverUnder <- Rmisc::summarySE(fullTest, measurevar="optionChoiceN", groupvars = "trait", na.rm = T)
 write.csv(traitFreqOverUnder, "./output/traitFreqOverUnder.csv", row.names = F)
+```
+
+```{r}
+traitsFreqs <- rename(traitFreqOverUnder, props = optionChoiceN)
+fullTest <- merge(fullTest, traitsFreqs[c("trait","props")], by = "trait")
+fullTest$propCorr <- ifelse(fullTest$Estimator=="Underestimator", 1-fullTest$props, fullTest$props)
+```
+
+# Leave subject out proportions choosing that trait
+
+```{r}
+for(i in uSubs){
+  for(j in unique(fullTest$Idx)){
+    
+    if(fullTest$Estimator[fullTest$subID==i & fullTest$Idx==j]=="Underestimator"){
+      
+      fullTest$propCorrLOO[fullTest$subID==i & fullTest$Idx==j] <- 1 - mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j], na.rm=T)
+      
+    }else if(fullTest$Estimator[fullTest$subID==i & fullTest$Idx==j]=="Overestimator"){
+      
+      fullTest$propCorrLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j], na.rm=T)
+      
+    }
+    
+    fullTest$evalLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(cleanTrain$selfResp[cleanTrain$subID!=i & cleanTrain$Idx==j], na.rm=T)
+    
+  }
+}
+```
+
+
+```{r}
+write.csv(fullTest, "./output/fullTest.csv", row.names = F)
+write.csv(cleanTrain, "./output/fullTrain.csv", row.names = F)
 ```
 
