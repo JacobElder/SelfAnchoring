@@ -1,0 +1,713 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(lmerTest)
+library(ggeffects)
+library(dplyr)
+library(report)
+library(r2glmm)
+library(performance)
+library(corrr)
+library(broom.mixed)
+```
+
+```{r}
+library(devtools)
+source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/plotCommAxes.R")
+```
+
+
+```{r}
+fullTest <- read.csv("../Cleaning/output/fullTest.csv")
+fullTrain <- read.csv("../Cleaning/output/fullTrain.csv")
+
+traitsFreqs <- read.csv("../Cleaning/output/traitFreqOverUnder.csv")
+
+
+uSubs <- unique(fullTest$subID)
+
+indDiffs <- fullTest[!duplicated(fullTest$subID),]
+```
+
+```{r}
+fullTest$ingChoiceN <- as.factor(fullTest$ingChoiceN)
+fullTest$novel <- as.factor(fullTest$novel)
+fullTest$selfResp.Z <- scale(fullTest$selfResp)
+fullTest$SE.Z <- scale(fullTest$SE)
+fullTest$iSE.Z <- scale(fullTest$iSE)
+fullTest$oSE.Z <- scale(fullTest$oSE)
+fullTest$predicted.Z <- scale(fullTest$predicted)
+fullTest$slope.Z <- scale(fullTest$slope)
+fullTest$entropy.Z <- scale(fullTest$entropy)
+fullTest$WSR.Z <- scale(fullTest$WSR)
+fullTest$neighAveOutSE.Z <- scale(fullTest$neighAveOutSE)
+fullTest$neighAveAllSE.Z <- scale(fullTest$neighAveAllSE)
+fullTest$neighAveInSE.Z <- scale(fullTest$neighAveInSE)
+fullTest$evalLOO.Z <- scale(fullTest$evalLOO)
+fullTest$propCorrLOO.Z <- scale(fullTest$propCorrLOO)
+fullTest$propCorr.Z <- scale(fullTest$propCorr)
+fullTest$desirability.Z <- scale(fullTest$desirability)
+fullTest$er.Z <- scale(fullTest$er)
+```
+
+
+```{r}
+fullTest$novel <- as.factor(fullTest$novel)
+levels(fullTest$novel) <- list("Trained"  = "0", "Held Out" = "1")
+```
+
+```{r}
+PCA<- prcomp(na.omit(fullTest[c("predicted","neighAveOutSE")]),
+                center = TRUE,
+                scale. = TRUE)
+fullTest$PCA[!is.na(fullTest$predicted) & !is.na(fullTest$neighAveOutSE)] <- PCA$x[,1]
+```
+
+
+```{r}
+propMatrix <- matrix(nrow=148,ncol=7)
+for(i in 1:148){
+    traitDf <- subset(fullTest, Idx==i)
+    test <- t.test(as.numeric(traitDf$ingChoiceN)-1, mu=.50)
+    propMatrix[i, ] <- c(i, test$statistic, test$p.value, test$conf.int, test$estimate, test$parameter)
+}
+colnames(propMatrix) <- c("Idx", "stat", "p", "LCI", "UCI", "est", "param")
+propMatrix <- as.data.frame(propMatrix)
+propMatrix$trait <- traitsFreqs$trait
+propMatrix <- propMatrix[order(propMatrix$p),]
+
+propMatrix
+```
+
+```{r}
+indDiffs %>% select(groupHomoph, seHomoph, DS:SING.Inter) %>% corToOne(., "groupHomoph")
+indDiffs %>% select(groupHomoph, seHomoph, DS:SING.Inter) %>% plotCorToOne(., "groupHomoph")
+```
+
+# (Attempt to) replicate prior work: Ingroup favoritism exhibited by ascribing more positive traits to ingroup
+
+```{r}
+m <- glmer( ingChoiceN ~ desirability.Z + propCorrLOO.Z +  ( desirability.Z + propCorrLOO.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+```
+
+
+# Replication of prior self-anchoring findings: Self-evaluations predicting ingroup evaluations
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ selfResp.Z +  ( selfResp.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+```
+
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ selfResp.Z + propCorrLOO + desirability.Z + ( selfResp.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("selfResp.Z")) %>% plot(show.title=F) + xlab("Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/SelfProjection.tiff",dpi=600)
+```
+
+# Replication of prior self-anchoring findings: Is it merely just average self-descriptiveness of the trait?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ evalLOO.Z +  ( evalLOO.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+```
+
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ evalLOO.Z + propCorrLOO.Z + desirability.Z + ( evalLOO.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("evalLOO.Z")) %>% plot(show.title=F) + xlab("Leave-One-Out Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+```
+
+# Does similarity-weighted self-evaluation average predict ingroup choices?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z + propCorrLOO.Z + desirability.Z + ( WSR.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+```
+
+# Does self-evaluation weighted similarity predict ingroup choices?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ SE.Z + ( SE.Z | subID) , data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ SE.Z + propCorrLOO + desirability.Z + ( SE.Z | subID) , data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+```
+
+# Do cross-validated similarity*self-evaluation predictions predict ingroup choices? 
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z + ( predicted.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+# Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z + propCorrLOO.Z + desirability.Z + ( predicted.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("predicted.Z")) %>% plot(show.title=F) + xlab("Cross-Validated Self-Descriptiveness Predictions") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/CVprediction.tiff",dpi=600)
+```
+
+# Do people self-anchor more for higher indegree traits?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * inDegree + ( predicted.Z + inDegree | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * inDegree + propCorrLOO + desirability.Z +  ( predicted.Z + inDegree | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "inDegree")) %>% plot(show.title=F) + xlab("Cross-Validated Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+```
+
+
+# Do people self-anchor more for higher outdegree traits?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * outDegree + ( predicted.Z + outDegree | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * outDegree + propCorrLOO + desirability.Z +  ( predicted.Z + outDegree | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "outDegree")) %>% plot(show.title=F) + xlab("Cross-Validated Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+```
+
+# Do cross-validated similarity * self-evaluation predictions predict ingroup choices, regardless of whether it was seen prior or not?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * novel + ( predicted.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * novel + propCorrLOO.Z + desirability.Z + ( predicted.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("predicted.Z", "novel")) %>% plot(show.title=F)+ xlab("Cross-Validated Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()  + scale_color_discrete(labels = c("Trained","Held-Out"))
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/CVpredictionGeneralize.tiff",dpi=600)
+```
+
+# Does generalization depend on outdegree?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * novel * outDegree  + ( predicted.Z + novel | subID) , data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * novel * outDegree  + propCorrLOO.Z + desirability.Z + ( predicted.Z + novel | subID) , data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("predicted.Z", "outDegree" ,"novel")) %>% plot(show.title=F)+ xlab("Cross-Validated Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/CVpredictionGeneralize.tiff",dpi=600)
+```
+# Does generalization depend on indegree?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * novel * inDegree + ( predicted.Z + novel | subID) , data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z * novel * inDegree + propCorrLOO.Z + desirability.Z +  ( predicted.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("predicted.Z", "inDegree" ,"novel")) %>% plot(show.title=F)+ xlab("Cross-Validated Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+```
+
+# Neighboring Dependencies Predicting Choices
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ neighAveOutSE.Z  + ( neighAveOutSE.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ neighAveOutSE.Z  + propCorrLOO.Z + desirability.Z + ( neighAveOutSE.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("neighAveOutSE.Z")) %>% plot(show.title=F)+ xlab("Outwards Neighboring Self-Evaluations") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/outdegreeNeighbors.tiff",dpi=600)
+```
+
+# Neighboring Indegree Dependencies Predicting Choices
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ neighAveInSE.Z  + ( neighAveInSE.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ neighAveInSE.Z  + propCorrLOO.Z + desirability.Z + ( neighAveInSE.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("neighAveInSE.Z")) %>% plot(show.title=F)+ xlab("Inwards Neighboring Self-Evaluations") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/IndegreeNeighbors.tiff",dpi=600)
+```
+
+# Neighboring Both Degree Dependencies Predicting Choices
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ neighAveAllSE.Z  + ( neighAveAllSE.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ neighAveAllSE.Z  + propCorrLOO.Z + desirability.Z + ( neighAveAllSE.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("neighAveAllSE.Z")) %>% plot(show.title=F)+ xlab("Inwards Neighboring Self-Evaluations") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/IndegreeNeighbors.tiff",dpi=600)
+```
+
+# Generalization of Outdegree Neighboring Self-Evaluations
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ neighAveOutSE.Z * novel + ( neighAveOutSE.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ neighAveOutSE.Z * novel + propCorrLOO + desirability.Z + ( neighAveOutSE.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("neighAveOutSE.Z","novel")) %>% plot(show.title=F)+ xlab("Outwards Neighboring Self-Evaluations") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/outdegreeNeighborsGeneralization.tiff",dpi=600)
+```
+
+# Does entropy (i.e., uncertainty) predict likelihood of ingroup choices?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ entropy.Z  + ( entropy.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ entropy.Z  + propCorrLOO + desirability.Z + ( entropy.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+r2beta(m)
+ggpredict(m, c("entropy.Z")) %>% plot(show.title=F) + xlab("Uncertainty") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/Uncertainty.tiff",dpi=600)
+```
+
+# Does a linear trend of similarity-based probabilities predict ingroup choices?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ er.Z  + ( er.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ er.Z  + propCorrLOO.Z + desirability.Z + ( er.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+ggpredict(m, c("er.Z")) %>% plot(show.title=F) + xlab("Expected Rating") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/ExpectedRating.tiff",dpi=600)
+```
+
+# Does a linear trend of similarity-based probabilities predict ingroup choices?
+
+## No covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ slope.Z  + ( slope.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+## Covariates
+
+```{r}
+m <- glmer( ingChoiceN ~ slope.Z  + propCorrLOO.Z + desirability.Z + ( slope.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+ggpredict(m, c("slope.Z")) %>% plot(show.title=F) + xlab("Linear Trend of Greater Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/Slope.tiff",dpi=600)
+```
+
+# Does a linear trend of similarity-based probabilities predict ingroup choices, controlling for self-descriptiveness?
+
+```{r}
+m <- glmer( ingChoiceN ~ scale(slope) + selfResp.Z  + ( scale(slope) + selfResp.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+```
+
+# Backwards solution: Can you predict self-evaluations from similarity to ingroup and outgroup choices?
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsim) + scale(outGsim) + (  scale(inGsim) + scale(outGsim) | subID) + (1 | trait), data = fullTrain)
+summary(m)
+tidy(m,conf.int=TRUE,effects="fixed")
+ggpredict(m, c("inGsim")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+## Moderated by Group Homophily
+
+People who mentally segregrate the groups also self-evaluate more similar to their later group choices.
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsim) * scale(groupHomoph) + scale(outGsim) + (  scale(inGsim) + scale(outGsim) | subID) + (1 | trait), data = fullTrain)
+summary(m)
+tidy(m,conf.int=TRUE,effects="fixed")
+ggpredict(m, c("inGsim","groupHomoph")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+# Individual Differences and Cross-Validated Predictions
+
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(groupHomoph) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "groupHomoph")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(RSE) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "RSE")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(SCC) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "SCC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(DS) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "DS")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(NFC) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "NFC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(SING.Ind) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "SING.Ind")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(SING.Inter) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "SING.Inter")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(Proto) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "Proto")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(SI) + ( predicted.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "SI")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ predicted.Z*scale(NTB) + ( predicted.Z | subID) + ( predicted.Z | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("predicted.Z", "NTB")) %>% plot()
+```
+
+
+# Individual Differences and Linear Trend
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(RSE) + ( slope.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "RSE")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(SCC) + ( slope.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "SCC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(DS) + ( slope.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "DS")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(NFC) + ( slope.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "NFC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(SING.Ind) + ( slope.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "SING.Ind")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(SING.Inter) + ( slope.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "SING.Inter")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(Proto) + ( slope.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "Proto")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(SI) + ( slope.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "SI")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ slope.Z*scale(NTB) + ( slope.Z | subID) + ( slope.Z | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("slope.Z", "NTB")) %>% plot()
+```
+
+# Individual Differences and desirability.Z in Predicting Ingroup Choice
+
+```{r}
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(RSE) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "RSE")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(SCC) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "SCC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(DS) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "DS")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(NFC) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "NFC")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(SING.Ind) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "SING.Ind")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(SING.Inter) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "SING.Inter")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(Proto) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "Proto")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(SI) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "SI")) %>% plot()
+
+m <- glmer( as.factor(ingChoiceN) ~ scale(desirability.Z)*scale(NTB) + ( scale(desirability.Z) | subID) + ( scale(desirability.Z) | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("desirability.Z", "NTB")) %>% plot()
+```
+
+

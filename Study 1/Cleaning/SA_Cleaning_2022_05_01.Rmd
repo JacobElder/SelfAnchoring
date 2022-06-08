@@ -422,12 +422,36 @@ library(magrittr)
 library(dplyr)
 library(ggpubr)
 
+#evalMat <- rowMeans(evalMat[2:ncol(evalMat)]/7, na.rm=T)
 mds <- evalMat %>%
   select(2:length(.)) %>%
-  dist() %>%          
+  dist() %>%
   isoMDS(k=2) %>%
   .$points %>%
   as_tibble()
+
+dist  <- evalMat %>%
+  select(2:length(.)) %>%
+  dist()
+
+mds1 <- 1/(exp(dist)) %>%
+  isoMDS(k=2) %>%
+  .$points %>%
+  as_tibble()
+mds2 <- 1/(1+dist) %>%
+  isoMDS(k=2) %>%
+  .$points %>%
+  as_tibble()
+mds3 <- dist %>%
+  isoMDS(k=2) %>%
+  .$points %>%
+  as_tibble()
+mds4 <- 1- (dist/max(dist)) %>%
+  isoMDS(k=2) %>%
+  .$points %>%
+  as_tibble()
+
+mds<-mds3
 colnames(mds) <- c("Dim.1", "Dim.2")
 
 # Plot MDS
@@ -513,6 +537,7 @@ for(i in uSubs){
     classMat<-cbind(classMat,1:7)
     classMat <- as.data.frame(classMat)
     cleanTest$slope[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <-lm(classMat$V1 ~ classMat$V2)$coefficients[[2]]
+    cleanTest$er[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- sum(classMat$V1 * classMat$V2)
     cleanTest$nlslope[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- MannKendall(classMat$V1)$tau[[1]]
     
     if(length(subAllSelf$selfResp)!=148){
