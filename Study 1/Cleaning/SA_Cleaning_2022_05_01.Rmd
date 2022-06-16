@@ -27,7 +27,7 @@ library(sjstats)
 library(brms)
 library(optimx)
 library(igraph)
-library(loo)
+library(equatiomatic)
 cOptimx <- cmpfun(optimx)
 
 ```
@@ -422,14 +422,15 @@ library(magrittr)
 library(dplyr)
 library(ggpubr)
 
-#evalMat <- rowMeans(evalMat[2:ncol(evalMat)]/7, na.rm=T)
-mds <- evalMat %>%
-  select(2:length(.)) %>%
-  dist() %>%
-  isoMDS(k=2) %>%
-  .$points %>%
-  as_tibble()
-
+# evalMat <- rowMeans(evalMat[2:ncol(evalMat)]/7, na.rm=T)
+# dist <- dist(evalMat)
+# mds <- evalMat %>%
+#   dplyr::select(2:length(.)) %>%
+#   dist() %>%
+#   isoMDS(k=2) %>%
+#   .$points %>%
+#   as_tibble()
+# 
 dist  <- evalMat %>%
   select(2:length(.)) %>%
   dist()
@@ -451,11 +452,11 @@ mds4 <- 1- (dist/max(dist)) %>%
   .$points %>%
   as_tibble()
 
-mds<-mds3
+mds<-mds1
 colnames(mds) <- c("Dim.1", "Dim.2")
 
 # Plot MDS
-ggscatter(mds, x = "Dim.1", y = "Dim.2", 
+ggscatter(mds, x = "Dim.1", y = "Dim.2",
           label = allPosCents$trait,
           size = 1,
           repel = TRUE)
@@ -471,6 +472,8 @@ cleanTest$SE <- NA
 cleanTest$novel <- 0
 simMat <- similarity.dice(posGraph)
 allPosCents$Idx <- 1:148
+
+# load("~/Downloads/baroni.rda")
 
 for(i in uSubs){
   testSub <- subset(cleanTest, subID==i)
@@ -490,17 +493,23 @@ for(i in uSubs){
     curOut <- trainSub$outDegree
     curIn <- trainSub$inDegree
     curRem <- which(is.na(trainSub$selfResp))
+    
+    #curBaroni <- unlist(lapply(tolower(trainSub$trait), function(x) Cosine(tolower(testSub$trait[t]), x, tvectors = baroni)))
+    
     if(length(curRem)>0){
       curSelf <- curSelf[-curRem]
       curSims <- curSims[-curRem]
       curOut <- curOut[-curRem]
       curIn <- curIn[-curRem]
       curMDS <- curMDS[-curRem]
+      # curBaroni <- curBaroni[-curRem]
     }
     weightedAve <- sum(curSelf * curSims) / sum(curSelf)
     weightedOutAve <- sum(curSelf * curOut * curSims) / sum(curOut * curSelf)
     weightedInAve <- sum(curSelf * curIn * curSims) / sum(curIn * curSelf)
     weightedAveS <- sum(sigmoid(curSelf) * curSims) / sum(sigmoid(curSelf))
+    
+    # weightedAveBar <- sum(curSelf * curBaroni, na.rm = T) / sum(curSelf)
     
     cleanTest$SE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedAve
     cleanTest$oSE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedOutAve
@@ -649,6 +658,11 @@ predictedEvals <- rbind(testAvePredicted, trainAvePredicted)
 allPosCents$Idx <- 1:148
 predictedEvals <- merge(predictedEvals, allPosCents, by = "Idx")
 ```
+
+```{r}
+extract_eq(m)
+```
+
 
 
 ```{r}
