@@ -660,12 +660,6 @@ predictedEvals <- merge(predictedEvals, allPosCents, by = "Idx")
 ```
 
 ```{r}
-extract_eq(m)
-```
-
-
-
-```{r}
 cleanTest2 <- cleanTrain %>% select(subID, trait, selfResp) %>% full_join(cleanTest, by = c("subID","trait"))
 #cleanTest3 <- merge(cleanTest, cleanTrain[c("subID","trait","selfResp")], by = c("subID","trait"), all.x = T)
 cleanTest2<-cleanTest2[order(cleanTest2$subID, cleanTest2$trialTotalT2),]
