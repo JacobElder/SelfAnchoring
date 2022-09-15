@@ -1,0 +1,910 @@
+---
+title: "feedback_merge+clean"
+output: html_document
+---
+
+```{r}
+library(ggeffects)
+library(compiler)
+library(readbulk) 
+library(psych)
+library(forcats)
+library(igraph)
+library(MASS)
+library(lme4)
+library(cluster)
+library(Kendall)
+library(readr)
+library(psych)
+library(igraph)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(tidyr)
+library(gtools)
+library(sjstats)
+library(brms)
+library(optimx)
+library(igraph)
+library(equatiomatic)
+cOptimx <- cmpfun(optimx)
+
+```
+
+```{r}
+library(devtools)
+source_url("https://raw.githubusercontent.com/JacobElder/Miscellaneous-R-Functions/master/assortativityNA.R")
+```
+
+```{r}
+setwd("~/Google Drive/Volumes/")
+posDf <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_p.csv")
+posMat <- as.matrix(posDf)
+posGraph <- graph.adjacency(posMat)
+```
+
+```{r}
+setwd("~/Google Drive/Volumes/Research Project/")
+allPosCents <- read.csv("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
+allNegCents <- read.csv("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allNegCents.csv")
+allCombCents <- rbind(allPosCents, allNegCents)
+allCombCents$Idx <- 1:296
+```
+
+
+```{r}
+setwd("/Volumes/Research Project/Self-Anchoring/Study 2/Cleaning/input/")
+mergedRaw <- read_bulk(directory = ".", extension = ".csv", fun = read.csv)
+paste0("There are ", length(unique(mergedRaw$File)), " unique participants")
+```
+
+
+
+```{r}
+mergedRaw$choiceResp[mergedRaw$choiceResp==-99] <- NA
+mergedRaw$optionChoice[mergedRaw$optionChoice==-99] <- NA
+mergedRaw$SE.keys[mergedRaw$SE.keys=="space"] <- NA
+mergedRaw$SE.keys <- as.numeric(mergedRaw$SE.keys)
+```
+
+
+```{r}
+
+mergedRaw <- mergedRaw %>% dplyr::rename(subID = participant, 
+                     trialTotalT1 = trials_2.thisTrialN, 
+                     trialTotalT2 = choices.thisTrialN,
+                     selfResp = SE.keys,
+                     sideChoice = choiceResp,
+                     RT = resp.rt)
+
+# Unclear why but two different participants got 54754
+mergedRaw$subID[mergedRaw$subID==54754 & mergedRaw$date=="2022-07-06_11h47.41.071"] <- mergedRaw$subID[mergedRaw$subID==54754 & mergedRaw$date=="2022-07-06_11h47.41.071"] + 5000 
+
+# Participant 60231 study exited and had to start over, keeping first instance
+mergedRaw <- mergedRaw[!(mergedRaw$subID== 60231 & mergedRaw$date=="2022-07-09_16h25.02.101"),]
+
+mergedRaw$trialTotalT1 <- mergedRaw$trialTotalT1 + 1
+mergedRaw$trialTotalT2 <- mergedRaw$trialTotalT2 + 1
+
+mergedRawtrain <- mergedRaw[!is.na(mergedRaw$trialTotalT1),]
+mergedRawtest <- mergedRaw[!is.na(mergedRaw$trialTotalT2),]
+
+Outgroups <- mergedRaw %>% 
+  select(subID, outgroup) %>%
+  group_by(subID) %>%
+  filter(row_number()==n())
+
+rawTrain <- mergedRawtrain %>%
+  select(subID, trait, trialTotalT1, selfResp)
+
+rawTest <- mergedRawtest %>%
+  select(subID, traitC, trialTotalT2, sideChoice, optionChoice, optionLeft, optionRight, RT)
+
+rawTest <- rawTest %>%
+  rename(trait = traitC)
+
+rawTest <- rawTest %>% inner_join(Outgroups, by = "subID")
+rawTrain <- rawTrain %>% inner_join(Outgroups, by = "subID")
+
+mergeTest <- rawTest %>% inner_join(allCombCents, by="trait")
+mergeTrain <- rawTrain %>% inner_join(allCombCents, by="trait")
+
+#mergeTest$ingChoice <- ifelse(is.na(mergeTest$ingChoice), NA, ifelse(mergeTest$optionChoice==mergeTest$Estimator, "Ingroup", "Outgroup"))
+
+mergeTest$ingChoice <- ifelse(mergeTest$optionChoice!=mergeTest$outgroup, "Ingroup", "Outgroup")
+mergeTest$ingChoice <- as.factor(mergeTest$ingChoice)
+mergeTest$ingChoiceN <- ifelse(mergeTest$ingChoice=="Ingroup", 1, 0)
+```
+
+# Flag careless task participant
+
+```{r}
+uSubs <- unique(mergeTest$subID)
+sketchMat <- matrix(nrow=length(uSubs),ncol=5)
+for(i in 1:length(uSubs) ){
+  testSub <- subset(mergeTest, subID==uSubs[i])
+  trainSub <- subset(mergeTrain, subID==uSubs[i])
+  
+  proportionSelfs <- prop.table(table(trainSub$selfResp))
+  if(is_empty(proportionSelfs)){
+    proportionSelfs <- 1
+  }
+  proportionChoices <- prop.table(table(testSub$sideChoice))
+  if(is_empty(proportionChoices)){
+    proportionChoices <- 1
+  }
+  naSelfs <- sum(is.na(trainSub$selfResp))/length(trainSub$selfResp)
+  naChoices <- sum(is.na(testSub$sideChoice))/length(testSub$sideChoice)
+  
+  sketchMat[i, ] <- c(uSubs[i], max(proportionSelfs), max(proportionChoices), naSelfs, naChoices)
+}
+colnames(sketchMat) <- c("subID", "propSelf", "propChoice", "naSelf", "naChoice")
+sketchMat <- as.data.frame(sketchMat)
+
+# Criteria:
+# Over 80% of same self-evaluations
+# Over 95% of same choices
+# Over 40% missing responses for self-evaluations
+# Over 40% missing responses for choices
+sketchMat$sketch <- ifelse(sketchMat$propSelf > .80 | sketchMat$propChoice > .90 | sketchMat$naSelf > .40 | sketchMat$naChoice > .40, 1, 0)
+```
+
+```{r}
+postQs <- read.csv("/Volumes/Research Project/Self-Anchoring/Study 2/Cleaning/Qualtrics Data/SA2postQs.csv")
+preQs <- read.csv("/Volumes/Research Project/Self-Anchoring/Study 2/Cleaning/Qualtrics Data/SA2preQs.csv")
+preQs <- preQs[!is.na(preQs$id),]
+postQs <- postQs[!is.na(postQs$id),]
+
+# for some reason 54754 assigned to two different participants... Adjusting the first instance of 54754
+preQs$id[preQs$id==54754 & !duplicated(preQs$id)] <- preQs$id[preQs$id==54754 & !duplicated(preQs$id)] + 5000
+postQs$id[postQs$id==54754 & !duplicated(postQs$id)] <- postQs$id[postQs$id==54754 & !duplicated(postQs$id)] + 5000
+
+preQs$id[which(duplicated(preQs$id))]
+preQs <- preQs %>% group_by(id) %>% filter(duplicated(id) | n()==1)
+
+postQs$id[which(duplicated(postQs$id))]
+#preQs <- preQs[-which(duplicated(preQs$id)),]
+
+indDiff <- postQs %>% left_join(preQs, by="id")
+
+# Duplicate IDs?
+indDiff$id[which(duplicated(indDiff$id))]
+
+indDiff <- indDiff[!duplicated(indDiff$id),]
+
+indDiff <- indDiff %>% rename(subID = id)
+```
+
+```{r}
+
+# Reverse code Self-Concept Clarity Scale items
+SCC_revcols = c("SCC_1", "SCC_2", "SCC_3", "SCC_4", "SCC_5", "SCC_7",
+                 "SCC_8", "SCC_9", "SCC_10", "SCC_12")
+indDiff[ ,SCC_revcols] = 6 - indDiff[ ,SCC_revcols]
+ind1 <- grep("SCC_1", colnames(indDiff))
+ind1<-min(ind1)
+ind2<- grep("SCC_12", colnames(indDiff))
+ind2<-max(ind2)
+# Compute score for Self-Concept Clarity Scale items
+indDiff$SCC = rowMeans(indDiff[,ind1:ind2], na.rm = TRUE)
+
+psych::alpha(indDiff[ind1:ind2])
+
+psych::omega(indDiff[ind1:ind2])
+```
+
+Singelis Self-Construal
+```{r}
+# Compute score for Independence in Singelis Self-Construal Scale
+SING.IndCol = c("SING.1", "SING.2", "SING.5", "SING.7", "SING.9", "SING.10", "SING.13",
+                 "SING.15", "SING.18", "SING.20", "SING.22", "SING.24", "SING.25",
+                 "SING.27", "SING.29")
+indDiff$SING.Ind = rowMeans(indDiff[, SING.IndCol], na.rm = TRUE)
+# Compute score for Interdependence in Singelis Self-Construal Scale
+SING.InterCol = c("SING.3", "SING.4", "SING.6", "SING.8", "SING.11", "SING.12",
+                   "SING.14", "SING.16", "SING.17", "SING.19", "SING.21", "SING.23",
+                   "SING.26", "SING.28", "SING.30")
+indDiff$SING.Inter = rowMeans(indDiff[, SING.InterCol], na.rm = TRUE)
+# Compute score for Independence - Interdependence in Singelis Self-Construal Scale
+indDiff$SING.IndPlus = (indDiff$SING.Ind - indDiff$SING.Inter)
+
+psych::alpha(indDiff[SING.InterCol])
+psych::alpha(indDiff[SING.IndCol])
+```
+Self-Esteem
+```{r}
+# Reverse code Rosenberg Self-Esteem items
+SErevcols = c("RSE.2", "RSE.5", "RSE.6", "RSE.8", "RSE.9")
+indDiff[ ,SErevcols] = 5 - indDiff[ ,SErevcols]
+ind1 <- grep("RSE.1", colnames(indDiff))
+ind1<-min(ind1)
+ind2<- grep("RSE.10", colnames(indDiff))
+ind2<-max(ind2)
+# Compute scores for Rosenberg Self-Esteem
+indDiff$RSE = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
+
+psych::alpha(indDiff[ind1:ind2])
+```
+
+```{r}
+# Reverse code Need for Cog items
+NFCrevcols = c("NFC.6_3", "NFC.6_4")
+indDiff[ ,NFCrevcols] = 8 - indDiff[ ,NFCrevcols]
+ind1 <- grep("NFC.6_1", colnames(indDiff))
+ind1<-min(ind1)
+ind2<- grep("NFC.6_6", colnames(indDiff))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+indDiff$NFC = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
+
+psych::alpha(indDiff[ind1:ind2])
+```
+
+```{r}
+# Reverse code Need for Cog items
+NTBrevcols = c("NTB_1", "NTB_3", "NTB_7")
+indDiff[ ,NTBrevcols] = 6 - indDiff[ ,NTBrevcols]
+ind1 <- grep("NTB_1", colnames(indDiff))
+ind1<-min(ind1)
+ind2<- grep("NTB_10", colnames(indDiff))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+indDiff$NTB = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
+
+psych::alpha(indDiff[ind1:ind2])
+```
+
+```{r}
+# Reverse code Need for Cog items
+
+
+DSrevcols = c("DS_1", "DS_5", "DS_6", "DS_7", "DS_9", "DS_14")
+indDiff[ ,DSrevcols] = 8 - indDiff[ ,DSrevcols]
+ind1 <- grep("DS_1", colnames(indDiff))
+ind1<-min(ind1)
+ind2<- grep("DS_14", colnames(indDiff))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+indDiff$DS = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
+
+psych::alpha(indDiff[ind1:ind2])
+```
+
+# Self-Prototypicality
+
+```{r}
+ind1 <- grep("Proto_1", colnames(indDiff))
+ind1<-min(ind1)
+ind2<- grep("Proto_4", colnames(indDiff))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+indDiff$Proto = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
+
+
+psych::alpha(indDiff[ind1:ind2])
+```
+
+# Entitativity
+
+```{r}
+ind1 <- grep("Entitativity_1", colnames(indDiff))
+ind1<-min(ind1)
+ind2<- grep("Entitativity_4", colnames(indDiff))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+indDiff$Ent = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
+
+
+psych::alpha(indDiff[ind1:ind2])
+```
+
+# Similarity
+
+```{r}
+ind1 <- grep("Similarity_1", colnames(indDiff))
+ind1<-min(ind1)
+ind2<- grep("Similarity_4", colnames(indDiff))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+indDiff$GSim = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
+
+
+psych::alpha(indDiff[ind1:ind2])
+```
+
+# Thermometer and Status
+
+```{r}
+indDiff$InUCLATherm <- indDiff$Therm_1 - indDiff$Therm_2
+indDiff$InCSULATherm <- indDiff$Therm_1 - indDiff$Therm_4
+
+indDiff$InUCLAStatus <- indDiff$UCR_Status - indDiff$UCLA_Status
+indDiff$InCSULAStatus <- indDiff$UCR_Status - indDiff$CSULA_Status
+```
+
+# Self-Group Overlap
+
+```{r}
+ind1<-grep("SGO_Self_CSULA_1",colnames(indDiff))
+ind2<-grep("SGO_Self_CSULA_7",colnames(indDiff))
+for(i in 1:nrow(indDiff)){
+  SGO <- grep("On", as.matrix(indDiff[i,ind1:ind2]))
+  if(length(SGO)==0){
+    indDiff$SGO_Self_CSULA[i] <- 0
+  }else{
+    indDiff$SGO_Self_CSULA[i] <- SGO
+  }
+}
+
+ind1<-grep("SGO_Self_UCLA_1",colnames(indDiff))
+ind2<-grep("SGO_Self_UCLA_7",colnames(indDiff))
+for(i in 1:nrow(indDiff)){
+  SGO <- grep("On", as.matrix(indDiff[i,ind1:ind2]))
+  if(length(SGO)==0){
+    indDiff$SGO_Self_UCLA[i] <- 0
+  }else{
+    indDiff$SGO_Self_UCLA[i] <- SGO
+  }
+}
+
+ind1<-grep("SGO_Self_UCR_1",colnames(indDiff))
+ind2<-grep("SGO_Self_UCR_7",colnames(indDiff))
+for(i in 1:nrow(indDiff)){
+  SGO <- grep("On", as.matrix(indDiff[i,ind1:ind2]))
+  if(length(SGO)==0){
+    indDiff$SGO_Self_UCR[i] <- 0
+  }else{
+    indDiff$SGO_Self_UCR[i] <- SGO
+  }
+}
+
+ind1<-grep("SGO_UCR_UCLA_1",colnames(indDiff))
+ind2<-grep("SGO_UCR_UCLA_7",colnames(indDiff))
+for(i in 1:nrow(indDiff)){
+  SGO <- grep("On", as.matrix(indDiff[i,ind1:ind2]))
+  if(length(SGO)==0){
+    indDiff$SGO_UCR_UCLA[i] <- 0
+  }else{
+    indDiff$SGO_UCR_UCLA[i] <- SGO
+  }
+}
+
+ind1<-grep("SGO_UCR_CSULA_1",colnames(indDiff))
+ind2<-grep("SGO_UCR_CSULA_7",colnames(indDiff))
+for(i in 1:nrow(indDiff)){
+  SGO <- grep("On", as.matrix(indDiff[i,ind1:ind2]))
+  if(length(SGO)==0){
+    indDiff$SGO_UCR_CSULA[i] <- 0
+  }else{
+    indDiff$SGO_UCR_CSULA[i] <- SGO
+  }
+}
+```
+
+# MGIS
+
+```{r}
+# Solidarity items
+MGIS_Solidcols = paste0("MGIS_",c(1,2,3))
+indDiff$MGIS_Solid = rowMeans(indDiff[, MGIS_Solidcols], na.rm = TRUE)
+psych::alpha(indDiff[MGIS_Solidcols])$total
+# Solidarity items
+MGIS_Satiscols = paste0("MGIS_",c(4,5,6,7))
+indDiff$MGIS_Satis = rowMeans(indDiff[, MGIS_Satiscols], na.rm = TRUE)
+psych::alpha(indDiff[MGIS_Satiscols])$total
+# Solidarity items
+MGIS_Centcols = paste0("MGIS_",c(8,9,10))
+indDiff$MGIS_Cent = rowMeans(indDiff[, MGIS_Centcols], na.rm = TRUE)
+psych::alpha(indDiff[MGIS_Centcols])$total
+# Self-Investment items
+MGIS_SIcols = paste0("MGIS_",1:10)
+indDiff$MGIS_SI = rowMeans(indDiff[, MGIS_SIcols], na.rm = TRUE)
+psych::alpha(indDiff[MGIS_SIcols])$total
+# Solidarity items
+MGIS_ISeStercols = paste0("MGIS_",c(11,12))
+indDiff$MGIS_ISeSte = rowMeans(indDiff[, MGIS_ISeStercols], na.rm = TRUE)
+psych::alpha(indDiff[MGIS_ISeStercols])$total
+# Solidarity items
+MGIS_GSeStercols = paste0("MGIS_",c(13,14))
+indDiff$MGIS_GSeSte = rowMeans(indDiff[, MGIS_GSeStercols], na.rm = TRUE)
+psych::alpha(indDiff[MGIS_GSeStercols])$total
+# Self-Definition items
+MGIS_SDcols = paste0("MGIS_",11:14)
+indDiff$MGIS_SD = rowMeans(indDiff[, MGIS_SDcols], na.rm = TRUE)
+psych::alpha(indDiff[MGIS_SDcols])$total
+# MGIS
+MGIS_cols = paste0("MGIS_",1:14)
+indDiff$MGIS = rowMeans(indDiff[, MGIS_cols], na.rm = TRUE)
+psych::alpha(indDiff[MGIS_cols])$total
+```
+
+# Collective Self-Esteem
+
+```{r}
+attach(indDiff)
+# Reverse code Collective Self-Esteem items (2, 4, 5, 7, 10 ,12, 13, 15)
+CSErevcols = c("CSE2", "CSE4", "CSE5", "CSE7", "CSE10", "CSE12", "CSE13", "CSE15")
+indDiff[ ,CSErevcols] = 8 - indDiff[ ,CSErevcols]
+# Compute score for Membership Self-Esteem
+MemSEcols = c("CSE1", "CSE5", "CSE9", "CSE10")
+indDiff$MemSE = rowMeans(indDiff[, MemSEcols], na.rm = TRUE)
+psych::alpha(indDiff[,MemSEcols])
+# Compute score for Private Collective Self-Esteem
+PrivCSEcols = c("CSE2", "CSE6", "CSE10", "CSE14")
+indDiff$PrivCSE = rowMeans(indDiff[, PrivCSEcols], na.rm = TRUE)
+psych::alpha(indDiff[,PrivCSEcols])
+# Compute score for Public Collective Self-Esteem
+PubCSEcols = c("CSE3", "CSE7", "CSE11", "CSE15")
+indDiff$PubCSE = rowMeans(indDiff[, PubCSEcols], na.rm = TRUE)
+psych::alpha(indDiff[,PubCSEcols])
+# Compute score for Importance to Identity
+IdImpcols = c("CSE4", "CSE8", "CSE12", "CSE16")
+indDiff$IdImp = rowMeans(indDiff[, IdImpcols], na.rm = TRUE)
+psych::alpha(indDiff[,IdImpcols])
+detach(indDiff)
+```
+
+
+```{r}
+#indDiff <- indDiff %>% rename(conf = Off4_1, decep = Off5)
+
+indDiffs <- indDiff
+#indDiffs <- indDiff %>% select(subID, Serious, UnderstandIns, UnderstandTr, Usable, DS, Proto, SCC, SI, RSE, NTB, NFC, SING.Ind, SING.Inter)
+
+sketchMat <- indDiffs %>% select(subID, Serious, UnderstandIns, UnderstandTr, Usable) %>% inner_join(sketchMat, by = "subID")
+
+sketchMat$remove <- ifelse(sketchMat$sketch > 0 |sketchMat$Usable == 2 | sketchMat$Serious < 4, 1, 0)
+#sketchMat$remove <- ifelse(is.na(sketchMat$Usable) | is.na(sketchMat$Serious), 2, sketchMat$remove)
+```
+
+```{r}
+library(Hmisc)
+unique(mergeTest$subID)
+# 6311
+cleanTest <- mergeTest[mergeTest$subID %in% sketchMat$subID[sketchMat$remove!=1],]
+#cleanTest <- mergeTest[mergeTest$subID %in% sketchMat$subID[sketchMat$remove==0],]
+unique(cleanTest$subID)
+length(unique(cleanTest$subID))
+```
+
+```{r}
+unique(mergeTrain$subID)
+cleanTrain <- mergeTrain[mergeTrain$subID %in% sketchMat$subID[sketchMat$remove!=1],]
+unique(cleanTrain$subID)
+```
+
+```{r}
+unique(indDiffs$subID)
+indDiffsclean <- indDiffs[indDiffs$subID %in% sketchMat$subID[sketchMat$remove!=1],]
+unique(indDiffsclean$subID)
+```
+
+# 59353 has two CSVs. I deleted the first
+
+```{r}
+
+uSubs <- unique(cleanTest$subID)
+duplicatedIDs <- c()
+for(i in uSubs){
+  if(nrow(cleanTest[cleanTest$subID==i,])>148){
+    print(paste0("Subject ", i, " has more than one CSV"))
+    duplicatedIDs <- c(duplicatedIDs, i)
+    
+  }
+}
+```
+
+# Check if repeated CSVs are identical
+
+```{r}
+
+repeatedIDs <- c()
+if(length(duplicatedIDs)>0){
+  for(t in 1:length(duplicatedIDs)){
+  
+  checkDup1 <- cleanTest %>%
+  filter(subID==duplicatedIDs[t])
+
+  outcome <- all( checkDup1[!duplicated(checkDup1$trait),] == checkDup1[duplicated(checkDup1$trait),], na.rm = T )
+  repeatedIDs <- c(repeatedIDs, outcome)
+  
+}
+duplicateFrame <- cbind(duplicatedIDs, repeatedIDs)
+duplicateFrame
+}
+```
+
+# Resolve duplicates
+
+For IDs in which duplicate IDs have identical data, keep first instances. It doesn't matter.
+
+```{r}
+if(length(duplicatedIDs)>0){
+# subset duplicates
+
+duplicatedDataTest <- cleanTest[cleanTest$subID %in% duplicatedIDs,]
+duplicatedDataTrain <- cleanTrain[cleanTrain$subID %in% duplicatedIDs,]
+
+# subset original data, excluding duplicates
+
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
+originalDataTest <- cleanTest[cleanTest$subID %!in% duplicatedIDs,]
+originalDataTrain <- cleanTrain[cleanTrain$subID %!in% duplicatedIDs,]
+
+# Did indexing work?
+
+nrow(originalDataTest) + nrow(duplicatedDataTest) == nrow(cleanTest)
+nrow(originalDataTrain) + nrow(duplicatedDataTrain) == nrow(cleanTrain)
+
+for(t in 1:nrow(duplicateFrame)){
+  # if not identical data, keep last
+  # if(duplicateFrame[t,2]==0){
+  #   curData <- duplicatedDataTest[duplicatedDataTest$subID==duplicatedIDs[t],]
+  #   originalDataTest <- rbind(originalDataTest, curData[duplicated(curData$trait),])
+  #   
+  #   curData <- duplicatedDataTrain[duplicatedDataTrain$subID==duplicatedIDs[t],]
+  #   originalDataTrain <- rbind(originalDataTrain, curData[duplicated(curData$trait),])
+  # # if identical data, keep first
+  # }else if(duplicateFrame[t,2]==1){
+    curData <- duplicatedDataTest[duplicatedDataTest$subID==duplicatedIDs[t],]
+    originalDataTest <- rbind(originalDataTest, curData[!duplicated(curData$trait),])
+    
+    curData <- duplicatedDataTrain[duplicatedDataTrain$subID==duplicatedIDs[t],]
+    originalDataTrain <- rbind(originalDataTrain, curData[duplicated(curData$trait),])
+  #}
+}
+
+# Are all IDs identical as before?
+all(unique(originalDataTest$subID) %in% unique(cleanTest$subID))
+all(unique(originalDataTrain$subID) %in% unique(cleanTrain$subID))
+
+# Are the appropriate number of rows reduced?
+nrow(cleanTest) - nrow(originalDataTest) == length(duplicatedIDs)*148
+
+cleanTest <- originalDataTest
+cleanTrain <- originalDataTrain
+}
+```
+
+
+
+```{r}
+sigmoid <- function(feed, slope=1, shift=0){
+  feed = feed - 4
+  output = 1 / (1 + exp(slope * -(feed) - shift ) )
+  output = (output * 6) + 1
+  return(output)
+}
+
+entropy <- function(x){
+  inds<-which(x!=0)
+  -sum(x[inds] * log2(x[inds]))
+}
+
+computeNeighbors <- function(graph, label, type = "all"){
+  curNeigh <- neighbors(graph, label, mode = type)
+  curGraph <- induced.subgraph(graph, curNeigh)
+  impInd <- which(!is.na(V(curGraph)$SE))
+  impGraph <- induced.subgraph(curGraph, impInd)
+  neighAveSE <- mean(V(impGraph)$SE, na.rm = TRUE)
+  return(neighAveSE)
+}
+```
+
+```{r}
+# evalMat <- matrix(nrow=148, ncol=1)
+# evalMat[,1] <- 1:148
+# evalMat <- as.data.frame(evalMat)
+# colnames(evalMat) <- c("Idx")
+# for(i in uSubs){
+#   eval <- cleanTrain$selfResp[cleanTrain$subID==i]
+#   cur <- cbind(cleanTrain$Idx[cleanTrain$subID==i], eval)
+#   colnames(cur) <- c("Idx",paste0("e",i))
+#   evalMat <- merge(evalMat, cur, by = "Idx", all.x = T)
+# }
+# 
+# library(magrittr)
+# library(dplyr)
+# library(ggpubr)
+# 
+#evalMat <- rowMeans(evalMat[2:ncol(evalMat)]/7, na.rm=T)
+# dist <- dist(evalMat)
+# mds <- evalMat %>%
+#   dplyr::select(2:length(.)) %>%
+#   dist() %>%
+#   isoMDS(k=2) %>%
+#   .$points %>%
+#   as_tibble()
+
+# dist  <- evalMat %>%
+#   select(2:length(.)) %>%
+#   dist()
+
+# mds1 <- 1/(exp(dist)) %>%
+#   isoMDS(k=2) %>%
+#   .$points %>%
+#   as_tibble()
+# mds2 <- 1/(1+dist) %>%
+#   isoMDS(k=2) %>%
+#   .$points %>%
+#   as_tibble()
+# mds3 <- dist %>%
+#   isoMDS(k=2) %>%
+#   .$points %>%
+#   as_tibble()
+# mds4 <- 1- (dist/max(dist)) %>%
+#   isoMDS(k=2) %>%
+#   .$points %>%
+#   as_tibble()
+
+# mds<-mds2
+# colnames(mds) <- c("Dim.1", "Dim.2")
+# 
+# # Plot MDS
+# ggscatter(mds, x = "Dim.1", y = "Dim.2",
+#           label = allPosCents$trait,
+#           size = 1,
+#           repel = TRUE)
+# 
+# mds$Idx <- 1:148
+# 
+# mdsMat <- as.matrix(dist(mds[1:2]))
+```
+
+
+```{r}
+cleanTest$SE <- NA
+cleanTest$novel <- 0
+simMat <- similarity.dice(posGraph)
+allPosCents$Idx <- 1:148
+
+# load("~/Downloads/baroni.rda")
+
+for(i in uSubs){
+  testSub <- subset(cleanTest, subID==i)
+  trainSub <- subset(cleanTrain, subID==i)
+  
+  curNovel <- setdiff(testSub$Idx, trainSub$Idx)
+  cleanTest$novel[which(cleanTest$subID==i & cleanTest$Idx %in% curNovel)] <- 1
+  
+  
+  subAllSelf <- trainSub %>% select(Idx, selfResp) %>% full_join(allPosCents, by = "Idx") %>% arrange(Idx)
+  
+  for(t in 1:nrow(testSub)){
+    trialNum <- testSub$trialTotalT2[t]
+    curSims <- simMat[trainSub$Idx, testSub$Idx[t]]
+    #curMDS <- mdsMat[trainSub$Idx, testSub$Idx[t]]
+    curSelf <- trainSub$selfResp
+    curOut <- trainSub$outDegree
+    curIn <- trainSub$inDegree
+    curRem <- which(is.na(trainSub$selfResp))
+    
+    #curBaroni <- unlist(lapply(tolower(trainSub$trait), function(x) Cosine(tolower(testSub$trait[t]), x, tvectors = baroni)))
+    
+    if(length(curRem)>0){
+      curSelf <- curSelf[-curRem]
+      curSims <- curSims[-curRem]
+      curOut <- curOut[-curRem]
+      curIn <- curIn[-curRem]
+      #curMDS <- curMDS[-curRem]
+      # curBaroni <- curBaroni[-curRem]
+    }
+    weightedAve <- sum(curSelf * curSims) / sum(curSelf)
+    weightedOutAve <- sum(curSelf * curOut * curSims) / sum(curOut * curSelf)
+    weightedInAve <- sum(curSelf * curIn * curSims) / sum(curIn * curSelf)
+    weightedAveS <- sum(sigmoid(curSelf) * curSims) / sum(sigmoid(curSelf))
+    
+    # weightedAveBar <- sum(curSelf * curBaroni, na.rm = T) / sum(curSelf)
+    
+    cleanTest$SE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedAve
+    cleanTest$oSE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedOutAve
+    cleanTest$iSE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedInAve
+    cleanTest$sSE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedAveS
+    cleanTest$eSE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- exp(weightedAve)
+    
+    #weightedMDS <- sum(curSelf * curMDS) / sum(curSelf)
+    
+    cleanTest$meanSim[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- mean(curSims)
+    #cleanTest$meanMDS[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- mean(curMDS)
+    #cleanTest$weightMDS[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedMDS
+    
+    weightedAve <- sum(curSelf * curSims) / sum(curSims)
+    weightedOutAve <- sum(curSelf * curOut * curSims) / sum(curOut * curSims)
+    weightedInAve <- sum(curSelf * curIn * curSims) / sum(curIn * curSims)
+    
+    cleanTest$WSR[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedAve
+    cleanTest$oWSR[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedOutAve
+    cleanTest$iWSR[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- weightedInAve
+    
+    cleanTest$fam[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- sum(curSims)
+    
+    classMat <- matrix(nrow=7,ncol=1)
+    sumSims <- sum(curSims)
+    for(e in 1:7){
+      classIndices<-which(curSelf==e)
+      classIdx<-trainSub$Idx[classIndices]
+      classMat[e] <- sum(simMat[classIdx,testSub$Idx[t]])/sumSims
+      #classSim <- simMat[trainSub$Idx[classIndices],testSub$Idx[t]]
+      
+    }
+    cleanTest$entropy[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- entropy(classMat)
+    classMat<-cbind(classMat,1:7)
+    classMat <- as.data.frame(classMat)
+    cleanTest$slope[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <-lm(classMat$V1 ~ classMat$V2)$coefficients[[2]]
+    cleanTest$er[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- sum(classMat$V1 * classMat$V2)
+    cleanTest$nlslope[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- MannKendall(classMat$V1)$tau[[1]]
+    
+    if(length(subAllSelf$selfResp)!=148){
+      print("I am unhappy, fix me")
+      print(paste0("Subject ",i," Trial ", t))
+      break
+    }
+    V(posGraph)$SE <- subAllSelf$selfResp
+    
+    cleanTest$seHomoph[cleanTest$subID==i] <- assortativityNA(posGraph, V(posGraph)$SE+.001)
+    
+  traitIdx <- cleanTest$Idx[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum]
+  curLabel <- paste0("V",traitIdx)
+  
+  cleanTest$neighAveInSE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- computeNeighbors(posGraph, curLabel, "in")
+  cleanTest$neighAveOutSE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- computeNeighbors(posGraph, curLabel, "out")
+  cleanTest$neighAveAllSE[cleanTest$subID==i & cleanTest$trialTotalT2==trialNum] <- computeNeighbors(posGraph, curLabel, "all")
+   
+  }
+  
+}
+```
+
+```{r}
+trainSimMat <- matrix(ncol=7,nrow=0)
+testSimMat <- matrix(ncol=6,nrow=0)
+for(i in uSubs){
+  testSub <- subset(cleanTest, subID==i)
+  trainSub <- subset(cleanTrain, subID==i)
+  
+  curNovel <- setdiff(testSub$Idx, trainSub$Idx)
+  cleanTest$novel[which(cleanTest$subID==i & cleanTest$Idx %in% curNovel)] <- 1
+  
+  allIdx <- trainSub$Idx
+  allSelf <- trainSub$selfResp
+  allIdxTest <- testSub %>% filter(novel==1) %>% select(Idx) %>% pull(Idx)
+  for(t in 1:nrow(trainSub)){
+    curIdx <- trainSub$Idx[t]
+    curSelf <- trainSub$selfResp[t]
+    allSim <- simMat[curIdx, allIdx]
+    
+    WeightAve <- sum(allSim*allSelf, na.rm = T)/sum(allSim, na.rm = T)
+    
+    curMat <- cbind(rep(i,length(allSelf)),
+                    rep(curSelf,length(allSelf)),
+                    rep(curIdx,length(allSelf)),
+                    allIdx,
+                    allSelf,
+                    allSim,
+                    WeightAve
+                    )
+    trainSimMat <- rbind(trainSimMat,curMat)
+  
+    allSimTest <- simMat[curIdx, allIdxTest]
+    curMatTest <- cbind(rep(i, length(allSimTest)),
+                        rep(curSelf,length(allSimTest)),
+                        rep(curIdx,length(allSimTest)),
+                        allIdxTest, 
+                        allSimTest,
+                        WeightAve
+                        )
+    testSimMat <- rbind(testSimMat,curMatTest)
+    
+    
+  trialNumT1 <- trainSub$trialTotalT1[t]
+  cleanTrain$inGsim[cleanTrain$subID==i & cleanTrain$trialTotalT1==trialNumT1] <- mean(simMat[trainSub$Idx[t],testSub$Idx[which(testSub$ingChoiceN==1)]])
+  cleanTrain$outGsim[cleanTrain$subID==i & cleanTrain$trialTotalT1==trialNumT1] <- mean(simMat[trainSub$Idx[t],testSub$Idx[which(testSub$ingChoiceN==0)]])
+    
+    
+  }
+  
+  V(posGraph)$C <- testSub$ingChoice[order(testSub$Idx)]
+  cleanTest$groupHomoph[cleanTest$subID==i] <- netseg::assort(posGraph, "C")
+  
+}
+colnames(trainSimMat) <- c("subID","self", "Idx", "targetIdx", "targetSelf", "similarity", "WA")
+colnames(testSimMat) <- c("subID","self", "Idx", "targetIdx", "similarity", "WA")
+trainSimDf <- as.data.frame(trainSimMat)
+testSimDf <- as.data.frame(testSimMat)
+
+cleanTrain$inOutDiff <- cleanTrain$inGsim - cleanTrain$outGsim
+```
+
+```{r}
+    # curDfTrain<-as.data.frame(curMat)
+    # colnames(curDfTrain) <- c("subID","self", "Idx", "targetIdx", "targetSelf", "similarity")
+    # curDfTest<-as.data.frame(curMatTest)
+    # colnames(curDfTest) <- c("subID","self", "Idx", "targetIdx", "similarity")
+    # lm(targetSelf ~ scale(self) * scale(similarity), data=curDfTrain )
+    # curMatTest <- cbind(curMatTest, predict(m, curDfTest))
+```
+
+
+```{r}
+library(lmerTest)
+m <- lmer(targetSelf ~ scale(self) * scale(similarity) + ( scale(self) + scale(similarity) | subID) + ( 1 | Idx), data = trainSimDf)
+summary(m)
+ggpredict(m, c("self","similarity")) %>% plot(show.title=F)+ xlab("Reference Self-Descriptiveness") + ylab("Target Self-Descriptiveness") + jtools::theme_apa()  + scale_color_discrete(labels = c("Low Similarity","Moderate Similarity", "High Similarity"))
+ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/TrainingPredictedEffects.tiff",dpi=600)
+trainSimDf$predicted <- predict(m, trainSimDf)
+testSimDf$predicted <- predict(m, testSimDf)
+
+trainAvePredicted <- Rmisc::summarySE(data=trainSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"), na.rm=T)
+testAvePredicted <- Rmisc::summarySE(data=testSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"), na.rm=T)
+trainAvePredicted <- trainAvePredicted %>% rename(Idx = targetIdx)
+testAvePredicted <- testAvePredicted %>% rename(Idx = targetIdx)
+
+predictedEvals <- rbind(testAvePredicted, trainAvePredicted)
+allPosCents$Idx <- 1:148
+predictedEvals <- merge(predictedEvals, allPosCents, by = "Idx")
+```
+
+```{r}
+cleanTest2 <- cleanTrain %>% select(subID, trait, selfResp) %>% full_join(cleanTest, by = c("subID","trait"))
+#cleanTest3 <- merge(cleanTest, cleanTrain[c("subID","trait","selfResp")], by = c("subID","trait"), all.x = T)
+cleanTest2<-cleanTest2[order(cleanTest2$subID, cleanTest2$trialTotalT2),]
+```
+
+```{r}
+nrow(subset(cleanTest2, subID==uSubs[1]))
+```
+
+
+```{r}
+cleanTest4 <- predictedEvals %>% select(subID, trait, predicted) %>% full_join(cleanTest2, by = c("subID","trait"))
+#cleanTest3 <- merge(cleanTest, cleanTrain[c("subID","trait","selfResp")], by = c("subID","trait"), all.x = T)
+cleanTest4<-cleanTest4[order(cleanTest4$subID, cleanTest4$trialTotalT2),]
+
+cleanTest <- cleanTest4
+
+fullTest <- cleanTest %>% inner_join(indDiffsclean, by = "subID")
+```
+
+```{r}
+fullTest$optionChoiceN <- ifelse(fullTest$optionChoice=="UCR", 1, 0)
+traitFreqOverUnder <- Rmisc::summarySE(fullTest, measurevar="optionChoiceN", groupvars = c("outgroup","trait"), na.rm = T)
+write.csv(traitFreqOverUnder, "./output/traitFreqOverUnder.csv", row.names = F)
+```
+
+# Leave subject out proportions choosing that trait
+
+```{r}
+for(i in uSubs){
+  og <- unique(fullTest$outgroup[fullTest$subID==i])
+  for(j in unique(fullTest$Idx)){
+    
+    if(fullTest$outgroup[fullTest$subID==i & fullTest$Idx==j & fullTest$outgroup == og]=="UCLA"){
+      
+      fullTest$propCorrOutLOO[fullTest$subID==i & fullTest$Idx==j & fullTest$outgroup == og] <- 1 - mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j & fullTest$outgroup == og], na.rm=T)
+      
+    }else if(fullTest$outgroup[fullTest$subID==i & fullTest$Idx==j & fullTest$outgroup == og]=="CSU LA"){
+      
+      fullTest$propCorrOutLOO[fullTest$subID==i & fullTest$Idx==j & fullTest$outgroup == og] <- 1- mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j & fullTest$outgroup == og], na.rm=T)
+      
+    }else if(fullTest$outgroup[fullTest$subID==i & fullTest$Idx==j & fullTest$outgroup == og]=="Not UCR"){
+      
+      fullTest$propCorrOutLOO[fullTest$subID==i & fullTest$Idx==j & fullTest$outgroup == og] <- 1 - mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j & fullTest$outgroup == og], na.rm=T)
+      
+    }
+    
+    fullTest$propCorrInLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j], na.rm=T)
+    
+    fullTest$evalLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(cleanTrain$selfResp[cleanTrain$subID!=i & cleanTrain$Idx==j], na.rm=T)
+    
+  }
+}
+```
+
+
+```{r}
+write.csv(fullTest, "./output/fullTest.csv", row.names = F)
+write.csv(cleanTrain, "./output/fullTrain.csv", row.names = F)
+```
+

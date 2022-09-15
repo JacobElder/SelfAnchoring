@@ -273,7 +273,7 @@ indDiffs <- indDiff %>% select(subID, ConDeb, conf, decep, Serious, UnderstandIn
 
 sketchMat <- indDiffs %>% select(subID, ConDeb, conf, decep, Serious, UnderstandIns, UnderstandTr, Usable) %>% inner_join(sketchMat, by = "subID")
 
-sketchMat$remove <- ifelse(sketchMat$sketch > 0 | sketchMat$ConDeb == 2 | sketchMat$Usable == 2 | sketchMat$Serious < 5, 1, 0 | sketchMat$decep < 1)
+sketchMat$remove <- ifelse(sketchMat$sketch > 0 | sketchMat$ConDeb == 2 | sketchMat$Usable == 2 | sketchMat$Serious < 5 | sketchMat$decep < 1, 1, 0)
 ```
 
 ```{r}
@@ -649,7 +649,7 @@ ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/TrainingPredicte
 trainSimDf$predicted <- predict(m, trainSimDf)
 testSimDf$predicted <- predict(m, testSimDf)
 
-trainAvePredicted <- Rmisc::summarySE(data=trainSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"))
+trainAvePredicted <- Rmisc::summarySE(data=trainSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"), na.rm=T)
 testAvePredicted <- Rmisc::summarySE(data=testSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"), na.rm=T)
 trainAvePredicted <- trainAvePredicted %>% rename(Idx = targetIdx)
 testAvePredicted <- testAvePredicted %>% rename(Idx = targetIdx)

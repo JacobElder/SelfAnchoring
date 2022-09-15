@@ -1,0 +1,91 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(simr)
+library(lme4)
+library(lmerTest)
+library(dplyr)
+library(ggeffects)
+```
+
+```{r}
+fullTest <- read.csv("~/Documents/GitHub/SelfAnchoring/Study 1/Cleaning/output/fullTest.csv")
+```
+
+
+```{r}
+fullTest$ingChoiceN <- as.factor(fullTest$ingChoiceN)
+fullTest$novel <- as.factor(fullTest$novel)
+fullTest$selfResp.Z <- scale(fullTest$selfResp)
+fullTest$SE.Z <- scale(fullTest$SE)
+fullTest$iSE.Z <- scale(fullTest$iSE)
+fullTest$oSE.Z <- scale(fullTest$oSE)
+fullTest$predicted.Z <- scale(fullTest$predicted)
+fullTest$slope.Z <- scale(fullTest$slope)
+fullTest$entropy.Z <- scale(fullTest$entropy)
+fullTest$WSR.Z <- scale(fullTest$WSR)
+fullTest$neighAveOutSE.Z <- scale(fullTest$neighAveOutSE)
+fullTest$neighAveAllSE.Z <- scale(fullTest$neighAveAllSE)
+fullTest$neighAveInSE.Z <- scale(fullTest$neighAveInSE)
+fullTest$evalLOO.Z <- scale(fullTest$evalLOO)
+fullTest$propCorrLOO.Z <- scale(fullTest$propCorrLOO)
+fullTest$propCorr.Z <- scale(fullTest$propCorr)
+fullTest$desirability.Z <- scale(fullTest$desirability)
+fullTest$er.Z <- scale(fullTest$er)
+
+fullTest1 <- fullTest
+fullTest1$condition <- 0
+fullTest2 <- fullTest
+fullTest2$subID <- fullTest2$subID + 50000
+fullTest2$condition <- 1
+fullTest3 <- fullTest
+fullTest3$subID <- fullTest3$subID + 50000000
+fullTest3$condition <- 2
+fullTestC <- rbind(fullTest1, fullTest2, fullTest3)
+fullTestC$condition <- as.factor(fullTestC$condition)
+fullTestC$subID <- as.factor(fullTestC$subID)
+```
+
+```{r}
+fullTestC <- fullTestC[!is.na(fullTestC$predicted.Z) & !is.na(fullTestC$ingChoiceN),]
+```
+
+
+```{r}
+m <- glmer( ingChoiceN ~ predicted.Z*condition +  ( predicted.Z | subID) + (1 | trait), data = fullTestC, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
+```{r}
+fixef(m)[c('condition1', 'condition2' ,'predicted.Z:condition1', 'predicted.Z:condition2')] <- c(.01, -.01, -.35, .35)
+#contrasts(fullTestC$condition) <- contr.treatment(3)
+summary(m)
+
+ggpredict(m, c("predicted.Z", "condition")) %>% plot()
+```
+
+```{r}
+m2 <- extend(m, along="subID", n=1000)
+test<-r2glmm::r2beta(m2)
+data.frame(test$Effect, test$Rsq)
+```
+
+##Power curve for feedback, random slopes then fixed slopes
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+between.power.curve <- powerCurve(m2, test = fixed("predicted.Z:condition1", "z"), along ="subID" ,
+                                  nsim=100, breaks = c(50,75,100,125,150,175,200,225) )
+                                  #nsim=1, breaks = c(175, 200, 225, 250, 275, 300) )
+```
+
+###plotting the power curves
+```{r plot curve function on sim data}
+plot(between.power.curve)
+```

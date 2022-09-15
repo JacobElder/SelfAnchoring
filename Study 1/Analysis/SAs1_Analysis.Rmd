@@ -206,6 +206,13 @@ m <- glmer( ingChoiceN ~ predicted.Z + ( predicted.Z | subID) + (1 | trait), dat
 summary(m)
 ```
 
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+```
+
 # Covariates
 
 ```{r}
