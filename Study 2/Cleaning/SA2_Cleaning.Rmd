@@ -28,6 +28,7 @@ library(brms)
 library(optimx)
 library(igraph)
 library(equatiomatic)
+library(rlang)
 cOptimx <- cmpfun(optimx)
 
 ```
@@ -318,9 +319,13 @@ psych::alpha(indDiff[ind1:ind2])
 ```{r}
 indDiff$InUCLATherm <- indDiff$Therm_1 - indDiff$Therm_2
 indDiff$InCSULATherm <- indDiff$Therm_1 - indDiff$Therm_4
+indDiff$OtherTherm <- rowMeans(indDiff[c("Therm_2","Therm_4")])
+indDiff$InOtherTherm <- indDiff$Therm_1 - indDiff$OtherTherm
 
 indDiff$InUCLAStatus <- indDiff$UCR_Status - indDiff$UCLA_Status
 indDiff$InCSULAStatus <- indDiff$UCR_Status - indDiff$CSULA_Status
+indDiff$OtherStatus <- rowMeans(indDiff[c("UCLA_Status","CSULA_Status")])
+indDiff$InOtherStatus <- indDiff$UCR_Status - indDiff$OtherStatus
 ```
 
 # Self-Group Overlap
@@ -870,7 +875,6 @@ fullTest <- cleanTest %>% inner_join(indDiffsclean, by = "subID")
 ```{r}
 fullTest$optionChoiceN <- ifelse(fullTest$optionChoice=="UCR", 1, 0)
 traitFreqOverUnder <- Rmisc::summarySE(fullTest, measurevar="optionChoiceN", groupvars = c("outgroup","trait"), na.rm = T)
-write.csv(traitFreqOverUnder, "./output/traitFreqOverUnder.csv", row.names = F)
 ```
 
 # Leave subject out proportions choosing that trait
@@ -904,7 +908,12 @@ for(i in uSubs){
 
 
 ```{r}
-write.csv(fullTest, "./output/fullTest.csv", row.names = F)
-write.csv(cleanTrain, "./output/fullTrain.csv", row.names = F)
+# write.csv(fullTest, "./output/fullTest.csv", row.names = F)
+# write.csv(cleanTrain, "./output/fullTrain.csv", row.names = F)
+# write.csv(traitFreqOverUnder, "./output/traitFreqOverUnder.csv", row.names = F)
+
+arrow::write_parquet(fullTest, "./output/fullTest.parquet")
+arrow::write_parquet(cleanTrain, "./output/fullTrain.parquet")
+arrow::write_parquet(traitFreqOverUnder, "./output/traitFreqOverUnder.parquet")
 ```
 

@@ -31,6 +31,11 @@ traitsFreqs <- read.csv("../Cleaning/output/traitFreqOverUnder.csv")
 uSubs <- unique(fullTest$subID)
 
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
+indDiffs <- indDiffs %>% select(subID, groupHomoph, DS:SING.Inter)
+
+fullTrain <- merge(fullTrain, indDiffs, by = "subID")
+
+fullTrain$metaContrast <- fullTrain$inGsim / fullTrain$outGsim
 ```
 
 ```{r}
@@ -84,9 +89,16 @@ propMatrix
 ```
 
 ```{r}
-indDiffs %>% select(groupHomoph, seHomoph, DS:SING.Inter) %>% corToOne(., "groupHomoph")
-indDiffs %>% select(groupHomoph, seHomoph, DS:SING.Inter) %>% plotCorToOne(., "groupHomoph")
+indDiffs %>% select(groupHomoph, DS:SING.Ind) %>% corToOne(., "groupHomoph")
+indDiffs %>% select(groupHomoph, DS:SING.Ind) %>% plotCorToOne(., "groupHomoph")
 ```
+
+```{r}
+indDiffs <- merge(indDiffs, biasanchor2params, by="subID")
+indDiffs %>% select(groupHomoph, SAo, DS:SING.Ind) %>% corToOne(., "SAo")
+indDiffs %>% select(groupHomoph, SAo, DS:SING.Ind) %>% plotCorToOne(., "SAo")
+```
+
 
 # (Attempt to) replicate prior work: Ingroup favoritism exhibited by ascribing more positive traits to ingroup
 
@@ -274,11 +286,32 @@ ggpredict(m, c("predicted.Z", "outDegree")) %>% plot(show.title=F) + xlab("Cross
 ## No covariates
 
 ```{r}
-m <- glmer( ingChoiceN ~ predicted.Z * novel + ( predicted.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * novel + ( predicted.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
 ```
+
+# Plot
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * novel + ( WSR.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+p <- ggpredict(m, c("WSR.Z","novel"))
+Novel.Generalization.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Evaluated","Novel")) + scale_color_manual(labels = c("Evaluated","Novel"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
+                      labels=c("Evaluated","Novel"), values = wes_palette("Darjeeling1")) + theme(
+    legend.position = c(.1, .65),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
+Novel.Generalization.Plot
+```
+
 
 ## Covariates
 
@@ -298,7 +331,7 @@ ggsave("~/Documents/UC Riverside/Studies/Self-Anchoring/Figures/CVpredictionGene
 ## No covariates
 
 ```{r}
-m <- glmer( ingChoiceN ~ predicted.Z * novel * outDegree  + ( predicted.Z + novel | subID) , data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * novel * outDegree  + ( WSR.Z + novel | subID) , data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -522,6 +555,23 @@ m <- lmer( scale(selfResp) ~ scale(inGsim) + scale(outGsim) + (  scale(inGsim) +
 summary(m)
 tidy(m,conf.int=TRUE,effects="fixed")
 ggpredict(m, c("inGsim")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(metaContrast) + (  scale(metaContrast) | subID) + (1 | trait), data = fullTrain)
+summary(m)
+tidy(m,conf.int=TRUE,effects="fixed")
+ggpredict(m, c("metaContrast")) %>% plot(show.title=F) + xlab("Metacontrast Ratio") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+## Reliance on metacontrast moderated by need for cognition
+
+Those lower in need for cognition rely more on metacontrast
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(metaContrast) * scale(NFC) + (  scale(metaContrast) | subID) + (1 | trait), data = fullTrain)
+summary(m)
+tidy(m,conf.int=TRUE,effects="fixed")
+ggpredict(m, c("metaContrast", "NFC")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
 ```
 
 ## Moderated by Group Homophily
