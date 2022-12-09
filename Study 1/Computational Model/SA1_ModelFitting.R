@@ -90,9 +90,8 @@ for(i in 1:length(uIds) ){
   lenTrain[i] <- nrow(traindf[traindf$subID==uIds[i],])
   prevSelf[i,1:lenTrain[i]] <- traindf$selfResp[traindf$subID==uIds[i]]
   for(trial in 1:t){
-    subDf <- fulldf[fulldf$subID==uIds[i],]
-    curIdx <- subDf$Idx[trial]
-    curSims <- simMat[traindf$Idx[traindf$subID==uIds[i]], subDf$Idx[trial]]
+    curIdx <- df$Idx[trial]
+    curSims <- simMat[traindf$Idx[traindf$subID==uIds[i]], df$Idx[trial]]
     prevSim[i,trial,1:lenTrain[i]]=curSims
   }
   
@@ -109,6 +108,83 @@ model_data <- list( nSubjects=maxSubjs,
                     maxTrain=91,
                     nTrain=as.numeric(lenTrain))
 
+#############################
+
+## Bias MODEL ##
+
+#############################
+
+iter=3000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/Bias.stan")
+cores<-detectCores()
+biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(biasfit)
+traceplot(biasfit)
+bias_summary <- summary(biasfit, pars = c("bias", "tau"), probs = c(0.1, 0.9))$summary
+print(bias_summary)
+get_posterior_mean(biasfit, pars=c('SA','tau'))[,5]
+biasparams <- data.frame(bias=get_posterior_mean(biasfit, pars=c('bias'))[,5],
+                           Temp=get_posterior_mean(biasfit, pars=c('tau'))[,5],
+                           LL=get_posterior_mean(biasfit, pars=c('log_lik'))[,5])
+k <- 2
+biasparams$BIC <- log(lengthArray) * k - 2 * (biasparams$LL)
+biasparams$AIC <- 2 * k - 2 * (biasparams$LL)
+bias_LL <- extract_log_lik(biasfit)
+bias_LOO <- loo(bias_LL)
+bias_WAIC <- waic(bias_LL)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/ProbBias.stan")
+cores<-detectCores()
+PBfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)
+traceplot(PBfit)
+PB_summary <- summary(PBfit, pars = c("bias", "tau"), probs = c(0.1, 0.9))$summary
+print(PB_summary)
+get_posterior_mean(PBfit, pars=c('bias','tau'))[,5]
+PBparams <- data.frame(bias=get_posterior_mean(PBfit, pars=c('bias'))[,5],
+                       Temp=get_posterior_mean(PBfit, pars=c('tau'))[,5],
+                       LL=get_posterior_mean(PBfit, pars=c('log_lik'))[,5])
+k <- 2
+PBparams$BIC <- log(lengthArray) * k - 2 * (PBparams$LL)
+PBparams$AIC <- 2 * k - 2 * (PBparams$LL)
+PB_LL <- extract_log_lik(PBfit)
+PB_LOO <- loo(PB_LL)
+PB_WAIC <- waic(PB_LL)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=3000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL_PB.stan")
+cores<-detectCores()
+SL_PBfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL_PBfit)
+SL_PB_summary <- summary(SL_PBfit, pars = c("bias", "tau", "m_in", "m_out"), probs = c(0.1, 0.9))$summary
+print(SL_PB_summary)
+get_posterior_mean(SL_PBfit, pars=c('bias','tau', 'm_in', 'm_out'))[,5]
+SL_PBparams <- data.frame(bias=get_posterior_mean(SL_PBfit, pars=c('bias'))[,5],
+                       Temp=get_posterior_mean(SL_PBfit, pars=c('tau'))[,5],
+                       m_in=get_posterior_mean(SL_PBfit, pars=c('m_in'))[,5],
+                       m_out=get_posterior_mean(SL_PBfit, pars=c('m_out'))[,5],
+                       LL=get_posterior_mean(SL_PBfit, pars=c('log_lik'))[,5])
+k <- 2
+SL_PBparams$BIC <- log(lengthArray) * k - 2 * (SL_PBparams$LL)
+SL_PBparams$AIC <- 2 * k - 2 * (SL_PBparams$LL)
+SL_PB_LL <- extract_log_lik(SL_PBfit)
+SL_PB_LOO <- loo(SL_PB_LL)
+SL_PB_WAIC <- waic(SL_PB_LL)
 
 
 #############################
@@ -228,7 +304,7 @@ iter=3000
 warmup=floor(iter/2)
 modelFile <- here("Computational Models/SimLogistic.stan")
 cores<-detectCores()
-SLfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+SLfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.975))
 traceplot(SLfit)
 SL_summary <- summary(SLfit, pars = c("m_in", "m_out", "tau"), probs = c(0.1, 0.9))$summary
 print(SL_summary)
@@ -237,7 +313,7 @@ SLparams <- data.frame(m_in=get_posterior_mean(SLfit, pars=c('m_in'))[,5],
                        m_out=get_posterior_mean(SLfit, pars=c('m_out'))[,5],
                            Temp=get_posterior_mean(SLfit, pars=c('tau'))[,5],
                            LL=get_posterior_mean(SLfit, pars=c('log_lik'))[,5])
-k <- 2
+k <- 3
 SLparams$BIC <- log(lengthArray) * k - 2 * (SLparams$LL)
 SLparams$AIC <- 2 * k - 2 * (SLparams$LL)
 SL_LL <- extract_log_lik(SLfit)
