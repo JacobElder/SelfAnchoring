@@ -167,6 +167,169 @@ PB_WAIC <- waic(PB_LL)
 
 iter=3000
 warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_01.stan")
+cores<-detectCores()
+SL2fit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2fit)
+SL2_summary <- summary(SL2fit, pars = c("tau", "m_in", "m_out"), probs = c(0.1, 0.9))$summary
+print(SL2_summary)
+get_posterior_mean(SL2fit, pars=c('tau', 'm_in', 'm_out'))[,5]
+SL2params <- data.frame(Temp=get_posterior_mean(SL2fit, pars=c('tau'))[,5],
+                          m_in=get_posterior_mean(SL2fit, pars=c('m_in'))[,5],
+                          m_out=get_posterior_mean(SL2fit, pars=c('m_out'))[,5],
+                          LL=get_posterior_mean(SL2fit, pars=c('log_lik'))[,5])
+k <- 2
+SL2params$BIC <- log(lengthArray) * k - 2 * (SL2params$LL)
+SL2params$AIC <- 2 * k - 2 * (SL2params$LL)
+SL2_LL <- extract_log_lik(SL2fit)
+SL2_LOO <- loo(SL2_LL)
+SL2_WAIC <- waic(SL2_LL)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_Shift_01.stan")
+cores<-detectCores()
+SL2_Shiftfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_Shiftfit)
+SL2_Shift_summary <- summary(SL2_Shiftfit, pars = c("tau", "m_in", "m_out","shift"), probs = c(0.1, 0.9))$summary
+print(SL2_Shift_summary)
+get_posterior_mean(SL2_Shiftfit, pars=c('tau', 'm_in', 'm_out','shift'))[,5]
+SL2_Shiftparams <- data.frame(Temp=get_posterior_mean(SL2_Shiftfit, pars=c('tau'))[,5],
+                        m_in=get_posterior_mean(SL2_Shiftfit, pars=c('m_in'))[,5],
+                        m_out=get_posterior_mean(SL2_Shiftfit, pars=c('m_out'))[,5],
+                        shift=get_posterior_mean(SL2_Shiftfit, pars=c('shift'))[,5],
+                        LL=get_posterior_mean(SL2_Shiftfit, pars=c('log_lik'))[,5])
+k <- 4
+SL2_Shiftparams$BIC <- log(lengthArray) * k - 2 * (SL2_Shiftparams$LL)
+SL2_Shiftparams$AIC <- 2 * k - 2 * (SL2_Shiftparams$LL)
+SL2_Shift_LL <- extract_log_lik(SL2_Shiftfit)
+SL2_Shift_LOO <- loo(SL2_Shift_LL)
+SL2_Shift_WAIC <- waic(SL2_Shift_LL)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_2Shift_01.stan")
+cores<-detectCores()
+SL2_2Shiftfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_2Shiftfit)
+SL2_2Shift_summary <- summary(SL2_2Shiftfit, pars = c("tau", "m_in", "m_out","shift_in", "shift_out"), probs = c(0.1, 0.9))$summary
+print(SL2_2Shift_summary)
+get_posterior_mean(SL2_2Shiftfit, pars=c('tau', 'm_in', 'm_out','shift'))[,5]
+SL2_2Shiftparams <- data.frame(Temp=get_posterior_mean(SL2_2Shiftfit, pars=c('tau'))[,5],
+                              m_in=get_posterior_mean(SL2_2Shiftfit, pars=c('m_in'))[,5],
+                              m_out=get_posterior_mean(SL2_2Shiftfit, pars=c('m_out'))[,5],
+                              shift_in=get_posterior_mean(SL2_2Shiftfit, pars=c('shift_in'))[,5],
+                              shift_out=get_posterior_mean(SL2_2Shiftfit, pars=c('shift_out'))[,5],
+                              LL=get_posterior_mean(SL2_2Shiftfit, pars=c('log_lik'))[,5])
+k <- 5
+SL2_2Shiftparams$BIC <- log(lengthArray) * k - 2 * (SL2_2Shiftparams$LL)
+SL2_2Shiftparams$AIC <- 2 * k - 2 * (SL2_2Shiftparams$LL)
+SL2_2Shift_LL <- extract_log_lik(SL2_2Shiftfit)
+SL2_2Shift_LOO <- loo(SL2_2Shift_LL)
+SL2_2Shift_WAIC <- waic(SL2_2Shift_LL)
+
+#############################
+
+## SIMILARITY LOGISTIC WITH SHIFT ##
+
+#############################
+
+iter=3000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_Shift_Softmax.stan")
+cores<-detectCores()
+SL2_Shiftfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_Shiftfit)
+SL2_Shift_summary <- summary(SL2_Shiftfit, pars = c("tau", "m_in", "m_out", "shift"), probs = c(0.1, 0.9))$summary
+print(SL2_Shift_summary)
+get_posterior_mean(SL2_Shiftfit, pars=c('tau', 'm_in', 'm_out'))[,5]
+SL2_Shiftparams <- data.frame(Temp=get_posterior_mean(SL2_Shiftfit, pars=c('tau'))[,5],
+                        m_in=get_posterior_mean(SL2_Shiftfit, pars=c('m_in'))[,5],
+                        m_out=get_posterior_mean(SL2_Shiftfit, pars=c('m_out'))[,5],
+                        shift=get_posterior_mean(SL2_Shiftfit, pars=c('shift'))[,5],
+                        LL=get_posterior_mean(SL2_Shiftfit, pars=c('log_lik'))[,5])
+k <- 4
+SL2_Shiftparams$BIC <- log(lengthArray) * k - 2 * (SL2_Shiftparams$LL)
+SL2_Shiftparams$AIC <- 2 * k - 2 * (SL2_Shiftparams$LL)
+SL2_Shift_LL <- extract_log_lik(SL2_Shiftfit)
+SL2_Shift_LOO <- loo(SL2_Shift_LL)
+SL2_Shift_WAIC <- waic(SL2_Shift_LL)
+
+#############################
+
+## SIMILARITY LOGISTIC WITH SHIFT AND BIAS ##
+
+#############################
+
+iter=3000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL_PB_Shift_01.stan")
+cores<-detectCores()
+SL_PB_Shiftfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 15, adapt_delta = 0.99))
+traceplot(SL_PB_Shiftfit)
+SL_PB_Shift_summary <- summary(SL_PB_Shiftfit, pars = c("tau", "m_in", "m_out", "shift","bias"), probs = c(0.1, 0.9))$summary
+print(SL_PB_Shift_summary)
+get_posterior_mean(SL_PB_Shiftfit, pars=c('tau', 'm_in', 'm_out','shift','bias'))[,5]
+SL_PB_Shiftparams <- data.frame(Temp=get_posterior_mean(SL_PB_Shiftfit, pars=c('tau'))[,5],
+                              m_in=get_posterior_mean(SL_PB_Shiftfit, pars=c('m_in'))[,5],
+                              m_out=get_posterior_mean(SL_PB_Shiftfit, pars=c('m_out'))[,5],
+                              shift=get_posterior_mean(SL_PB_Shiftfit, pars=c('shift'))[,5],
+                              bias=get_posterior_mean(SL_PB_Shiftfit, pars=c('bias'))[,5],
+                              LL=get_posterior_mean(SL_PB_Shiftfit, pars=c('log_lik'))[,5])
+k <- 5
+SL_PB_Shiftparams$BIC <- log(lengthArray) * k - 2 * (SL_PB_Shiftparams$LL)
+SL_PB_Shiftparams$AIC <- 2 * k - 2 * (SL_PB_Shiftparams$LL)
+SL_PB_Shift_LL <- extract_log_lik(SL_PB_Shiftfit)
+SL_PB_Shift_LOO <- loo(SL_PB_Shift_LL)
+SL_PB_Shift_WAIC <- waic(SL_PB_Shift_LL)
+
+#############################
+
+## SIMILARITY LOGISTIC WITH SHIFT ##
+
+#############################
+
+iter=3000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_Shift_NoTau_Softmax.stan")
+cores<-detectCores()
+SL2_Shift_NoTaufit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_Shift_NoTaufit)
+SL2_Shift_NoTau_summary <- summary(SL2_Shift_NoTaufit, pars = c("m_in", "m_out", "shift"), probs = c(0.1, 0.9))$summary
+print(SL2_Shift_NoTau_summary)
+get_posterior_mean(SL2_Shift_NoTaufit, pars=c( 'm_in', 'm_out', 'shift'))[,5]
+SL2_Shift_NoTauparams <- data.frame(
+                              m_in=get_posterior_mean(SL2_Shift_NoTaufit, pars=c('m_in'))[,5],
+                              m_out=get_posterior_mean(SL2_Shift_NoTaufit, pars=c('m_out'))[,5],
+                              shift=get_posterior_mean(SL2_Shift_NoTaufit, pars=c('shift'))[,5],
+                              LL=get_posterior_mean(SL2_Shift_NoTaufit, pars=c('log_lik'))[,5])
+k <- 4
+SL2_Shift_NoTauparams$BIC <- log(lengthArray) * k - 2 * (SL2_Shift_NoTauparams$LL)
+SL2_Shift_NoTauparams$AIC <- 2 * k - 2 * (SL2_Shift_NoTauparams$LL)
+SL2_Shift_NoTau_LL <- extract_log_lik(SL2_Shift_NoTaufit)
+SL2_Shift_NoTau_LOO <- loo(SL2_Shift_NoTau_LL)
+SL2_Shift_NoTau_WAIC <- waic(SL2_Shift_NoTau_LL)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=3000
+warmup=floor(iter/2)
 modelFile <- here("Computational Models/SL_PB.stan")
 cores<-detectCores()
 SL_PBfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
@@ -186,6 +349,32 @@ SL_PB_LL <- extract_log_lik(SL_PBfit)
 SL_PB_LOO <- loo(SL_PB_LL)
 SL_PB_WAIC <- waic(SL_PB_LL)
 
+#############################
+
+## TESTING ##
+
+#############################
+
+iter=3000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/test.stan")
+cores<-detectCores()
+testfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL_PBfit)
+SL_PB_summary <- summary(SL_PBfit, pars = c("bias", "tau", "m_in", "m_out"), probs = c(0.1, 0.9))$summary
+print(SL_PB_summary)
+get_posterior_mean(SL_PBfit, pars=c('bias','tau', 'm_in', 'm_out'))[,5]
+SL_PBparams <- data.frame(bias=get_posterior_mean(SL_PBfit, pars=c('bias'))[,5],
+                          Temp=get_posterior_mean(SL_PBfit, pars=c('tau'))[,5],
+                          m_in=get_posterior_mean(SL_PBfit, pars=c('m_in'))[,5],
+                          m_out=get_posterior_mean(SL_PBfit, pars=c('m_out'))[,5],
+                          LL=get_posterior_mean(SL_PBfit, pars=c('log_lik'))[,5])
+k <- 2
+SL_PBparams$BIC <- log(lengthArray) * k - 2 * (SL_PBparams$LL)
+SL_PBparams$AIC <- 2 * k - 2 * (SL_PBparams$LL)
+SL_PB_LL <- extract_log_lik(SL_PBfit)
+SL_PB_LOO <- loo(SL_PB_LL)
+SL_PB_WAIC <- waic(SL_PB_LL)
 
 #############################
 
@@ -331,7 +520,8 @@ print(loo_compare(list("SA1"=biasanchor_LOO,
                        "SA2"=biasanchor2_LOO
 )),simplify = F)
 
-y_pred <- rstan::extract(biasanchor2fit, pars='y_pred')$y_pred
+model <- SL_PBfit
+y_pred <- rstan::extract(model, pars='y_pred')$y_pred
 dim(y_pred)
 
 # y_pred --> 6000 (MCMC samples) x 58 (subjects) x 148 (trials)

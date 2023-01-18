@@ -14,6 +14,14 @@ df$trans<-logFunc(df$eval, df$Minputs, shift = 1)
 library(ggplot2)
 FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as.factor(Minputs) )) +
   geom_line() + xlab("Original Self-Evaluation") + ylab("Probability of Group Normativity")  + theme_classic() +
-  theme(legend.position="top") + labs(color=Growth) 
+  theme(legend.position="top") + labs(color="Growth Parameter")
 FSplot
-ggsave("~/Documents/UC Riverside/Studies/Feedback Study/Manuscript/Figures/FS_demonstration.jpg", units = "in", dpi = 600, width = 4, height = 4)
+#ggsave("~/Documents/UC Riverside/Studies/Feedback Study/Manuscript/Figures/FS_demonstration.jpg", units = "in", dpi = 600, width = 4, height = 4)
+
+Minputs <- c(4.407416, 2.48609)
+df<-data.frame(Minputs=sort(rep(Minputs, 7)), eval=rep(1:7) )
+df$trans<-logFunc(df$eval, df$Minputs, shift = 0)
+FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as.factor(Minputs) )) +
+  geom_line() + xlab("Original Self-Evaluation") + ylab("Probability of Group Normativity")  + theme_classic() +
+  theme(legend.position="top") + labs(color="Growth Parameter")  + scale_color_discrete(labels=c('Outgroup','Ingroup'))
+FSplot

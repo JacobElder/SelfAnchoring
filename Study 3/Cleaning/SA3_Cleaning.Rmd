@@ -71,7 +71,6 @@ mergedRaw$SE.keys <- as.numeric(mergedRaw$SE.keys)
 
 
 ```{r}
-
 mergedRaw <- mergedRaw %>% dplyr::rename(subID = participant, 
                      trialTotalT1 = trials_2.thisTrialN, 
                      trialTotalT2 = choices.thisTrialN,
@@ -216,7 +215,9 @@ indDiff$SING.IndPlus = (indDiff$SING.Ind - indDiff$SING.Inter)
 psych::alpha(indDiff[SING.InterCol])
 psych::alpha(indDiff[SING.IndCol])
 ```
+
 Self-Esteem
+
 ```{r}
 # Reverse code Rosenberg Self-Esteem items
 SErevcols = c("RSE.2", "RSE.5", "RSE.6", "RSE.8", "RSE.9")
@@ -230,6 +231,8 @@ indDiff$RSE = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
 
 psych::alpha(indDiff[ind1:ind2])
 ```
+
+Need for Cognition
 
 ```{r}
 # Reverse code Need for Cog items
@@ -245,6 +248,8 @@ indDiff$NFC = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
 psych::alpha(indDiff[ind1:ind2])
 ```
 
+Need for Belonging
+
 ```{r}
 # Reverse code Need for Cog items
 NTBrevcols = c("NTB_1", "NTB_3", "NTB_7")
@@ -259,10 +264,10 @@ indDiff$NTB = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
 psych::alpha(indDiff[ind1:ind2])
 ```
 
+# Dialectical Self-Views
+
 ```{r}
 # Reverse code Need for Cog items
-
-
 DSrevcols = c("DS_1", "DS_5", "DS_6", "DS_7", "DS_9", "DS_14")
 indDiff[ ,DSrevcols] = 8 - indDiff[ ,DSrevcols]
 ind1 <- grep("DS_1", colnames(indDiff))
@@ -284,8 +289,6 @@ ind2<- grep("Proto_4", colnames(indDiff))
 ind2<-max(ind2)
 # Compute scores for Need for Cog
 indDiff$Proto = rowMeans(indDiff[, ind1:ind2], na.rm = TRUE)
-
-
 psych::alpha(indDiff[ind1:ind2])
 ```
 
@@ -439,17 +442,16 @@ uSubs <- unique(cleanTest$subID)
 duplicatedIDs <- c()
 for(i in uSubs){
   if(nrow(cleanTest[cleanTest$subID==i,])>148){
+    
     print(paste0("Subject ", i, " has more than one CSV"))
     duplicatedIDs <- c(duplicatedIDs, i)
     
   }
 }
 ```
-
 # Check if repeated CSVs are identical
 
 ```{r}
-
 repeatedIDs <- c()
 if(length(duplicatedIDs)>0){
   for(t in 1:length(duplicatedIDs)){

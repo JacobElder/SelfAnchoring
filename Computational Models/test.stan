@@ -76,25 +76,54 @@ model {
     vector[nTrain[s]] GPin;
     vector[nTrain[s]] GPout;
     vector[nTrain[s]] PS;
+    real inm;
+    real outm;
+    real BIAS;
+    real temp;
+    
+    inm = -1.232841;
+    outm = -1.91979;
+    temp = 8.438901;
+    BIAS = 0.383276;
 
-    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
+    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp(-(inm)*(prevSelf[s,1:nTrain[s]]-4)));
+    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp(-(outm)*(prevSelf[s,1:nTrain[s]]-4)));
+    
+      
+      print("Parameters")
+      print(temp);
+      print(inm);
+      print(outm);
+      print(BIAS);
+      
+      print("Self")
+      print(prevSelf[s,1:nTrain[s]]);
+      print("Inroup Probability")
+      print(GPin[1:nTrain[s]])
+      print("Outroup Probability")
+      print(GPout[1:nTrain[s]])
     
     for (t in 1:nTrials[s]) {
+      
+      print("Subject ",s)
+      print("Trial", t)
       
       // print(GPin)
       // print(GPout)
       
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
       
+      print("Similarity")
+      print(PS)
+      
       // simW[1] = dot_product(GPout[1:nTrain[s]],PS); // summation and multiplication of group probabilities with similarities
       // simW[2] = dot_product(GPin[1:nTrain[s]],PS);
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS);
+      simW[1] = dot_product(GPout[1:nTrain[s]],PS)/sum(PS);
+      simW[2] = dot_product(GPin[1:nTrain[s]],PS)/sum(PS);
       
-      // print("Weights")
-      // print(simW);
-      // 
+      print("Weights")
+      print(simW);
+
       // print("Self")
       // print(prevSelf[s,1:nTrain[s]]);
       // print("Similarity")
@@ -103,18 +132,23 @@ model {
       // print(GPin[1:nTrain[s]])
       // print("Outroup Probability")
       // print(GPout[1:nTrain[s]])
-      // 
+
       // print("Parameters")
+      // print(temp);
+      // print(inm);
+      // print(outm);
+      // print(BIAS);
+      
       // print(tau[s]);
       // print(m_in[s]);
       // print(m_out[s]);
       // print(bias[s]);
       
-      prob[1] = ( (1 - bias[s]) * pow( ( simW[1] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
-      prob[2] = ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
+      prob[1] = ( (1 - BIAS) * pow( ( simW[1] ) ,temp ) ) / ( ( (1 - BIAS) *  pow( simW[1]  , temp ) ) + ( (BIAS) * pow( ( simW[2] ) ,temp ) ) ); // convert to probabilities
+      prob[2] = ( (BIAS) * pow( ( simW[2] ) ,temp ) ) / ( ( (1 - BIAS) *  pow( simW[1]  , temp ) ) + ( (BIAS) * pow( ( simW[2] ) ,temp ) ) ); // convert to probabilities
       
-      // print("Choice Probability")
-      // print(prob);
+      print("Choice Probability")
+      print(prob);
       
       groupChoice[s,t] ~ categorical( prob );
       
@@ -169,8 +203,8 @@ generated quantities {
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
       // simW[1] = dot_product(GPout[1:nTrain[s]],PS); // summation and multiplication of group probabilities with similarities
       // simW[2] = dot_product(GPin[1:nTrain[s]],PS);
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS);
+      simW[1] = dot_product(GPout[1:nTrain[s]],PS)/sum(PS);
+      simW[2] = dot_product(GPin[1:nTrain[s]],PS)/sum(PS);
       
       prob[1] = ( (1 - bias[s]) * pow( ( simW[1] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
       prob[2] = ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities

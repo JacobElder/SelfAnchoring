@@ -23,8 +23,8 @@ data {
 parameters {
   // Declare all parameters as vectors for vectorizing
   // Hyper(group)-parameters
-  vector[4] mu_pr;
-  vector<lower=0>[4] sigma;
+  vector[5] mu_pr;
+  vector<lower=0>[5] sigma;
 
   // Subject-level raw parameters (for Matt trick)
   //vector[nSubjects] A_pr;    // learning rate
@@ -32,6 +32,7 @@ parameters {
   vector[nSubjects] tau_pr;  // inverse temperature
   vector[nSubjects] m_in_pr;  // slope for ingroup
   vector[nSubjects] m_out_pr;  // slope for outgroup
+  vector[nSubjects] shift_pr;  // slope for outgroup
   
 }
 
@@ -41,16 +42,19 @@ transformed parameters {
   vector<lower=0, upper=10>[nSubjects] tau;
   vector[nSubjects] m_in;
   vector[nSubjects] m_out;
+  vector<lower=0, upper=6>[nSubjects] shift;
 
   for (i in 1:nSubjects) {
     
     bias[i] = Phi_approx(mu_pr[1] + sigma[1] * bias_pr[i]);
     tau[i] = Phi_approx(mu_pr[2] + sigma[2] * tau_pr[i]) * 10;
+    shift[i] = Phi_approx(mu_pr[5] + sigma[5] * shift_pr[i]) * 6;
     
   }
   
    m_in   = mu_pr[3]  + sigma[3]  * m_in_pr;
    m_out   = mu_pr[4]  + sigma[4]  * m_out_pr;
+
   
 }
 
@@ -58,15 +62,22 @@ model {
   // Hyperparameters
   mu_pr  ~ normal(0, 1);
   sigma[1:2] ~ normal(0, 0.2);
-  //sigma[3:4] ~ normal(0, 1.0);
-  //sigma[3:4] ~ cauchy(0, 0.35);
-  sigma[3:4] ~ cauchy(0, 1.0);
+  sigma[5] ~ normal(0, 0.2);
+  sigma[3:4] ~ cauchy(0, 3.0);
 
   // individual parameters
+  // bias_pr ~ normal(0, 1);
+  // tau_pr ~ normal(0, 1);
+  // m_in_pr ~ normal(0, 1);
+  // m_out_pr ~ normal(0, 1);
+  // shift_pr ~ normal(0, 1);
+  
+  # More explicit priors
   bias_pr ~ normal(0, 1);
   tau_pr ~ normal(0, 1);
-  m_in_pr ~ normal(0, 1);
-  m_out_pr ~ normal(0, 1);
+  m_in_pr ~ normal(1, 2.5);
+  m_out_pr ~ normal(1, 2.5);
+  shift_pr ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
 
@@ -77,8 +88,8 @@ model {
     vector[nTrain[s]] GPout;
     vector[nTrain[s]] PS;
 
-    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
+    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]] -  (shift[s]+1) )));
+    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]] - (shift[s]+1) )));
     
     for (t in 1:nTrials[s]) {
       
@@ -128,6 +139,7 @@ generated quantities {
   real<lower=0, upper=10> mu_tau;
   real mu_m_in;
   real mu_m_out;
+  real<lower=0, upper=6> mu_shift;
 
   // For log likelihood calculation
   real log_lik[nSubjects];
@@ -147,6 +159,7 @@ generated quantities {
   mu_tau = Phi_approx(mu_pr[2]) * 10;
   mu_m_in   = mu_pr[3];
   mu_m_out = mu_pr[4];
+  mu_shift = Phi_approx(mu_pr[5]) * 6;
 
   { // local section, this saves time and space
     
@@ -161,8 +174,8 @@ generated quantities {
     
     log_lik[s] = 0;
     
-    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
+    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]] -  (shift[s]+1) )));
+    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]] - (shift[s]+1) )));
     
     for (t in 1:nTrials[s]) {
 

@@ -66,5 +66,10 @@ GPout = rep(1,length(prevSelf))/(1 + exp((-m_out)*(prevSelf-4)));
       simW[2] = sum(GPin*PS)/sum(PS);
       
       prob[1] = ( (1 - bias) * ( ( simW[1] ) ^tau ) ) / ( ( (1 - bias) *  ( simW[1]  ^tau ) ) + ( (bias) * ( ( simW[2] ) ^tau ) ) );
-      prob[2] = ( (bias) * ( ( simW[2] ) ^tau ) ) / ( ( (1 - bias) *  ( simW[1]  ^tau ) ) + ( (bias) * ( ( simW[2] ) ^tau ) ) );
+      prob[2] = ( (1 - bias) * ( ( simW[2] ) ^tau ) ) / ( ( (1 - bias) *  ( simW[1]  ^tau ) ) + ( (bias) * ( ( simW[2] ) ^tau ) ) );
 ```
+
+```{r}
+plot( 1/(1 + exp((--1.232841)*(1:7-4))) )
+```
+

@@ -296,7 +296,7 @@ m <- glmer( ingChoiceN ~ WSR.Z * outgroup + desirability.Z + ( WSR.Z + desirabil
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
 p <- ggpredict(m, c("WSR.Z","outgroup"))
-Novel.Generalization.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Not UCR","CSU LA", "UCLA")) + scale_color_manual(labels = c("Not UCR","CSU LA", "UCLA"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
+Sim.Condition.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Not UCR","CSU LA", "UCLA")) + scale_color_manual(labels = c("Not UCR","CSU LA", "UCLA"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
                       labels=c("Not UCR","CSU LA", "UCLA"), values = wes_palette("Darjeeling1")) + theme(
     legend.position = c(.1, .65),
     legend.justification = c("left", "bottom"),
@@ -306,7 +306,7 @@ Novel.Generalization.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linety
         axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
-Novel.Generalization.Plot
+Sim.Condition.Plot
 ```
 
 ```{r}

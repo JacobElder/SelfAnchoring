@@ -138,11 +138,11 @@ m <- lmer( scale(Warmth) ~ Group +  ( 1  | subID), data = warmthDf)
 summary(m)
 ggpredict(m, c("Group")) %>% plot()
 
-m<-ezANOVA(warmthDf, dv = Warmth, wid = subID, between = as.factor(Outgroup) )
+m<-ezANOVA(warmthDf, dv = Warmth, wid = subID, between = as.factor(Group) )
 m
 
 indDiffs$groupHomoph.Z <- scale(indDiffs$groupHomoph)
-ggplot(warmthDf, aes(Outgroup, Warmth)) + 
+ggplot(warmthDf, aes(Group, Warmth)) + 
   ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
   geom_boxplot(width = .2, outlier.shape = NA) + 
   geom_jitter(width = .05, alpha = .3) + labs(y="Perceived Warmth",x="University") + jtools::theme_apa()
@@ -153,6 +153,8 @@ ggplot(warmthDf, aes(Outgroup, Warmth)) +
 Dialectical self and need to belong positively associated with group assortativity. Social identification, self-esteem, identity-centrality, public collectivr eself-est
 
 ```{r}
+
+
 indDiffs %>% select(groupHomoph, seHomoph, SStatus, SCC:IdImp) %>% corToOne(., "groupHomoph")
 indDiffs %>% select(groupHomoph, seHomoph, SStatus, SCC:IdImp) %>% plotCorToOne(., "groupHomoph")
 ```
@@ -265,6 +267,26 @@ m <- glmer( ingChoiceN ~ WSR.Z + desirability.Z + ( WSR.Z | subID) + ( 1 | trait
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+```
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition + desirability.Z + ( WSR.Z + desirability.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+p <- ggpredict(m, c("WSR.Z","condition"))
+Sim.Condition.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Minority","Majority")) + scale_color_manual(labels = c("Minority","Majority"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
+                      labels=c("Minority","Majority"), values = wes_palette("Darjeeling1")) + theme(
+    legend.position = c(.6, .1),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
+Sim.Condition.Plot
+
 ```
 
 ## Covariates and Condition Differences
