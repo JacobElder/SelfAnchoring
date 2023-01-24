@@ -439,6 +439,61 @@ SL_PB_WAIC <- waic(SL_PB_LL)
 
 #############################
 
+## SHEPARD MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Linear_SM.stan")
+cores<-detectCores()
+S_Linearfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Linearfit)
+S_Linear_summary <- summary(S_Linearfit, pars = c("tau", "m_in", "m_out"), probs = c(0.1, 0.9))$summary
+print(S_Linear_summary)
+get_posterior_mean(S_Linearfit, pars=c('tau', 'm_in', 'm_out'))[,5]
+S_Linearparams <- data.frame(Temp=get_posterior_mean(S_Linearfit, pars=c('tau'))[,5],
+                        m_in=get_posterior_mean(S_Linearfit, pars=c('m_in'))[,5],
+                        m_out=get_posterior_mean(S_Linearfit, pars=c('m_out'))[,5],
+                        LL=get_posterior_mean(S_Linearfit, pars=c('log_lik'))[,5])
+k <- 2
+S_Linearparams$BIC <- log(lengthArray) * k - 2 * (S_Linearparams$LL)
+S_Linearparams$AIC <- 2 * k - 2 * (S_Linearparams$LL)
+S_Linear_LL <- extract_log_lik(S_Linearfit)
+S_Linear_LOO <- loo(S_Linear_LL)
+S_Linear_WAIC <- waic(S_Linear_LL)
+
+#############################
+
+## SHEPARD MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/Shep_SM.stan")
+cores<-detectCores()
+shepfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(shepfit)
+traceplot(shepfit)
+shep_summary <- summary(shepfit, pars = c("c_in", "c_out", "p_in", "p_out", "tau"), probs = c(0.1, 0.9))$summary
+print(shep_summary)
+get_posterior_mean(shepfit, pars=c("c_in", "c_out", "p_in", "p_out", "tau"))[,5]
+shepparams <- data.frame(c_in=get_posterior_mean(basefit, pars=c('c_in'))[,5],
+                         c_out=get_posterior_mean(basefit, pars=c('c_out'))[,5],
+                         p_in=get_posterior_mean(basefit, pars=c('p_in'))[,5],
+                         p_out=get_posterior_mean(basefit, pars=c('p_out'))[,5],
+                           Temp=get_posterior_mean(basefit, pars=c('tau'))[,5],
+                           LL=get_posterior_mean(basefit, pars=c('log_lik'))[,5])
+k <- 5
+shepparams$BIC <- log(lengthArray) * k - 2 * (shepparams$LL)
+shepparams$AIC <- 2 * k - 2 * (shepparams$LL)
+shep_LL <- extract_log_lik(shepfit)
+shep_LOO <- loo(shep_LL)
+shep_WAIC <- waic(shep_LL)
+
+#############################
+
 ## SELF-ANCHOR WITH LINEAR DEPENDENCE MODEL ##
 
 #############################
