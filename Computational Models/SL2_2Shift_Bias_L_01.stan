@@ -17,8 +17,8 @@ data {
 parameters {
   // Declare all parameters as vectors for vectorizing
   // Hyper(group)-parameters
-  vector[5] mu_pr;
-  vector<lower=0>[5] sigma;
+  vector[7] mu_pr;
+  vector<lower=0>[7] sigma;
 
   // Subject-level raw parameters (for Matt trick)
   vector[nSubjects] tau_pr;  // inverse temperature
@@ -26,6 +26,8 @@ parameters {
   vector[nSubjects] m_out_pr;  // slope for outgroup
   vector[nSubjects] shift_in_pr;  // slope for shift
   vector[nSubjects] shift_out_pr;  // slope for shift
+  vector[nSubjects] L_pr;  // slope for shift
+  vector[nSubjects] bias_pr;  // slope for shift
   
 }
 
@@ -36,6 +38,8 @@ transformed parameters {
   vector<lower=0, upper=20>[nSubjects] m_out;
   vector<lower=0, upper=6>[nSubjects] shift_in;
   vector<lower=0, upper=6>[nSubjects] shift_out;
+  vector<lower=0, upper=1>[nSubjects] L;
+  vector<lower=0, upper=1>[nSubjects] bias;
 
   for (i in 1:nSubjects) {
     
@@ -44,6 +48,8 @@ transformed parameters {
     m_out[i] = Phi_approx(mu_pr[3] + sigma[3] * m_out_pr[i]) * 20;
     shift_in[i] = Phi_approx(mu_pr[4] + sigma[4] * shift_in_pr[i]) * 6;
     shift_out[i] = Phi_approx(mu_pr[5] + sigma[5] * shift_out_pr[i]) * 6;
+    L[i] = Phi_approx(mu_pr[6] + sigma[6] * L_pr[i]);
+    bias[i] = Phi_approx(mu_pr[7] + sigma[7] * bias_pr[i]);
     
   }
   
@@ -63,6 +69,8 @@ model {
   m_out_pr ~ normal(0, 1);
   shift_in_pr ~ normal(0, 1);
   shift_out_pr ~ normal(0, 1);
+  L_pr ~ normal(0, 1);
+  bias_pr ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
 
@@ -73,8 +81,8 @@ model {
     vector[nTrain[s]] GPout;
     vector[nTrain[s]] PS;
 
-    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-(m_in[s]-10) )*(prevSelf[s,1:nTrain[s]] -  (shift_in[s]+1) )));
-    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-(m_out[s]-10) )*(prevSelf[s,1:nTrain[s]] - (shift_out[s]+1) )));
+    GPin[1:nTrain[s]] = rep_vector(L[s],nTrain[s])./(1 + exp((-(m_in[s]-10) )*(prevSelf[s,1:nTrain[s]] -  (shift_in[s]+1) ))) + ((1-L[s])/2);
+    GPout[1:nTrain[s]] = rep_vector(L[s],nTrain[s])./(1 + exp((-(m_out[s]-10) )*(prevSelf[s,1:nTrain[s]] - (shift_out[s]+1) ))) + ((1-L[s])/2);
     
     for (t in 1:nTrials[s]) {
       
@@ -106,8 +114,8 @@ model {
       // print(m_out[s]);
       // print(bias[s]);
       
-      prob[1] = ( pow( ( simW[1] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
-      prob[2] = ( pow( ( simW[2] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
+      prob[1] = ( (1 - bias[s]) * pow( ( simW[1] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
+      prob[2] = ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
       
       // print("Choice Probability")
       // print(prob);
@@ -125,6 +133,8 @@ generated quantities {
   real<lower=0, upper=20> mu_m_out;
   real<lower=0, upper=6> mu_shift_in;
   real<lower=0, upper=6> mu_shift_out;
+  real<lower=0, upper=1> mu_L;
+  real<lower=0, upper=1> mu_bias;
 
   // For log likelihood calculation
   real log_lik[nSubjects];
@@ -145,6 +155,8 @@ generated quantities {
   mu_m_out = Phi_approx(mu_pr[3]) * 20;
   mu_shift_in = Phi_approx(mu_pr[4]) * 6;
   mu_shift_out = Phi_approx(mu_pr[5]) * 6;
+  mu_L = Phi_approx(mu_pr[6]);
+  mu_bias = Phi_approx(mu_pr[7]);
 
   { // local section, this saves time and space
     
@@ -159,8 +171,8 @@ generated quantities {
     
     log_lik[s] = 0;
     
-    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-(m_in[s]-10) )*(prevSelf[s,1:nTrain[s]] -  (shift_in[s]+1) )));
-    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-(m_out[s]-10) )*(prevSelf[s,1:nTrain[s]] - (shift_out[s]+1) )));
+    GPin[1:nTrain[s]] = rep_vector(L[s],nTrain[s])./(1 + exp((-(m_in[s]-10) )*(prevSelf[s,1:nTrain[s]] -  (shift_in[s]+1) ))) + ((1-L[s])/2);
+    GPout[1:nTrain[s]] = rep_vector(L[s],nTrain[s])./(1 + exp((-(m_out[s]-10) )*(prevSelf[s,1:nTrain[s]] - (shift_out[s]+1) ))) + ((1-L[s])/2);
     
     for (t in 1:nTrials[s]) {
 
@@ -170,8 +182,8 @@ generated quantities {
       simW[1] = dot_product(GPout[1:nTrain[s]],PS);
       simW[2] = dot_product(GPin[1:nTrain[s]],PS);
       
-      prob[1] = ( pow( ( simW[1] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
-      prob[2] = ( pow( ( simW[2] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
+      prob[1] = ( (1 - bias[s]) * pow( ( simW[1] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
+      prob[2] = ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
       
       // print(prob)
       // print(sum(prob))
