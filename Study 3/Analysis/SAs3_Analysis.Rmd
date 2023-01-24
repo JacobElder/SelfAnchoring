@@ -69,6 +69,7 @@ fullTest$condition <- relevel(fullTest$condition,"Minority")
 fullTest$novel <- as.factor(fullTest$novel)
 levels(fullTest$novel) <- list("Trained"  = "0", "Held Out" = "1")
 
+fullTrain$metaContrast <- fullTrain$inGsim / fullTrain$outGsim
 ```
 
 ```{r}
@@ -154,7 +155,6 @@ Dialectical self and need to belong positively associated with group assortativi
 
 ```{r}
 
-
 indDiffs %>% select(groupHomoph, seHomoph, SStatus, SCC:IdImp) %>% corToOne(., "groupHomoph")
 indDiffs %>% select(groupHomoph, seHomoph, SStatus, SCC:IdImp) %>% plotCorToOne(., "groupHomoph")
 ```
@@ -177,7 +177,7 @@ ggpredict(m, c("condition")) %>% plot(show.title=F, add.data=T)
 ggplot(indDiffs, aes(condition, groupHomoph.Z)) + 
   ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
   geom_boxplot(width = .2, outlier.shape = NA) + 
-  geom_jitter(width = .05, alpha = .3)
+  geom_jitter(width = .05, alpha = .3) + labs(y="Homophily",x="Racial Group Comparison") + jtools::theme_apa()
 ```
 
 
@@ -193,7 +193,7 @@ summary(m)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
 ```
 
-Desirability predicts ingroup predictions most strongly for not CSU LA, less so for UCLA, and least for CSU LA.
+Slightly steeper classification of ingroup as desirable when contrasted against majority vs. minority
 
 ```{r}
 m <- glmer( ingChoiceN ~ desirability.Z * condition +  ( desirability.Z  | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
@@ -201,7 +201,7 @@ m <- glmer( ingChoiceN ~ desirability.Z * condition +  ( desirability.Z  | subID
     nAGQ = 1)
 summary(m)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
-ggpredict(m, c("desirability.Z","outgroup")) %>% plot(show.title=F) + xlab("Desirability") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggpredict(m, c("desirability.Z","condition")) %>% plot(show.title=F) + xlab("Desirability") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
 ```
 
 # Replication of prior self-anchoring findings: Self-evaluations predicting ingroup evaluations
@@ -286,7 +286,7 @@ Sim.Condition.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=grou
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
 Sim.Condition.Plot
-
+l
 ```
 
 ## Covariates and Condition Differences
@@ -336,11 +336,11 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 No effect
 
 ```{r}
-m <- glmer( ingChoiceN ~ predicted.Z*outgroup + desirability.Z + ( predicted.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ predicted.Z*condition + desirability.Z + ( predicted.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
-ggpredict(m, c("predicted.Z", "outgroup")) %>% plot(show.title=F) + xlab("Cross-Validated Expectations") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggpredict(m, c("predicted.Z", "condition")) %>% plot(show.title=F) + xlab("Cross-Validated Expectations") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
 ```
 
 # Does dot-product expected ratings predict ingroup choices?
@@ -499,11 +499,11 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 Effect of neighboring self-evaluations on ingroup choices is strongest for UCLA and weakest for CSU LA
 
 ```{r}
-m <- glmer( ingChoiceN ~ neighAveInSE.Z*outgroup + desirability.Z + ( neighAveInSE.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ neighAveInSE.Z*condition + desirability.Z + ( neighAveInSE.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
-ggpredict(m, c("neighAveInSE.Z", "outgroup")) %>% plot(show.title=F) + xlab("Inwards Neighbors' Average Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+ggpredict(m, c("neighAveInSE.Z", "condition")) %>% plot(show.title=F) + xlab("Inwards Neighbors' Average Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
 ```
 
 # Do people self-anchor more for higher indegree traits?
@@ -860,9 +860,16 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 ## Moderated by condition
 
 ```{r}
-m <- lmer( scale(selfResp) ~ scale(inGsim)*outgroup + scale(outGsim)*outgroup + (  scale(inGsim) + scale(outGsim) | subID) + ( outgroup | trait), data = fullTrain)
+m <- lmer( scale(selfResp) ~ scale(inGsim)*condition + scale(outGsim)*condition + (  scale(inGsim) + scale(outGsim) | subID) + ( condition | trait), data = fullTrain)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
-ggpredict(m, c("inGsim","outgroup")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+ggpredict(m, c("inGsim","condition")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(metaContrast) + (  scale(metaContrast) | subID) + (1 | trait), data = fullTrain)
+summary(m)
+tidy(m,conf.int=TRUE,effects="fixed")
+ggpredict(m, c("metaContrast")) %>% plot(show.title=F) + xlab("Metacontrast Ratio") + ylab("Self-Evaluation") + jtools::theme_apa()
 ```
 
 ## Moderated by Group Homophily
