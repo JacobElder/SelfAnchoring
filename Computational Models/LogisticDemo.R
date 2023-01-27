@@ -9,7 +9,7 @@ logFunc <- function(input, slope=1, shift=0){
 
 Minputs=c(.5,.6,.7,.8,.9,1,1.25,1.5,2,2.5,3,3.5,4,4.5,5,5.5)
 df<-data.frame(Minputs=sort(rep(Minputs, 7)), eval=rep(1:7) )
-df$trans<-logFunc(df$eval, df$Minputs, shift = 1)
+df$trans<-logFunc(df$eval, df$Minputs, shift = 0)
 
 library(ggplot2)
 FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as.factor(Minputs) )) +
@@ -64,4 +64,14 @@ FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as
   geom_line() + xlab("Original Self-Evaluation") + ylab("Probability of Group Normativity")  + theme_classic() +
   theme(legend.position="top") + labs(color="Growth Parameter")
 FSplot
+
+
+DP <- sum(model_data$prevSelf[1,] * model_data$prevSim[1,1,])
+logFunc <- function(input, slope=1, shift=0){
+  #input = input - 4
+  output = 1 / (1 + exp(-slope * (input - shift ) ))
+  return(output)
+}
+logFunc(DP,shift=140:145)
+
 
