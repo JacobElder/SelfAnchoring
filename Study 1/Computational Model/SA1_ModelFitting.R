@@ -309,6 +309,84 @@ SL2_2Shift_Bias_L_WAIC <- waic(SL2_2Shift_Bias_L_LL)
 
 iter=2000
 warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_Shift_Single_NoTau_11.stan")
+cores<-detectCores()
+SL2_2Shiftfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_2Shiftfit)
+SL2_2Shift_summary <- summary(SL2_2Shiftfit, pars = c("tau", "m","shift"), probs = c(0.1, 0.9))$summary
+print(SL2_2Shift_summary)
+get_posterior_mean(SL2_2Shiftfit, pars=c('tau', 'm','shift'))[,5]
+SL2_2Shiftparams <- data.frame(Temp=get_posterior_mean(SL2_2Shiftfit, pars=c('tau'))[,5],
+                                    m=get_posterior_mean(SL2_2Shiftfit, pars=c('m'))[,5],
+                                    shift=get_posterior_mean(SL2_2Shiftfit, pars=c('shift'))[,5],
+                                    LL=get_posterior_mean(SL2_2Shiftfit, pars=c('logik'))[,5])
+k <- 3
+SL2_2Shiftparams$BIC <- log(lengthArray) * k - 2 * (SL2_2Shiftparams$LL)
+SL2_2Shiftparams$AIC <- 2 * k - 2 * (SL2_2Shiftparams$LL)
+SL2_2Shift <- extract_log_lik(SL2_2Shiftfit)
+SL2_2ShiftOO <- loo(SL2_2Shift)
+SL2_2Shift_WAIC <- waic(SL2_2Shift)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_Shift_Single_NoTau_11.stan")
+cores<-detectCores()
+SL2_2Shift_NoTaufit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_2Shift_NoTaufit)
+SL2_2Shift_NoTau_summary <- summary(SL2_2Shift_NoTaufit, pars = c( "m","shift"), probs = c(0.1, 0.9))$summary
+print(SL2_2Shift_NoTau_summary)
+get_posterior_mean(SL2_2Shift_NoTaufit, pars=c( 'm','shift'))[,5]
+SL2_2Shift_NoTauparams <- data.frame(m=get_posterior_mean(SL2_2Shift_NoTaufit, pars=c('m'))[,5],
+                               shift=get_posterior_mean(SL2_2Shift_NoTaufit, pars=c('shift'))[,5],
+                               LL=get_posterior_mean(SL2_2Shift_NoTaufit, pars=c('logik'))[,5])
+k <- 3
+SL2_2Shift_NoTauparams$BIC <- log(lengthArray) * k - 2 * (SL2_2Shift_NoTauparams$LL)
+SL2_2Shift_NoTauparams$AIC <- 2 * k - 2 * (SL2_2Shift_NoTauparams$LL)
+SL2_2Shift_NoTau <- extract_log_lik(SL2_2Shift_NoTaufit)
+SL2_2Shift_NoTauOO <- loo(SL2_2Shift_NoTau)
+SL2_2Shift_NoTau_WAIC <- waic(SL2_2Shift_NoTau)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_2Shift_Bias_Single_11.stan")
+cores<-detectCores()
+SL2_2Shift_Biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_2Shift_Biasfit)
+SL2_2Shift_Bias_summary <- summary(SL2_2Shift_Biasfit, pars = c("tau", "m","shift","bias"), probs = c(0.1, 0.9))$summary
+print(SL2_2Shift_Bias_summary)
+get_posterior_mean(SL2_2Shift_Biasfit, pars=c('tau', 'm','shift', 'bias'))[,5]
+SL2_2Shift_Biasparams <- data.frame(Temp=get_posterior_mean(SL2_2Shift_Biasfit, pars=c('tau'))[,5],
+                                      m=get_posterior_mean(SL2_2Shift_Biasfit, pars=c('m'))[,5],
+                                      shift=get_posterior_mean(SL2_2Shift_Biasfit, pars=c('shift'))[,5],
+                                      bias=get_posterior_mean(SL2_2Shift_Biasfit, pars=c('bias'))[,5],
+                                      LL=get_posterior_mean(SL2_2Shift_Biasfit, pars=c('logik'))[,5])
+k <- 4
+SL2_2Shift_Biasparams$BIC <- log(lengthArray) * k - 2 * (SL2_2Shift_Biasparams$LL)
+SL2_2Shift_Biasparams$AIC <- 2 * k - 2 * (SL2_2Shift_Biasparams$LL)
+SL2_2Shift_BiasL <- extract_log_lik(SL2_2Shift_Biasfit)
+SL2_2Shift_BiasOO <- loo(SL2_2Shift_BiasL)
+SL2_2Shift_Bias_WAIC <- waic(SL2_2Shift_BiasL)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
 modelFile <- here("Computational Models/SL2_2Shift_Bias_L_Single_11.stan")
 cores<-detectCores()
 SL2_2Shift_Bias_Lfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))

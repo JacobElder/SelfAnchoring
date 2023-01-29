@@ -74,4 +74,8 @@ logFunc <- function(input, slope=1, shift=0){
 }
 logFunc(DP,shift=140:145)
 
-
+logFunc <- function(sim, self, slope=1, shift=0){
+  output = 1 / (1 + exp(-slope * (sim * (self - shift) ) ))
+  return(output)
+}
+logFunc(rep(seq(from=0,to=.7,by=.05),7),1:7)

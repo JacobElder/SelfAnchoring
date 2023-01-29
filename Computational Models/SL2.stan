@@ -40,7 +40,7 @@ transformed parameters {
   }
   
    m_in   = mu_pr[2]  + sigma[2]  * m_in_pr;
-   b_out   = mu_pr[3]  + sigma[3]  * m_out_pr;
+   m_out   = mu_pr[3]  + sigma[3]  * m_out_pr;
   
 }
 
