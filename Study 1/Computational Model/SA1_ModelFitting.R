@@ -82,6 +82,18 @@ lenTrain <- matrix(nrow=length(uIds))
 prevSim=array(0,c(maxSubjs,maxTrials,maxTrain))
 prevSelf=array(0,c(maxSubjs,maxTrain))
 
+inGssv=array(0,c(maxSubjs,maxTrials))
+outGssv=array(0,c(maxSubjs,maxTrials))
+inGmsv=array(0,c(maxSubjs,maxTrials))
+outGmsv=array(0,c(maxSubjs,maxTrials))
+
+inGssvG=array(0,c(maxSubjs,maxTrials))
+outGssvG=array(0,c(maxSubjs,maxTrials))
+inGmsvG=array(0,c(maxSubjs,maxTrials))
+outGmsvG=array(0,c(maxSubjs,maxTrials))
+
+fulldf <- fulldf[order(fulldf$subID, fulldf$trialTotalT2),]
+
 for(i in 1:length(uIds) ){
   df <- subset(fulldf, subID==uIds[i])
   t <- nrow(df)
@@ -95,6 +107,43 @@ for(i in 1:length(uIds) ){
     curIdx <- df$Idx[trial]
     curSims <- simMat[traindf$Idx[traindf$subID==uIds[i]], df$Idx[trial]]
     prevSim[i,trial,1:lenTrain[i]]=curSims
+    
+    # Similarity to Ingroup and Outgroup Classifications thus far
+    inGchoices <-which(df$ingChoiceN[df$trialTotalT2 < df$trialTotalT2[trial]]==1)
+    outGchoices <-which(df$ingChoiceN[df$trialTotalT2 < df$trialTotalT2[trial]]==0)
+    testSim <- simMat[df$Idx[df$trialTotalT2 < df$trialTotalT2[trial]], df$Idx[trial]]
+    inGSim <- testSim[inGchoices]
+    outGSim <- testSim[outGchoices]
+    inGSim <- inGSim[!is.na(inGSim)]
+    inGsumsim <- sum(inGSim)
+    outGsumsim <- sum(outGSim)
+    inGmeansim <- mean(inGSim)
+    outGmeansim <- mean(outGSim)
+    inGmsv[i,trial] <- inGmeansim
+    outGmsv[i,trial] <- outGmeansim
+    inGssv[i,trial] <- inGsumsim
+    outGssv[i,trial] <- outGsumsim
+    inGmsv[is.na(inGmsv)] <- 0
+    outGmsv[is.na(outGmsv)] <- 0
+    inGssv[is.na(inGssv)] <- 0
+    outGssv[is.na(outGssv)] <- 0
+    
+    # Similarity to Ingroup and Outgroup Classifications disregarding trial
+    inGchoicesGEN <-which(df$ingChoiceN==1)
+    outGchoicesGEN <-which(df$ingChoiceN==0)
+    testSimGEN <- simMat[df$Idx, df$Idx[trial]]
+    inGSimGEN <- testSimGEN[inGchoicesGEN]
+    outGSimGEN <- testSimGEN[outGchoicesGEN]
+    inGSimGEN <- inGSimGEN[!is.na(inGSimGEN)]
+    inGsumsimGEN <- sum(inGSimGEN)
+    outGsumsimGEN <- sum(outGSimGEN)
+    inGmeansimGEN <- mean(inGSimGEN)
+    outGmeansimGEN <- mean(outGSimGEN)
+    inGmsvG[i,trial] <- inGmeansimGEN
+    outGmsvG[i,trial] <- outGmeansimGEN
+    inGssvG[i,trial] <- inGsumsimGEN
+    outGssvG[i,trial] <- outGsumsimGEN
+    
   }
   
 }
@@ -109,6 +158,25 @@ model_data <- list( nSubjects=maxSubjs,
                     prevSim=prevSim,
                     maxTrain=91,
                     nTrain=as.numeric(lenTrain))
+
+model_data <- list( nSubjects=maxSubjs,
+                    #nArms = length(unique(df$choiceCue)),
+                    maxTrials = maxTrials,
+                    nTrials = as.numeric(lengthArray),
+                    groupChoice = groupChoice,
+                    sg = sg,
+                    prevSelf=prevSelf,
+                    prevSim=prevSim,
+                    maxTrain=91,
+                    nTrain=as.numeric(lenTrain),
+                    inGsum = inGssv,
+                    outGsum = outGssv,
+                    inGmean = inGmsv,
+                    outGmean = outGmsv,
+                    inGsumG = inGssvG,
+                    outGsumG = outGssvG,
+                    inGmeanG = inGmsvG,
+                    outGmeanG = outGmsvG)
 
 #############################
 
