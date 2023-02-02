@@ -79,3 +79,19 @@ logFunc <- function(sim, self, slope=1, shift=0){
   return(output)
 }
 logFunc(rep(seq(from=0,to=.7,by=.05),7),1:7)
+
+
+#####
+
+logFunc <- function(input, slope=1, shift=0){
+  output = 1 / (1 + exp(-slope * (input - shift ) ))
+  return(output)
+}
+
+Minputs <- c(10.06)
+df<-data.frame(Minputs=Minputs, eval=scale(model_data$sg[order(model_data$sg)]) )
+df$trans<-logFunc(df$eval, df$Minputs, shift = 0)
+FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as.factor(Minputs) )) +
+  geom_line() + geom_point() + xlab("Similarity-to-Group") + ylab("Ingroup Probability")  + theme_classic() +
+  theme(legend.position="top") + labs(color="Growth Parameter")
+FSplot
