@@ -64,6 +64,21 @@ fullTest$Ent.Z <- scale(fullTest$Ent)
 
 fullTest$outgroup <- as.factor(fullTest$outgroup)
 fullTest$outgroup <- relevel(fullTest$outgroup,"Not UCR")
+
+fullTest$outgroup
+mat = matrix(c(1/3, 1/3, 1/3, -.5, 1, -.5, -.5, -.5, 1), nrow = 3)
+mymat = solve(t(mat))
+mymat
+#remove the intercept (constant) term
+my.contrasts<-mymat[,2:3]
+fullTest$outgroupU <- fullTest$outgroup
+contrasts(fullTest$outgroupU) = my.contrasts
+
+
+mycontrasts2 = contrasts(fullTest$outgroup)
+mycontrasts2[,1] = c(-1/2, -1/2, 1)
+mycontrasts2[,2] = c(-1/2, 1, -1/2)
+contrasts(fullTest$outgroupU) = mycontrasts2
 ```
 
 ```{r}
@@ -194,7 +209,7 @@ ggpredict(m, c("outgroup")) %>% plot(show.title=F, add.data=T)
 ggplot(indDiffs, aes(outgroup, groupHomoph.Z)) + 
   ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
   geom_boxplot(width = .2, outlier.shape = NA) + 
-  geom_jitter(width = .05, alpha = .3)
+  geom_jitter(width = .05, alpha = .3)  + labs(y="Homophily",x="University Comparison") + jtools::theme_apa()
 ```
 
 
@@ -291,11 +306,11 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 Similarity-wieghted self-evaluations predict later ingroup endorsements most for those with UCLA comparison and least for those with CSU LA comparison.
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup + desirability.Z + ( WSR.Z + desirability.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroupU + desirability.Z + ( WSR.Z + desirability.Z | subID) + ( outgroupU | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
-p <- ggpredict(m, c("WSR.Z","outgroup"))
+p <- ggpredict(m, c("WSR.Z","outgroupU"))
 Sim.Condition.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Not UCR","CSU LA", "UCLA")) + scale_color_manual(labels = c("Not UCR","CSU LA", "UCLA"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
                       labels=c("Not UCR","CSU LA", "UCLA"), values = wes_palette("Darjeeling1")) + theme(
     legend.position = c(.1, .65),
@@ -307,6 +322,106 @@ Sim.Condition.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=grou
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
 Sim.Condition.Plot
+```
+
+#### Identity Importance
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * IdImp + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","IdImp","outgroup")) %>% plot()
+```
+
+#### Self-Esteem
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(RSE) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","RSE","outgroup")) %>% plot()
+```
+
+### Need to Belong
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(NTB) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","NTB","outgroup")) %>% plot()
+```
+
+## Multidimensional Ingroup Identification
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(MGIS) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","MGIS","outgroup")) %>% plot()
+```
+
+## Interdependent Self-Construal
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(SING.Inter) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","SING.Inter","outgroup")) %>% plot()
+```
+
+## Entitativity
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(Ent) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","Ent","outgroup")) %>% plot()
+```
+
+## Self-Prototypicality
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(Proto) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","Proto","outgroup")) %>% plot()
+```
+
+## Need for Cognition
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(NFC) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","NFC","outgroup")) %>% plot()
+```
+
+## Group Similarity
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(GSim) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","NFC","outgroup")) %>% plot()
+```
+
+## Group Homophily
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(groupHomoph) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","groupHomoph","outgroup")) %>% plot()
 ```
 
 ```{r}

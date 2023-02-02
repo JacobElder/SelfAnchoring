@@ -311,6 +311,108 @@ ggpredict(m, c("WSR.Z", "condition")) %>% plot(show.title=F) + xlab("Similarity-
 # ggpredict(m, c("WSR.Z", "outgroup")) %>% plot(show.title=F) + xlab("Similarity-Weighted Self-Evaluations") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
 ```
 
+### Individual Differences for Similarity-to-Self Condition Differences
+
+#### Identity Importance
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * IdImp + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","IdImp","condition")) %>% plot()
+```
+
+#### Self-Esteem
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(RSE) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","RSE","condition")) %>% plot()
+```
+
+### Need to Belong
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(NTB) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","NTB","condition")) %>% plot()
+```
+
+## Multidimensional Ingroup Identification
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(MGIS) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","MGIS","condition")) %>% plot()
+```
+
+## Interdependent Self-Construal
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(SING.Inter) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","SING.Inter","condition")) %>% plot()
+```
+
+## Entitativity
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(Ent) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","Ent","condition")) %>% plot()
+```
+
+## Self-Prototypicality
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(Proto) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","Proto","condition")) %>% plot()
+```
+
+## Need for Cognition
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(NFC) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","NFC","condition")) %>% plot()
+```
+
+## Group Similarity
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(GSim) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","GSim","condition")) %>% plot()
+```
+
+## Group Homophily
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * condition * scale(groupHomoph) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","groupHomoph","condition")) %>% plot()
+```
+
 # Do cross-validation predictions predict ingroup choices?
 
 ## No covariates
