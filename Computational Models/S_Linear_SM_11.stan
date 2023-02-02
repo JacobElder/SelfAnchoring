@@ -30,25 +30,23 @@ parameters {
 transformed parameters {
   // subject-level parameters
   vector<lower=0, upper=10>[nSubjects] tau;
-  vector[nSubjects] m_in;
-  vector[nSubjects] m_out;
+  vector<lower=0, upper=2>[nSubjects] m_in;
+  vector<lower=0, upper=2>[nSubjects] m_out;
 
   for (i in 1:nSubjects) {
     
     tau[i] = Phi_approx(mu_pr[1] + sigma[1] * tau_pr[i]) * 10;
+    m_in[i] = Phi_approx(mu_pr[2] + sigma[2] * m_in_pr[i]) * 2;
+    m_out[i] = Phi_approx(mu_pr[3] + sigma[3] * m_out_pr[i]) * 2;
     
   }
-  
-   m_in   = mu_pr[2]  + sigma[2]  * m_in_pr;
-   m_out   = mu_pr[3]  + sigma[3]  * m_out_pr;
   
 }
 
 model {
   // Hyperparameters
   mu_pr  ~ normal(0, 1);
-  sigma[1] ~ normal(0, 0.2);
-  sigma[2:3] ~ normal(0, 1.0);
+  sigma ~ normal(0, 0.2);
   //sigma[3:4] ~ cauchy(0, 0.35);
 
   // individual parameters
@@ -67,8 +65,8 @@ model {
 
     // GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
     // GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    GPin[1:nTrain[s]] = m_in[s]*(prevSelf[s,1:nTrain[s]]/7);
-    GPout[1:nTrain[s]] = m_out[s]*(prevSelf[s,1:nTrain[s]]/7);
+    GPin[1:nTrain[s]] = (m_in[s]-1)*(prevSelf[s,1:nTrain[s]]/7);
+    GPout[1:nTrain[s]] = (m_out[s]-1)*(prevSelf[s,1:nTrain[s]]/7);
     
     for (t in 1:nTrials[s]) {
       
@@ -109,8 +107,8 @@ model {
 generated quantities {
   // For group level parameters
   real<lower=0, upper=10> mu_tau;
-  real mu_m_in;
-  real mu_m_out;
+  real<lower=0, upper=2> mu_m_in;
+  real<lower=0, upper=2> mu_m_out;
 
   // For log likelihood calculation
   real log_lik[nSubjects];
@@ -127,8 +125,8 @@ generated quantities {
 
   //mu_A   = Phi_approx(mu_pr[1]);
   mu_tau = Phi_approx(mu_pr[1]) * 10;
-  mu_m_in   = mu_pr[2];
-  mu_m_out = mu_pr[3];
+  mu_m_in   = Phi_approx(mu_pr[2]) * 2;
+  mu_m_out = Phi_approx(mu_pr[3]) * 2;
 
   { // local section, this saves time and space
     
@@ -143,8 +141,8 @@ generated quantities {
     
     log_lik[s] = 0;
     
-    GPin[1:nTrain[s]] = m_in[s]*(prevSelf[s,1:nTrain[s]]/7);
-    GPout[1:nTrain[s]] = m_out[s]*(prevSelf[s,1:nTrain[s]]/7);
+    GPin[1:nTrain[s]] = (m_in[s]-1)*(prevSelf[s,1:nTrain[s]]/7);
+    GPout[1:nTrain[s]] = (m_out[s]-1)*(prevSelf[s,1:nTrain[s]]/7);
     
     for (t in 1:nTrials[s]) {
 

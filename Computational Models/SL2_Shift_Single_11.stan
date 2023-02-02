@@ -22,39 +22,40 @@ parameters {
 
   // Subject-level raw parameters (for Matt trick)
   vector[nSubjects] tau_pr;  // inverse temperature
-  vector[nSubjects] m_in_pr;  // slope for ingroup
-  vector[nSubjects] m_out_pr;  // slope for outgroup
+  vector[nSubjects] m_pr;  // slope for ingroup
+  vector[nSubjects] shift_pr;  // slope for shift
   
 }
 
 transformed parameters {
   // subject-level parameters
   vector<lower=0, upper=10>[nSubjects] tau;
-  vector[nSubjects] m_in;
-  vector[nSubjects] m_out;
+  vector<lower=0, upper=20>[nSubjects] m;
+  vector<lower=0, upper=4>[nSubjects] shift;
 
   for (i in 1:nSubjects) {
     
     tau[i] = Phi_approx(mu_pr[1] + sigma[1] * tau_pr[i]) * 10;
+    m[i] = Phi_approx(mu_pr[2] + sigma[2] * m_pr[i]) * 20;
+    shift[i] = Phi_approx(mu_pr[3] + sigma[3] * shift_pr[i]) * 4;
     
   }
-  
-   m_in   = mu_pr[2]  + sigma[2]  * m_in_pr;
-   m_out   = mu_pr[3]  + sigma[3]  * m_out_pr;
   
 }
 
 model {
   // Hyperparameters
   mu_pr  ~ normal(0, 1);
-  sigma[1] ~ normal(0, 0.2);
-  sigma[2:3] ~ normal(0, 1.0);
+  sigma ~ normal(0, 0.2);
+  // sigma[1:2] ~ normal(0, 0.2);
+  //sigma[3:4] ~ normal(0, 1.0);
   //sigma[3:4] ~ cauchy(0, 0.35);
+  //sigma[3] ~ cauchy(0, 1.0);
 
   // individual parameters
   tau_pr ~ normal(0, 1);
-  m_in_pr ~ normal(0, 1);
-  m_out_pr ~ normal(0, 1);
+  m_pr ~ normal(0, 1);
+  shift_pr ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
 
@@ -62,14 +63,10 @@ model {
     vector[2] prob;
     vector[nTrain[s]] curSelf;
     vector[nTrain[s]] GPin;
-    vector[nTrain[s]] GPout;
     vector[nTrain[s]] PS;
 
-    // GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    // GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    GPin[1:nTrain[s]] = m_in[s]*(prevSelf[s,1:nTrain[s]]/7);
-    GPout[1:nTrain[s]] = m_out[s]*(prevSelf[s,1:nTrain[s]]/7);
-    
+    // GPin[1:nTrain[s]] = rep_vector(L[s],nTrain[s])./(1 + exp((-(m[s]-10) )*(prevSelf[s,1:nTrain[s]] -  (shift[s]+1) )));
+
     for (t in 1:nTrials[s]) {
       
       // print(GPin)
@@ -77,30 +74,22 @@ model {
       
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
       
-      // simW[1] = dot_product(GPout[1:nTrain[s]],PS); // summation and multiplication of group probabilities with similarities
-      // simW[2] = dot_product(GPin[1:nTrain[s]],PS);
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS);
-      
-      // print("Weights")
-      // print(simW);
-      // 
-      // print("Self")
-      // print(prevSelf[s,1:nTrain[s]]);
-      // print("Similarity")
-      // print(PS)
-      // print("Inroup Probability")
-      // print(GPin[1:nTrain[s]])
-      // print("Outroup Probability")
-      // print(GPout[1:nTrain[s]])
-      // 
-      // print("Parameters")
-      // print(tau[s]);
-      // print(m_in[s]);
-      // print(m_out[s]);
-      // print(bias[s]);
-      
-      groupChoice[s,t] ~ categorical_logit( tau[s] * simW );
+      // prob[2] = (1)/(1 + exp((-(m[s]-10) )*( (( dot_product(prevSelf[s,1:nTrain[s]],PS) / sum(prevSelf[s,1:nTrain[s]]) ) )  - (shift[s]) ) )) ;
+      // prob[2] = (1)/(1 + exp((-(m[s]-10) )*( (( dot_product(prevSelf[s,1:nTrain[s]],PS)/sum(prevSelf[s,1:nTrain[s]]) ) )  - (shift[s]) ) )) ;
+      prob[2] = (1)/(1 + exp((-(m[s]-10) )*( (( ( sg[s,t] ) - .2499395 )/ .06519279 )  - (shift[s]-2) ) )) ;
+      // print("Probabilities")
+      // print(prob)
+      // print(sum(prob))
+      prob[1] = 1 - prob[2];
+
+      prob[2] = ( pow( ( prob[2] ) ,tau[s] ) ) / ( ( pow( prob[1]  , tau[s] ) ) + ( pow( ( prob[2] ) ,tau[s] ) ) ); // convert to probabilities
+      // print("ProbabilitiesTau")
+      // print(prob)
+      // print(sum(prob))
+      prob[1] = 1 - prob[2];
+   
+      //groupChoice[s,t] ~ categorical( prob );
+      (groupChoice[s,t]-1) ~ bernoulli( prob[2] );
       
     }
   }    
@@ -109,8 +98,8 @@ model {
 generated quantities {
   // For group level parameters
   real<lower=0, upper=10> mu_tau;
-  real mu_m_in;
-  real mu_m_out;
+  real<lower=0, upper=20> mu_m;
+  real<lower=0, upper=4> mu_shift;
 
   // For log likelihood calculation
   real log_lik[nSubjects];
@@ -127,8 +116,8 @@ generated quantities {
 
   //mu_A   = Phi_approx(mu_pr[1]);
   mu_tau = Phi_approx(mu_pr[1]) * 10;
-  mu_m_in   = mu_pr[2];
-  mu_m_out = mu_pr[3];
+  mu_m = Phi_approx(mu_pr[2]) * 20;
+  mu_shift = Phi_approx(mu_pr[3]) * 4;
 
   { // local section, this saves time and space
     
@@ -138,35 +127,30 @@ generated quantities {
     vector[2] prob;
     vector[nTrain[s]] curSelf;
     vector[nTrain[s]] GPin;
-    vector[nTrain[s]] GPout;
     vector[nTrain[s]] PS;
     
     log_lik[s] = 0;
     
-    GPin[1:nTrain[s]] = m_in[s]*(prevSelf[s,1:nTrain[s]]/7);
-    GPout[1:nTrain[s]] = m_out[s]*(prevSelf[s,1:nTrain[s]]/7);
-    
     for (t in 1:nTrials[s]) {
 
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
-      // simW[1] = dot_product(GPout[1:nTrain[s]],PS); // summation and multiplication of group probabilities with similarities
-      // simW[2] = dot_product(GPin[1:nTrain[s]],PS);
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS);
       
-      prob[1] = ( pow( ( simW[1] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
-      prob[2] = ( pow( ( simW[2] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
-      
-      // print(prob)
-      // print(sum(prob))
-      // print(groupChoice[s,t])
-      // print(categorical_lpmf( groupChoice[s, t] | prob ))
+      //prob[2] = (1)/(1 + exp((-(m[s]-10) )*( ( dot_product(prevSelf[s,1:nTrain[s]],PS) / sum(prevSelf[s,1:nTrain[s]]) )   - (shift[s]) ) )) ;
+      // prob[2] = (1)/(1 + exp((-(m[s]-10) )*( (( dot_product(prevSelf[s,1:nTrain[s]],PS)/sum(prevSelf[s,1:nTrain[s]]) ) )  - (shift[s]) ) )) ;
+      prob[2] = (1)/(1 + exp((-(m[s]-10) )*( (( ( sg[s,t] ) - .2499395 )/ .06519279 )  - (shift[s]-2) ) )) ;
+      prob[1] = 1 - prob[2];
+
+      prob[2] = ( pow( ( prob[2] ) ,tau[s] ) ) / ( ( pow( prob[1]  , tau[s] ) ) + ( pow( ( prob[2] ) ,tau[s] ) ) ); // convert to probabilities
+      prob[1] = 1 - prob[2];
         
         // compute log likelihood of current trial
-        log_lik[s] += categorical_logit_lpmf( groupChoice[s, t] | tau[s] * simW );
+        // log_lik[s] += categorical_lpmf( groupChoice[s, t] | prob );
+        log_lik[s] += bernoulli_lpmf( (groupChoice[s, t]-1) | prob[2] );
+        
 
         // generate posterior prediction for current trial
-        y_pred[s, t] = categorical_rng(softmax( tau[s] * simW ));
+        // y_pred[s, t] = categorical_rng(prob);
+        y_pred[s, t] = bernoulli_rng(prob[2]);
         
       }
 

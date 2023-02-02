@@ -42,7 +42,28 @@ FSplot
 # df$trans<-shep(self = df$eval, sim = df$sim, c=.25, p = 1)
 
 library(ggplot2)
-FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as.factor(Minputs) )) +
-  geom_line() + xlab("Original Self-Evaluation") + ylab("Probability of Group Normativity")  + theme_classic() +
-  theme(legend.position="top") + labs(color="Growth Parameter")
+# Softmax choice function
+logsumexp <- function (x) {
+  y <- max(x)
+  y + log(sum(exp(x - y)))
+}
+softmax <- function (x) {
+  exp(x - logsumexp(x))
+}
+
+ssins <-seq(from=.05,to=.40,by=.001)
+Pin <- 1.269011
+Cin <- 0.7088053
+Temp <- 7.91
+indf <- data.frame(Prob=apply(cbind(shep(ssins,c=Cin,p=Pin), shep(ssins,c=Cout,p=Pout)), 1, function(x) softmax(x*Temp))[1,],trans=shep(ssins,c=Cin,p=Pin), Ss=ssins, C, P, group="ingroup")
+Pout <- 1.426963
+Cout <- 0.8405059
+outdf <- data.frame(Prob=apply(cbind(shep(ssins,c=Cin,p=Pin), shep(ssins,c=Cout,p=Pout)), 1, function(x) softmax(x*Temp))[2,],trans=shep(ssins,c=C,p=P), Ss=ssins, C, P, group="outgroup")
+df<-rbind(indf,outdf)
+colnames(df) <- c("Prob","trans","Ss","Cs","Ps","group")
+
+
+FSplot<-ggplot(data=df, aes(x=Ss, y=Prob, group=as.factor(group), color= as.factor(group) )) +
+  geom_line() + xlab("Similarity-to-Self") + ylab("Group Generalization")  + theme_classic() +
+  theme(legend.position="top") + labs(color="Group")
 FSplot
