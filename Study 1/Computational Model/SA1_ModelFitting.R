@@ -335,22 +335,47 @@ SL2_2Shift_WAIC <- waic(SL2_2Shift)
 
 iter=2000
 warmup=floor(iter/2)
-modelFile <- here("Computational Models/SL2_Shift_Single_NoTau_11.stan")
+modelFile <- here("Computational Models/SL2_Shift_Single_NoTau_11_SM.stan")
 cores<-detectCores()
-SL2_2Shift_NoTaufit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
-traceplot(SL2_2Shift_NoTaufit)
-SL2_2Shift_NoTau_summary <- summary(SL2_2Shift_NoTaufit, pars = c( "m","shift"), probs = c(0.1, 0.9))$summary
-print(SL2_2Shift_NoTau_summary)
-get_posterior_mean(SL2_2Shift_NoTaufit, pars=c( 'm','shift'))[,5]
-SL2_2Shift_NoTauparams <- data.frame(m=get_posterior_mean(SL2_2Shift_NoTaufit, pars=c('m'))[,5],
-                               shift=get_posterior_mean(SL2_2Shift_NoTaufit, pars=c('shift'))[,5],
-                               LL=get_posterior_mean(SL2_2Shift_NoTaufit, pars=c('logik'))[,5])
+SL2_Shift_NoTaufit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_Shift_NoTaufit)
+SL2_Shift_NoTau_summary <- summary(SL2_Shift_NoTaufit, pars = c( "m","shift"), probs = c(0.1, 0.9))$summary
+print(SL2_Shift_NoTau_summary)
+get_posterior_mean(SL2_Shift_NoTaufit, pars=c('m','shift'))[,5]
+SL2_Shift_NoTauparams <- data.frame(
+                               m=get_posterior_mean(SL2_Shift_NoTaufit, pars=c('m'))[,5],
+                               shift=get_posterior_mean(SL2_Shift_NoTaufit, pars=c('shift'))[,5],
+                               LL=get_posterior_mean(SL2_Shift_NoTaufit, pars=c('logik'))[,5])
 k <- 3
-SL2_2Shift_NoTauparams$BIC <- log(lengthArray) * k - 2 * (SL2_2Shift_NoTauparams$LL)
-SL2_2Shift_NoTauparams$AIC <- 2 * k - 2 * (SL2_2Shift_NoTauparams$LL)
-SL2_2Shift_NoTau <- extract_log_lik(SL2_2Shift_NoTaufit)
-SL2_2Shift_NoTauOO <- loo(SL2_2Shift_NoTau)
-SL2_2Shift_NoTau_WAIC <- waic(SL2_2Shift_NoTau)
+SL2_Shift_NoTauparams$BIC <- log(lengthArray) * k - 2 * (SL2_Shift_NoTauparams$LL)
+SL2_Shift_NoTauparams$AIC <- 2 * k - 2 * (SL2_Shift_NoTauparams$LL)
+SL2_Shift_NoTau <- extract_log_lik(SL2_Shift_NoTaufit)
+SL2_Shift_NoTauOO <- loo(SL2_Shift_NoTau)
+SL2_Shift_NoTau_WAIC <- waic(SL2_Shift_NoTau)
+
+#############################
+
+## PROBABILITY BIAS MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/SL2_NoShift_NoTau_Single_11.stan")
+cores<-detectCores()
+SL2_NoShift_NoTaufit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(SL2_NoShift_NoTaufit)
+SL2_NoShift_NoTau_summary <- summary(SL2_NoShift_NoTaufit, pars = c( "m"), probs = c(0.1, 0.9))$summary
+print(SL2_NoShift_NoTau_summary)
+get_posterior_mean(SL2_NoShift_NoTaufit, pars=c( 'm'))[,5]
+SL2_NoShift_NoTauparams <- data.frame(m=get_posterior_mean(SL2_NoShift_NoTaufit, pars=c('m'))[,5],
+                               LL=get_posterior_mean(SL2_NoShift_NoTaufit, pars=c('log_lik'))[,5])
+k <- 3
+SL2_NoShift_NoTauparams$BIC <- log(lengthArray) * k - 2 * (SL2_NoShift_NoTauparams$LL)
+SL2_NoShift_NoTauparams$AIC <- 2 * k - 2 * (SL2_NoShift_NoTauparams$LL)
+SL2_NoShift_NoTau <- extract_log_lik(SL2_NoShift_NoTaufit)
+SL2_NoShift_NoTauOO <- loo(SL2_NoShift_NoTau)
+SL2_NoShift_NoTau_WAIC <- waic(SL2_NoShift_NoTau)
 
 #############################
 
@@ -568,6 +593,107 @@ S_Linearparams$AIC <- 2 * k - 2 * (S_Linearparams$LL)
 S_Linear_LL <- extract_log_lik(S_Linearfit)
 S_Linear_LOO <- loo(S_Linear_LL)
 S_Linear_WAIC <- waic(S_Linear_LL)
+
+#############################
+
+## SHEPARD MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Linear_1mOppose_SM_11.stan")
+cores<-detectCores()
+S_Linear_1mOpposefit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Linear_1mOpposefit)
+S_Linear_1mOppose_summary <- summary(S_Linear_1mOpposefit, pars = c("tau", "m"), probs = c(0.1, 0.9))$summary
+print(S_Linear_1mOppose_summary)
+get_posterior_mean(S_Linear_1mOpposefit, pars=c('tau', 'm'))[,5]
+S_Linear_1mOpposeparams <- data.frame(Temp=get_posterior_mean(S_Linear_1mOpposefit, pars=c('tau'))[,5],
+                                      m=get_posterior_mean(S_Linear_1mOpposefit, pars=c('m'))[,5],
+                                      LL=get_posterior_mean(S_Linear_1mOpposefit, pars=c('log_lik'))[,5])
+k <- 2
+S_Linear_1mOpposeparams$BIC <- log(lengthArray) * k - 2 * (S_Linear_1mOpposeparams$LL)
+S_Linear_1mOpposeparams$AIC <- 2 * k - 2 * (S_Linear_1mOpposeparams$LL)
+S_Linear_1mOppose_LL <- extract_log_lik(S_Linear_1mOpposefit)
+S_Linear_1mOppose_LOO <- loo(S_Linear_1mOppose_LL)
+S_Linear_1mOppose_WAIC <- waic(S_Linear_1mOppose_LL)
+
+#############################
+
+## SHEPARD MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Linear_1mOpposeV2_SM_11.stan")
+cores<-detectCores()
+S_Linear_1mOpposeV2fit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Linear_1mOpposeV2fit)
+S_Linear_1mOpposeV2_summary <- summary(S_Linear_1mOpposeV2fit, pars = c("tau", "m"), probs = c(0.1, 0.9))$summary
+print(S_Linear_1mOpposeV2_summary)
+get_posterior_mean(S_Linear_1mOpposeV2fit, pars=c('tau', 'm'))[,5]
+S_Linear_1mOpposeV2params <- data.frame(Temp=get_posterior_mean(S_Linear_1mOpposeV2fit, pars=c('tau'))[,5],
+                             m=get_posterior_mean(S_Linear_1mOpposeV2fit, pars=c('m'))[,5],
+                             LL=get_posterior_mean(S_Linear_1mOpposeV2fit, pars=c('log_lik'))[,5])
+k <- 2
+S_Linear_1mOpposeV2params$BIC <- log(lengthArray) * k - 2 * (S_Linear_1mOpposeV2params$LL)
+S_Linear_1mOpposeV2params$AIC <- 2 * k - 2 * (S_Linear_1mOpposeV2params$LL)
+S_Linear_1mOpposeV2_LL <- extract_log_lik(S_Linear_1mOpposeV2fit)
+S_Linear_1mOpposeV2_LOO <- loo(S_Linear_1mOpposeV2_LL)
+S_Linear_1mOpposeV2_WAIC <- waic(S_Linear_1mOpposeV2_LL)
+
+#############################
+
+## SHEPARD MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Linear_1mOpposeMeta_SM_11.stan")
+cores<-detectCores()
+S_Linear_1mOpposeMetafit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Linear_1mOpposeMetafit)
+S_Linear_1mOpposeMeta_summary <- summary(S_Linear_1mOpposeMetafit, pars = c("tau", "m","meta"), probs = c(0.1, 0.9))$summary
+print(S_Linear_1mOpposeMeta_summary)
+get_posterior_mean(S_Linear_1mOpposeMetafit, pars=c('tau', 'm','meta'))[,5]
+S_Linear_1mOpposeMetaparams <- data.frame(Temp=get_posterior_mean(S_Linear_1mOpposeMetafit, pars=c('tau'))[,5],
+                                        m=get_posterior_mean(S_Linear_1mOpposeMetafit, pars=c('m'))[,5],
+                                        meta=get_posterior_mean(S_Linear_1mOpposeMetafit, pars=c('meta'))[,5],
+                                        LL=get_posterior_mean(S_Linear_1mOpposeMetafit, pars=c('log_lik'))[,5])
+k <- 3
+S_Linear_1mOpposeMetaparams$BIC <- log(lengthArray) * k - 2 * (S_Linear_1mOpposeMetaparams$LL)
+S_Linear_1mOpposeMetaparams$AIC <- 2 * k - 2 * (S_Linear_1mOpposeMetaparams$LL)
+S_Linear_1mOpposeMeta_LL <- extract_log_lik(S_Linear_1mOpposeMetafit)
+S_Linear_1mOpposeMeta_LOO <- loo(S_Linear_1mOpposeMeta_LL)
+S_Linear_1mOpposeMeta_WAIC <- waic(S_Linear_1mOpposeMeta_LL)
+
+#############################
+
+## SHEPARD MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Linear_1mSumOne_SM_11.stan")
+cores<-detectCores()
+S_Linear_1mSumOnefit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Linear_1mSumOnefit)
+S_Linear_1mSumOne_summary <- summary(S_Linear_1mSumOnefit, pars = c("tau", "m"), probs = c(0.1, 0.9))$summary
+print(S_Linear_1mSumOne_summary)
+get_posterior_mean(S_Linear_1mSumOnefit, pars=c('tau', 'm'))[,5]
+S_Linear_1mSumOneparams <- data.frame(Temp=get_posterior_mean(S_Linear_1mSumOnefit, pars=c('tau'))[,5],
+                                      m=get_posterior_mean(S_Linear_1mSumOnefit, pars=c('m'))[,5],
+                                      LL=get_posterior_mean(S_Linear_1mSumOnefit, pars=c('log_lik'))[,5])
+k <- 2
+S_Linear_1mSumOneparams$BIC <- log(lengthArray) * k - 2 * (S_Linear_1mSumOneparams$LL)
+S_Linear_1mSumOneparams$AIC <- 2 * k - 2 * (S_Linear_1mSumOneparams$LL)
+S_Linear_1mSumOne_LL <- extract_log_lik(S_Linear_1mSumOnefit)
+S_Linear_1mSumOne_LOO <- loo(S_Linear_1mSumOne_LL)
+S_Linear_1mSumOne_WAIC <- waic(S_Linear_1mSumOne_LL)
 
 #############################
 
