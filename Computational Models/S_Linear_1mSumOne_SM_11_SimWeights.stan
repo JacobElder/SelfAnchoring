@@ -88,12 +88,8 @@ model {
       simW[1] = dot_product(GPout[1:nTrain[s]],PS);
       simW[2] = dot_product(GPin[1:nTrain[s]],PS);
       
-      // curW[1] = (wOut[s]-1) * outGsum[s,t];
-      // curW[2] = (wIn[s]-1) * inGsum[s,t];
-      
-      if(inGsum[s,t] > 0 & outGsum[s,t] > 0){
-        inGsum[s,t]/outGsum[s,t]
-      }
+      curW[1] = (wOut[s]-1) * outGsum[s,t];
+      curW[2] = (wIn[s]-1) * inGsum[s,t];
       
       W = curW * (1-mix[s]) + simW * (mix[s]);
       

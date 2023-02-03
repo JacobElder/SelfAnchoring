@@ -159,7 +159,7 @@ model_data <- list( nSubjects=maxSubjs,
                     maxTrain=91,
                     nTrain=as.numeric(lenTrain))
 
-model_data <- list( nSubjects=maxSubjs,
+model_data2 <- list( nSubjects=maxSubjs,
                     #nArms = length(unique(df$choiceCue)),
                     maxTrials = maxTrials,
                     nTrials = as.numeric(lengthArray),
@@ -771,6 +771,34 @@ S_Linear_1mSumOne_WAIC <- waic(S_Linear_1mSumOne_LL)
 
 iter=2000
 warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Linear_1mSumOne_SM_11_SimWeights.stan")
+cores<-detectCores()
+S_Linear_1mSumOne_SimWeightsfit <- stan(modelFile, data = model_data2, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Linear_1mSumOne_SimWeightsfit)
+S_Linear_1mSumOne_SimWeights_summary <- summary(S_Linear_1mSumOne_SimWeightsfit, pars = c("tau", "m", "wOut", "wIn", "mix"), probs = c(0.1, 0.9))$summary
+print(S_Linear_1mSumOne_SimWeights_summary)
+get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('tau', 'm', 'wOut', 'wIn', 'mix'))[,5]
+S_Linear_1mSumOne_SimWeightsparams <- data.frame(Temp=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('tau'))[,5],
+                                      m=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('m'))[,5],
+                                      wOut=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('wOut'))[,5],
+                                      wIn=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('wIn'))[,5],
+                                      mix=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('mix'))[,5],
+                                      LL=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('log_lik'))[,5])
+k <- 2
+S_Linear_1mSumOne_SimWeightsparams$BIC <- log(lengthArray) * k - 2 * (S_Linear_1mSumOne_SimWeightsparams$LL)
+S_Linear_1mSumOne_SimWeightsparams$AIC <- 2 * k - 2 * (S_Linear_1mSumOne_SimWeightsparams$LL)
+S_Linear_1mSumOne_SimWeights_LL <- extract_log_lik(S_Linear_1mSumOne_SimWeightsfit)
+S_Linear_1mSumOne_SimWeights_LOO <- loo(S_Linear_1mSumOne_SimWeights_LL)
+S_Linear_1mSumOne_SimWeights_WAIC <- waic(S_Linear_1mSumOne_SimWeights_LL)
+
+#############################
+
+## SHEPARD MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
 modelFile <- here("Computational Models/S_Linear_2b_bias_SM_11.stan")
 cores<-detectCores()
 S_Linear_2b_biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
@@ -960,6 +988,12 @@ SL_WAIC <- waic(SL_LL)
 # MODEL VALIDATION
 
 ############################
+
+print(loo_compare(list("Opp"=S_Linear_1mOppose_LOO,
+                       "Sum"=S_Linear_1mSumOne_LOO,
+                       "Sim"=S_Linear_1mSumOne_SimWeights_LOO
+)),simplify = F
+)
 
 print(loo_compare(list("SA1"=biasanchor_LOO,
                        "SA2"=biasanchor2_LOO
