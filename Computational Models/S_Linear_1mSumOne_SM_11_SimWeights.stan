@@ -78,22 +78,22 @@ model {
 
     // GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
     // GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    GPin[1:nTrain[s]] = (m[s])*(prevSelf[s,1:nTrain[s]]/7);
-    GPout[1:nTrain[s]] = (1-m[s])*(prevSelf[s,1:nTrain[s]]/7);
+    GPin[1:nTrain[s]] = (m[s])*(prevSelf[s,1:nTrain[s]]/7); // Convert evals to ingroup evals
+    GPout[1:nTrain[s]] = (1-m[s])*(prevSelf[s,1:nTrain[s]]/7); // Convert evals to outgroup evals
     
     for (t in 1:nTrials[s]) {
       
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
       
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS);
+      simW[1] = dot_product(GPout[1:nTrain[s]],PS)/10; // multiply and sum outgroup evals with sim
+      simW[2] = dot_product(GPin[1:nTrain[s]],PS)/10; // multiply and sum ingroup evals with sim
       
-      curW[1] = (wOut[s]-1) * outGsum[s,t];
-      curW[2] = (wIn[s]-1) * inGsum[s,t];
+      curW[1] = (wOut[s]-1) * outGsum[s,t]; // multiply weight by summed sim-to-outgroup choices thus far
+      curW[2] = (wIn[s]-1) * inGsum[s,t]; // multiply weight by summed sim-to-ingroup choices thus far
       
-      W = curW * (1-mix[s]) + simW * (mix[s]);
+      W = curW * (mix[s]) + simW * (1-mix[s]); // Mixture
       
-      groupChoice[s,t] ~ categorical_logit( tau[s] * simW );
+      groupChoice[s,t] ~ categorical_logit( tau[s] * W ); // decision rule
       
     }
   }    
@@ -149,19 +149,19 @@ generated quantities {
 
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
       
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS);
+      simW[1] = dot_product(GPout[1:nTrain[s]],PS)/10;
+      simW[2] = dot_product(GPin[1:nTrain[s]],PS)/10;
       
       curW[1] = (wOut[s]-1) * outGsum[s,t];
       curW[2] = (wIn[s]-1) * inGsum[s,t];
       
-      W = curW * (1-mix[s]) + simW * (mix[s]);
+      W = curW * (mix[s]) + simW * (1-mix[s]);
         
         // compute log likelihood of current trial
-        log_lik[s] += categorical_logit_lpmf( groupChoice[s, t] | tau[s] * simW );
+        log_lik[s] += categorical_logit_lpmf( groupChoice[s, t] | tau[s] * W );
 
         // generate posterior prediction for current trial
-        y_pred[s, t] = categorical_rng(softmax( tau[s] * simW ));
+        y_pred[s, t] = categorical_rng(softmax( tau[s] * W ));
         
       }
 

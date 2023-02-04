@@ -11,8 +11,8 @@ data {
   //int<lower = 0, upper = 7> prevSelf[nSubjects,maxTrain]; // matrix of training self-evaluations
   vector[maxTrain] prevSelf[nSubjects]; // matrix of training self-evaluations
   
-  real inGsum[nSubjects, maxTrials]; // self-weighted similarity
-  real outGsum[nSubjects, maxTrials]; // self-weighted similarity
+  real inGsumG[nSubjects, maxTrials]; // self-weighted similarity
+  real outGsumG[nSubjects, maxTrials]; // self-weighted similarity
   
 }
 
@@ -20,15 +20,14 @@ data {
 parameters {
   // Declare all parameters as vectors for vectorizing
   // Hyper(group)-parameters
-  vector[5] mu_pr;
-  vector<lower=0>[5] sigma;
+  vector[4] mu_pr;
+  vector<lower=0>[4] sigma;
 
   // Subject-level raw parameters (for Matt trick)
   vector[nSubjects] tau_pr;  // inverse temperature
   vector[nSubjects] m_pr;  // slope for ingroup
   vector[nSubjects] wIn_pr;  // slope for ingroup
   vector[nSubjects] wOut_pr;  // slope for ingroup
-  vector[nSubjects] mix_pr;  // slope for ingroup
   
 }
 
@@ -36,17 +35,15 @@ transformed parameters {
   // subject-level parameters
   vector<lower=0, upper=10>[nSubjects] tau;
   vector<lower=0, upper=1>[nSubjects] m;
-  vector<lower=0, upper=2>[nSubjects] wOut;
-  vector<lower=0, upper=2>[nSubjects] wIn;
-  vector<lower=0, upper=1>[nSubjects] mix;
+  vector<lower=0, upper=5>[nSubjects] wOut;
+  vector<lower=0, upper=5>[nSubjects] wIn;
 
   for (i in 1:nSubjects) {
     
     tau[i] = Phi_approx(mu_pr[1] + sigma[1] * tau_pr[i]) * 10;
     m[i] = Phi_approx(mu_pr[2] + sigma[2] * m_pr[i]);
-    wIn[i] = Phi_approx(mu_pr[3] + sigma[3] * wIn_pr[i]) * 2;
-    wOut[i] = Phi_approx(mu_pr[4] + sigma[4] * wOut_pr[i]) * 2;
-    mix[i] = Phi_approx(mu_pr[5] + sigma[5] * mix_pr[i]);
+    wIn[i] = Phi_approx(mu_pr[3] + sigma[3] * wIn_pr[i]) * 5;
+    wOut[i] = Phi_approx(mu_pr[4] + sigma[4] * wOut_pr[i]) * 5;
     
   }
   
@@ -63,7 +60,6 @@ model {
   m_pr ~ normal(0, 1);
   wIn_pr ~ normal(0, 1);
   wOut_pr ~ normal(0, 1);
-  mix_pr ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
 
@@ -78,22 +74,23 @@ model {
 
     // GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
     // GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    GPin[1:nTrain[s]] = (m[s])*(prevSelf[s,1:nTrain[s]]/7);
-    GPout[1:nTrain[s]] = (1-m[s])*(prevSelf[s,1:nTrain[s]]/7);
+    // GPin[1:nTrain[s]] = (m[s])*(prevSelf[s,1:nTrain[s]]); // Convert evals to ingroup evals
+    // GPout[1:nTrain[s]] = (1-m[s])*(prevSelf[s,1:nTrain[s]]); // Convert evals to outgroup evals
     
     for (t in 1:nTrials[s]) {
       
+      GPin[1:nTrain[s]] = pow(m[s],wIn[s]*(inGsumG[s,t]/outGsumG[s,t]) )*(prevSelf[s,1:nTrain[s]]); // Convert evals to ingroup evals
+      GPout[1:nTrain[s]] = pow((1-m[s]),wOut[s]*(outGsumG[s,t]/inGsumG[s,t]) )*(prevSelf[s,1:nTrain[s]]); // Convert evals to outgroup evals
+
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
+
+      simW[1] = dot_product( GPout*wOut[s]*outGsumG[s,t], PS);
+      simW[2] = dot_product( GPin*wIn[s]*inGsumG[s,t],PS);
       
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS) * (inGsum[s,t]/outGsum[s,t]);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS) * (inGsum[s,t]/outGsum[s,t]);
+      prob[1] = ( pow( ( simW[1] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
+      prob[2] = ( pow( ( simW[2] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
       
-      // curW[1] = (wOut[s]-1) * outGsum[s,t];
-      // curW[2] = (wIn[s]-1) * inGsum[s,t];
-      
-      W = curW * (1-mix[s]) + simW * (mix[s]);
-      
-      groupChoice[s,t] ~ categorical_logit( tau[s] * simW );
+      groupChoice[s,t] ~ categorical( prob );
       
     }
   }    
@@ -103,9 +100,8 @@ generated quantities {
   // For group level parameters
   real<lower=0, upper=10> mu_tau;
   real<lower=0, upper=1> mu_m;
-  real<lower=0, upper=2> mu_inW;
-  real<lower=0, upper=2> mu_outW;
-  real<lower=0, upper=1> mu_mix;
+  real<lower=0, upper=5> mu_inW;
+  real<lower=0, upper=5> mu_outW;
 
   // For log likelihood calculation
   real log_lik[nSubjects];
@@ -123,9 +119,8 @@ generated quantities {
   //mu_A   = Phi_approx(mu_pr[1]);
   mu_tau = Phi_approx(mu_pr[1]) * 10;
   mu_m   = Phi_approx(mu_pr[2]);
-  mu_inW   = Phi_approx(mu_pr[3]) * 2;
-  mu_outW   = Phi_approx(mu_pr[4]) * 2;
-  mu_mix   = Phi_approx(mu_pr[5]);
+  mu_inW   = Phi_approx(mu_pr[3]) * 5;
+  mu_outW   = Phi_approx(mu_pr[4]) * 5;
 
   { // local section, this saves time and space
     
@@ -142,26 +137,27 @@ generated quantities {
     
     log_lik[s] = 0;
     
-    GPin[1:nTrain[s]] = (m[s])*(prevSelf[s,1:nTrain[s]]/7);
-    GPout[1:nTrain[s]] = (1-m[s])*(prevSelf[s,1:nTrain[s]]/7);
+    // GPin[1:nTrain[s]] = (m[s])*(prevSelf[s,1:nTrain[s]]);
+    // GPout[1:nTrain[s]] = (1-m[s])*(prevSelf[s,1:nTrain[s]]);
     
     for (t in 1:nTrials[s]) {
 
+      GPin[1:nTrain[s]] = pow(m[s],wIn[s]*(inGsumG[s,t]/outGsumG[s,t]) )*(prevSelf[s,1:nTrain[s]]); // Convert evals to ingroup evals
+      GPout[1:nTrain[s]] = pow((1-m[s]),wOut[s]*(outGsumG[s,t]/inGsumG[s,t]) )*(prevSelf[s,1:nTrain[s]]); // Convert evals to outgroup evals
+
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
-      
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS);
-      
-      curW[1] = (wOut[s]-1) * outGsum[s,t];
-      curW[2] = (wIn[s]-1) * inGsum[s,t];
-      
-      W = curW * (1-mix[s]) + simW * (mix[s]);
+
+      simW[1] = dot_product( GPout*wOut[s]*outGsumG[s,t], PS);
+      simW[2] = dot_product( GPin*wIn[s]*inGsumG[s,t],PS);
+        
+      prob[1] = ( pow( ( simW[1] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
+      prob[2] = ( pow( ( simW[2] ) ,tau[s] ) ) / ( ( pow( simW[1]  , tau[s] ) ) + ( pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
         
         // compute log likelihood of current trial
-        log_lik[s] += categorical_logit_lpmf( groupChoice[s, t] | tau[s] * simW );
+        log_lik[s] += categorical_lpmf( groupChoice[s, t] | prob );
 
         // generate posterior prediction for current trial
-        y_pred[s, t] = categorical_rng(softmax( tau[s] * simW ));
+        y_pred[s, t] = categorical_rng(prob);
         
       }
 
