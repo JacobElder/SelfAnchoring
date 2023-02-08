@@ -316,8 +316,9 @@ S_Logistic_1mOppose_Bias_WAIC <- waic(S_Logistic_1mOppose_Bias_LL)
 ############################
 
 print(loo_compare(list("Bias"=PB_LOO,
-                       "SL"=S_Linear_1mSumOne_LOO,
-                       "SL.Bias"=S_Linear_1mSumOne_Bias_LOO
+                       "SLinS"=S_Linear_1mSumOne_LOO,
+                       "SLinS.Bias"=S_Linear_1mSumOne_Bias_LOO,
+                       "SLogO.Bias"=S_Logistic_1mOppose_Bias_LOO
 )),simplify = F
 )
 
