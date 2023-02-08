@@ -7,10 +7,10 @@ library(here)
 
 #here::i_am("./Study 1/Computational Model/SA1_ModelFitting.R")
 
-fulldf <- read.csv(here("Study 1/Cleaning/output/fullTest.csv"))
+fulldf <- read.csv(here("Study 2/Cleaning/output/fullTest.csv"))
 fulldf <- fulldf[!is.na(fulldf$ingChoiceN),]
 
-traindf <- read.csv(here("Study 1/Cleaning/output/fullTrain.csv"))
+traindf <- as.data.frame( arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet")) )
 traindf <- traindf[!is.na(traindf$selfResp),]
 
 allPosCents <- read.csv("~/Google Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
@@ -94,13 +94,14 @@ outGmsvG=array(0,c(maxSubjs,maxTrials))
 
 fulldf <- fulldf[order(fulldf$subID, fulldf$trialTotalT2),]
 
+uConds <- unique(fulldf$outgroup)
+for(c in uConds){
 for(i in 1:length(uIds) ){
   df <- subset(fulldf, subID==uIds[i])
   t <- nrow(df)
   lengthArray[i] <- t
   groupChoice[i,1:t]<-(df$ingChoiceN+1)
   sg[i,1:t] <- (df$SE)
-  des[i,1:t] <-
   
   lenTrain[i] <- nrow(traindf[traindf$subID==uIds[i],])
   prevSelf[i,1:lenTrain[i]] <- traindf$selfResp[traindf$subID==uIds[i]]
@@ -178,6 +179,11 @@ model_data2 <- list( nSubjects=maxSubjs,
                     outGsumG = outGssvG,
                     inGmeanG = inGmsvG,
                     outGmeanG = outGmsvG)
+
+assign(paste0(gsub(" ","",c),"_model_data"),model_data)
+assign(paste0(gsub(" ","",c),"_model_data2"),model_data2)
+
+}
 
 #############################
 
@@ -773,7 +779,7 @@ S_Linear_1mSumOne_WAIC <- waic(S_Linear_1mSumOne_LL)
 iter=2000
 warmup=floor(iter/2)
 #modelFile <- here("Computational Models/S_Linear_1mSumOne_SM_11_SimWeights.stan")
-modelFile <- here("Computational Models/S_Linear_1mSumOne_SM_11_SimWeightsV9.stan")
+modelFile <- here("Computational Models/S_Linear_1mSumOne_SM_11_SimWeightsV8.stan")
 cores<-detectCores()
 S_Linear_1mSumOne_SimWeightsfit <- stan(modelFile, data = model_data2, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
 traceplot(S_Linear_1mSumOne_SimWeightsfit)
@@ -814,6 +820,32 @@ S_Linear_1mSumOne_SimWeightsparams <- data.frame(Temp=get_posterior_mean(S_Linea
                                                  wIn=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('wIn'))[,5],
                                                  LL=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('log_lik'))[,5])
 k <- 5
+S_Linear_1mSumOne_SimWeightsparams$BIC <- log(lengthArray) * k - 2 * (S_Linear_1mSumOne_SimWeightsparams$LL)
+S_Linear_1mSumOne_SimWeightsparams$AIC <- 2 * k - 2 * (S_Linear_1mSumOne_SimWeightsparams$LL)
+S_Linear_1mSumOne_SimWeights_LL <- extract_log_lik(S_Linear_1mSumOne_SimWeightsfit)
+S_Linear_1mSumOne_SimWeights_LOO <- loo(S_Linear_1mSumOne_SimWeights_LL)
+S_Linear_1mSumOne_SimWeights_WAIC <- waic(S_Linear_1mSumOne_SimWeights_LL)
+
+#############################
+
+## SHEPARD MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Linear_1mSumOne_SM_11_SimWeightsV10.stan")
+cores<-detectCores()
+S_Linear_1mSumOne_SimWeightsfit <- stan(modelFile, data = model_data2, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Linear_1mSumOne_SimWeightsfit)
+S_Linear_1mSumOne_SimWeights_summary <- summary(S_Linear_1mSumOne_SimWeightsfit, pars = c("tau", "m_in", "m_out"), probs = c(0.1, 0.9))$summary
+print(S_Linear_1mSumOne_SimWeights_summary)
+get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('tau', 'm_in', 'm_out'))[,5]
+S_Linear_1mSumOne_SimWeightsparams <- data.frame(Temp=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('tau'))[,5],
+                                                 m_in=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('m_in'))[,5],
+                                                 m_out=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('m_out'))[,5],
+                                                 LL=get_posterior_mean(S_Linear_1mSumOne_SimWeightsfit, pars=c('log_lik'))[,5])
+k <- 3
 S_Linear_1mSumOne_SimWeightsparams$BIC <- log(lengthArray) * k - 2 * (S_Linear_1mSumOne_SimWeightsparams$LL)
 S_Linear_1mSumOne_SimWeightsparams$AIC <- 2 * k - 2 * (S_Linear_1mSumOne_SimWeightsparams$LL)
 S_Linear_1mSumOne_SimWeights_LL <- extract_log_lik(S_Linear_1mSumOne_SimWeightsfit)

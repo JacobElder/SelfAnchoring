@@ -1,0 +1,33 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+```
+
+
+```{r}
+params <- S_Linear_1mSumOne_Biasparams
+params$subID <- uIds
+
+fullTest <- read.csv("~/Documents/GitHub/SelfAnchoring/Study 1/Cleaning/output/fullTest.csv")
+
+indDiffs <- fullTest[!duplicated(fullTest$subID),]
+indDiffs <- indDiffs %>% select(subID, DS:SING.Inter)
+indDiffs <- indDiffs %>% full_join(params, by = "subID")
+```
+
+```{r}
+indDiffs %>% select(m, DS:SING.Inter) %>% corToOne(., "m")
+indDiffs %>% select(m, DS:SING.Inter) %>% plotCorToOne(., "m")
+```
+
+```{r}
+indDiffs %>% select(bias, DS:SING.Inter) %>% corToOne(., "bias")
+indDiffs %>% select(bias, DS:SING.Inter) %>% plotCorToOne(., "bias")
+```
+
+
