@@ -187,20 +187,19 @@ model_data2 <- list( nSubjects=maxSubjs,
 
 #############################
 
-iter=3000
+iter=2000
 warmup=floor(iter/2)
 modelFile <- here("Computational Models/Bias.stan")
 cores<-detectCores()
-biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
 traceplot(biasfit)
 traceplot(biasfit)
-bias_summary <- summary(biasfit, pars = c("bias", "tau"), probs = c(0.1, 0.9))$summary
+bias_summary <- summary(biasfit, pars = c("bias"), probs = c(0.1, 0.9))$summary
 print(bias_summary)
-get_posterior_mean(biasfit, pars=c('SA','tau'))[,5]
+get_posterior_mean(biasfit, pars=c('bias'))[,5]
 biasparams <- data.frame(bias=get_posterior_mean(biasfit, pars=c('bias'))[,5],
-                           Temp=get_posterior_mean(biasfit, pars=c('tau'))[,5],
                            LL=get_posterior_mean(biasfit, pars=c('log_lik'))[,5])
-k <- 2
+k <- 1
 biasparams$BIC <- log(lengthArray) * k - 2 * (biasparams$LL)
 biasparams$AIC <- 2 * k - 2 * (biasparams$LL)
 bias_LL <- extract_log_lik(biasfit)
@@ -309,6 +308,88 @@ S_Logistic_1mOppose_Bias_LL <- extract_log_lik(S_Logistic_1mOppose_Biasfit)
 S_Logistic_1mOppose_Bias_LOO <- loo(S_Logistic_1mOppose_Bias_LL)
 S_Logistic_1mOppose_Bias_WAIC <- waic(S_Logistic_1mOppose_Bias_LL)
 
+#############################
+
+## SELF-TO-GROUP LOGISTIC MAPPING WITH PROBABILITY BIAS AND CONSTRAINT MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias_L.stan")
+cores<-detectCores()
+S_Logistic_1mOppose_Bias_Lfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Logistic_1mOppose_Bias_Lfit)
+S_Logistic_1mOppose_Bias_L_summary <- summary(S_Logistic_1mOppose_Bias_Lfit, pars = c("tau", "m", "bias", "L"), probs = c(0.1, 0.9))$summary
+print(S_Logistic_1mOppose_Bias_L_summary)
+get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('tau', 'm', 'bias', 'L'))[,5]
+S_Logistic_1mOppose_Bias_Lparams <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('tau'))[,5],
+                                             m=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('m'))[,5],
+                                             bias=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('bias'))[,5],
+                                             L=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('L'))[,5],
+                                             LL=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('log_lik'))[,5])
+k <- 4
+S_Logistic_1mOppose_Bias_Lparams$BIC <- log(lengthArray) * k - 2 * (S_Logistic_1mOppose_Bias_Lparams$LL)
+S_Logistic_1mOppose_Bias_Lparams$AIC <- 2 * k - 2 * (S_Logistic_1mOppose_Bias_Lparams$LL)
+S_Logistic_1mOppose_Bias_L_LL <- extract_log_lik(S_Logistic_1mOppose_Bias_Lfit)
+S_Logistic_1mOppose_Bias_L_LOO <- loo(S_Logistic_1mOppose_Bias_L_LL)
+S_Logistic_1mOppose_Bias_L_WAIC <- waic(S_Logistic_1mOppose_Bias_L_LL)
+
+#############################
+
+## SELF-TO-GROUP LOGISTIC MAPPING WITH PROBABILITY BIAS AND CONSTRAINT AND OPPOSING SHIFT MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias_L_Shift2.stan")
+cores<-detectCores()
+S_Logistic_1mOppose_Bias_L_Shiftfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Logistic_1mOppose_Bias_L_Shiftfit)
+S_Logistic_1mOppose_Bias_L_Shift_summary <- summary(S_Logistic_1mOppose_Bias_L_Shiftfit, pars = c("tau", "m", "bias", "shift"), probs = c(0.1, 0.9))$summary
+print(S_Logistic_1mOppose_Bias_L_Shift_summary)
+get_posterior_mean(S_Logistic_1mOppose_Bias_L_Shiftfit, pars=c('tau', 'm', 'bias', 'L', 'shift'))[,5]
+S_Logistic_1mOppose_Bias_L_Shiftparams <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Bias_L_Shiftfit, pars=c('tau'))[,5],
+                                               m=get_posterior_mean(S_Logistic_1mOppose_Bias_L_Shiftfit, pars=c('m'))[,5],
+                                               bias=get_posterior_mean(S_Logistic_1mOppose_Bias_L_Shiftfit, pars=c('bias'))[,5],
+                                               L=get_posterior_mean(S_Logistic_1mOppose_Bias_L_Shiftfit, pars=c('L'))[,5],
+                                               shift=get_posterior_mean(S_Logistic_1mOppose_Bias_L_Shiftfit, pars=c('shift'))[,5],
+                                               LL=get_posterior_mean(S_Logistic_1mOppose_Bias_L_Shiftfit, pars=c('log_lik'))[,5])
+k <- 5
+S_Logistic_1mOppose_Bias_L_Shiftparams$BIC <- log(lengthArray) * k - 2 * (S_Logistic_1mOppose_Bias_L_Shiftparams$LL)
+S_Logistic_1mOppose_Bias_L_Shiftparams$AIC <- 2 * k - 2 * (S_Logistic_1mOppose_Bias_L_Shiftparams$LL)
+S_Logistic_1mOppose_Bias_L_Shift_LL <- extract_log_lik(S_Logistic_1mOppose_Bias_L_Shiftfit)
+S_Logistic_1mOppose_Bias_L_Shift_LOO <- loo(S_Logistic_1mOppose_Bias_L_Shift_LL)
+S_Logistic_1mOppose_Bias_L_Shift_WAIC <- waic(S_Logistic_1mOppose_Bias_L_Shift_LL)
+
+#############################
+
+## SELF-TO-GROUP LOGISTIC MAPPING WITH PROBABILITY BIAS AND SHIFT MODEL ##
+
+#############################
+
+iter=2000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias_Shift.stan")
+cores<-detectCores()
+S_Logistic_1mOppose_Bias_Shiftfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Logistic_1mOppose_Bias_Shiftfit)
+S_Logistic_1mOppose_Bias_Shift_summary <- summary(S_Logistic_1mOppose_Bias_Shiftfit, pars = c("tau", "m", "bias", "shift"), probs = c(0.1, 0.9))$summary
+print(S_Logistic_1mOppose_Bias_Shift_summary)
+get_posterior_mean(S_Logistic_1mOppose_Bias_Shiftfit, pars=c('tau', 'm', 'bias', 'shift'))[,5]
+S_Logistic_1mOppose_Bias_Shiftparams <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Bias_Shiftfit, pars=c('tau'))[,5],
+                                             m=get_posterior_mean(S_Logistic_1mOppose_Bias_Shiftfit, pars=c('m'))[,5],
+                                             bias=get_posterior_mean(S_Logistic_1mOppose_Bias_Shiftfit, pars=c('bias'))[,5],
+                                             shift=get_posterior_mean(S_Logistic_1mOppose_Bias_Shiftfit, pars=c('shift'))[,5],
+                                             LL=get_posterior_mean(S_Logistic_1mOppose_Bias_Shiftfit, pars=c('log_lik'))[,5])
+k <- 3
+S_Logistic_1mOppose_Bias_Shiftparams$BIC <- log(lengthArray) * k - 2 * (S_Logistic_1mOppose_Bias_Shiftparams$LL)
+S_Logistic_1mOppose_Bias_Shiftparams$AIC <- 2 * k - 2 * (S_Logistic_1mOppose_Bias_Shiftparams$LL)
+S_Logistic_1mOppose_Bias_Shift_LL <- extract_log_lik(S_Logistic_1mOppose_Bias_Shiftfit)
+S_Logistic_1mOppose_Bias_Shift_LOO <- loo(S_Logistic_1mOppose_Bias_Shift_LL)
+S_Logistic_1mOppose_Bias_Shift_WAIC <- waic(S_Logistic_1mOppose_Bias_Shift_LL)
+
 ############################
 
 # MODEL VALIDATION
@@ -318,7 +399,8 @@ S_Logistic_1mOppose_Bias_WAIC <- waic(S_Logistic_1mOppose_Bias_LL)
 print(loo_compare(list("Bias"=PB_LOO,
                        "SLinS"=S_Linear_1mSumOne_LOO,
                        "SLinS.Bias"=S_Linear_1mSumOne_Bias_LOO,
-                       "SLogO.Bias"=S_Logistic_1mOppose_Bias_LOO
+                       "SLogO.Bias"=S_Logistic_1mOppose_Bias_LOO,
+                       "SLogO.Bias.L"=S_Logistic_1mOppose_Bias_L_LOO
 )),simplify = F
 )
 

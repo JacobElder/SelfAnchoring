@@ -23,29 +23,22 @@ data {
 parameters {
   // Declare all parameters as vectors for vectorizing
   // Hyper(group)-parameters
-  vector[2] mu_pr;
-  vector<lower=0>[2] sigma;
+  vector[1] mu_pr;
+  vector<lower=0>[1] sigma;
 
   // Subject-level raw parameters (for Matt trick)
   //vector[nSubjects] A_pr;    // learning rate
   vector[nSubjects] bias_pr;  // inverse temperature
-  vector[nSubjects] tau_pr;  // inverse temperature
-  // vector[nSubjects] m_in_pr;  // slope for ingroup
-  // vector[nSubjects] m_out_pr;  // slope for outgroup
   
 }
 
 transformed parameters {
   // subject-level parameters
   vector<lower=0, upper=1>[nSubjects] bias;
-  vector<lower=0, upper=10>[nSubjects] tau;
-  // vector[nSubjects] m_in;
-  // vector[nSubjects] m_out;
 
   for (i in 1:nSubjects) {
     
     bias[i] = Phi_approx(mu_pr[1] + sigma[1] * bias_pr[i]);
-    tau[i] = Phi_approx(mu_pr[2] + sigma[2] * tau_pr[i]) * 10;
     
   }
   
@@ -55,43 +48,18 @@ model {
   // Hyperparameters
   mu_pr  ~ normal(0, 1);
   sigma ~ normal(0, 0.2);
-  //sigma[2:3] ~ normal(0, 1.0);
-  //sigma[2:3] ~ cauchy(0, 0.35);
-  //sigma[2:3] ~ cauchy(0, 1.0);
 
   // individual parameters
   bias_pr ~ normal(0, 1);
-  tau_pr ~ normal(0, 1);
-  // m_in_pr ~ normal(0, 1);
-  // m_out_pr ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
 
-    // vector[2] simW;
     vector[2] prob;
-    // vector[nTrain[s]] curSelf;
-    // vector[nTrain[s]] GPin;
-    // vector[nTrain[s]] GPout;
-    // vector[nTrain[s]] PS;
-    // 
-    // GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    // GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
     
     for (t in 1:nTrials[s]) {
       
-      // print(GPin)
-      // print(GPout)
-      
-      // PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
-      // 0.5 = dot_product(GPout[1:nTrain[s]],PS); // summation and multiplication of group probabilities with similarities
-      // 0.5 = dot_product(GPin[1:nTrain[s]],PS);
-      
-      // print(simW)
-      
-      prob[1] = pow( ( (1 - bias[s]) ) ,tau[s])/( pow( ( (1 - bias[s]) ) ,tau[s]) + pow( ((bias[s]) ) ,tau[s]) ); // convert to probabilities
-      prob[2] = pow( ( (bias[s]) ) ,tau[s])/( pow( ( (1 - bias[s]) ) ,tau[s]) + pow( ((bias[s]) ) ,tau[s]) );
-      
-      // print(prob)
+      prob[1] = (1 - bias[s])/( (1 - bias[s]) + (bias[s]) ); // convert to probabilities
+      prob[2] = (bias[s])/( (1 - bias[s]) + (bias[s]) ); // convert to probabilities
       
       groupChoice[s,t] ~ categorical( prob );
       
@@ -102,9 +70,6 @@ model {
 generated quantities {
   // For group level parameters
   real<lower=0, upper=1> mu_bias;
-  real<lower=0, upper=10> mu_tau;
-  // real mu_m_in;
-  // real mu_m_out;
 
   // For log likelihood calculation
   real log_lik[nSubjects];
@@ -119,46 +84,23 @@ generated quantities {
     }
   }
 
-  //mu_A   = Phi_approx(mu_pr[1]);
   mu_bias = Phi_approx(mu_pr[1]);
-  mu_tau = Phi_approx(mu_pr[2]) * 10;
-  // mu_m_in   = mu_pr[2];
-  // mu_m_out = mu_pr[3];
 
   { // local section, this saves time and space
     
     for (s in 1:nSubjects) {
 
-    // vector[2] simW;
     vector[2] prob;
-    // vector[nTrain[s]] curSelf;
-    // vector[nTrain[s]] GPin;
-    // vector[nTrain[s]] GPout;
-    // vector[nTrain[s]] PS;
     
     log_lik[s] = 0;
     
-    // GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_in[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    // GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m_out[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    
     for (t in 1:nTrials[s]) {
-      // 
-      // PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
-      // 0.5 = dot_product(GPout[1:nTrain[s]],PS); // summation and multiplication of group probabilities with similarities
-      // 0.5 = dot_product(GPin[1:nTrain[s]],PS);
       
-      prob[1] = pow( ((1 - bias[s]) ) ,tau[s])/( pow( ((1 - bias[s]) ) ,tau[s]) + pow( ((bias[s]) ) ,tau[s]) ); // convert to probabilities
-      prob[2] = pow( ((bias[s]) ) ,tau[s])/( pow( ((1 - bias[s]) ) ,tau[s]) + pow( ((bias[s]) ) ,tau[s]) );
-      
-      // print(prob)
-      // print(sum(prob))
-      // print(groupChoice[s,t])
-      // print(categorical_lpmf( groupChoice[s, t] | prob ))
+      prob[1] = (1 - bias[s])/( (1 - bias[s]) + (bias[s]) ); // convert to probabilities
+      prob[2] = (bias[s])/( (1 - bias[s]) + (bias[s]) ); // convert to probabilities
         
         // compute log likelihood of current trial
         log_lik[s] += categorical_lpmf( groupChoice[s, t] | prob );
-        
-        // print(log_lik[s])
 
         // generate posterior prediction for current trial
         y_pred[s, t] = categorical_rng(prob);
