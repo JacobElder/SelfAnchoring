@@ -31,6 +31,11 @@ indDiffs %>% select(bias, DS:SING.Inter) %>% plotCorToOne(., "bias")
 ```
 
 ```{r}
+indDiffs %>% select(Temp, DS:SING.Inter) %>% corToOne(., "Temp")
+indDiffs %>% select(Temp, DS:SING.Inter) %>% plotCorToOne(., "Temp")
+```
+
+```{r}
 params <- S_Linear_1mSumOne_Biasparams
 params$subID <- uIds
 
@@ -51,4 +56,33 @@ indDiffs %>% select(bias, DS:SING.Inter) %>% corToOne(., "bias")
 indDiffs %>% select(bias, DS:SING.Inter) %>% plotCorToOne(., "bias")
 ```
 
+```{r}
+params <- S_Logistic_1mOppose_Bias_Lparams
+params$subID <- uIds
 
+fullTest <- read.csv("~/Documents/GitHub/SelfAnchoring/Study 1/Cleaning/output/fullTest.csv")
+
+indDiffs <- fullTest[!duplicated(fullTest$subID),]
+indDiffs <- indDiffs %>% select(subID, DS:SING.Inter)
+indDiffs <- indDiffs %>% full_join(params, by = "subID")
+```
+
+```{r}
+indDiffs %>% select(m, DS:SING.Inter) %>% corToOne(., "m")
+indDiffs %>% select(m, DS:SING.Inter) %>% plotCorToOne(., "m")
+```
+
+```{r}
+indDiffs %>% select(bias, DS:SING.Inter) %>% corToOne(., "bias")
+indDiffs %>% select(bias, DS:SING.Inter) %>% plotCorToOne(., "bias")
+```
+
+```{r}
+indDiffs %>% select(L, DS:SING.Inter) %>% corToOne(., "L")
+indDiffs %>% select(L, DS:SING.Inter) %>% plotCorToOne(., "L")
+```
+
+```{r}
+indDiffs %>% select(Temp, DS:SING.Inter) %>% corToOne(., "Temp")
+indDiffs %>% select(Temp, DS:SING.Inter) %>% plotCorToOne(., "Temp")
+```
