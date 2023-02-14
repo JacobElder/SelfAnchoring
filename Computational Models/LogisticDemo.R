@@ -7,7 +7,9 @@ logFunc <- function(input, slope=1, shift=0){
   return(output)
 }
 
-Minputs=c(.5,.6,.7,.8,.9,1,1.25,1.5,2,2.5,3,3.5,4,4.5,5,5.5)
+#Minputs=c(.5,.6,.7,.8,.9,1,1.25,1.5,2,2.5,3,3.5,4,4.5,5,5.5)
+Minputs=c(.25,.5,.6,.7,.8,.9,1,1.25,1.5,2)
+Minputs <- c(-Minputs, Minputs)
 df<-data.frame(Minputs=sort(rep(Minputs, 7)), eval=rep(1:7) )
 df$trans<-logFunc(df$eval, df$Minputs, shift = 0)
 
