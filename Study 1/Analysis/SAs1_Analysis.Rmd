@@ -57,10 +57,7 @@ fullTest$propCorrLOO.Z <- scale(fullTest$propCorrLOO)
 fullTest$propCorr.Z <- scale(fullTest$propCorr)
 fullTest$desirability.Z <- scale(fullTest$desirability)
 fullTest$er.Z <- scale(fullTest$er)
-```
 
-
-```{r}
 fullTest$novel <- as.factor(fullTest$novel)
 levels(fullTest$novel) <- list("Trained"  = "0", "Held Out" = "1")
 ```

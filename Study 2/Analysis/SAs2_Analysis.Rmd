@@ -65,12 +65,14 @@ fullTest$Ent.Z <- scale(fullTest$Ent)
 fullTest$outgroup <- as.factor(fullTest$outgroup)
 fullTest$outgroup <- relevel(fullTest$outgroup,"Not UCR")
 
-fullTest$outgroup
+fullTest$outgroupE <- named.effects.ref(fullTest$outgroup, "Not UCR")
+
 mat = matrix(c(1/3, 1/3, 1/3, -.5, 1, -.5, -.5, -.5, 1), nrow = 3)
 mymat = solve(t(mat))
 mymat
 #remove the intercept (constant) term
 my.contrasts<-mymat[,2:3]
+colnames(my.contrasts) <- c("CSULA-Other", "UCLA-Other")
 fullTest$outgroupU <- fullTest$outgroup
 contrasts(fullTest$outgroupU) = my.contrasts
 
@@ -238,7 +240,7 @@ ggpredict(m, c("desirability.Z","outgroup")) %>% plot(show.title=F) + xlab("Desi
 
 # Replication of prior self-anchoring findings: Self-evaluations predicting ingroup evaluations
 
-## No covariates
+## Zero-Order Effect
 
 Self-descriptiveness predict ingroup predictions
 
@@ -247,6 +249,18 @@ m <- glmer( ingChoiceN ~ selfResp.Z  +  ( selfResp.Z | subID) + ( 1 | trait), da
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+```
+
+## Zero-Order Effect, depending on Outgroup Comparison
+
+Self-descriptiveness predict ingroup predictions
+
+```{r}
+m <- glmer( ingChoiceN ~ selfResp.Z * outgroup  +  ( selfResp.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("selfResp.Z", "outgroup")) %>% plot(show.title=F) + xlab("Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
 ```
 
 ## With covariates
@@ -285,12 +299,57 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 
 # Does similarity-weighted self-evaluation average predict ingroup choices?
 
+## Zero-Order Effect
+
 ```{r}
 m <- glmer( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + ( 1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
 ```
+
+## Zero-Order Effect, depending on Outgroup Comparison (Negation is Ref)
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("WSR.Z","outgroup")) %>% plot()
+```
+
+## Zero-Order Effect, depending on Outgroup Comparison (Effects Coded)
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroupE + ( WSR.Z | subID) + ( outgroupE | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("WSR.Z","outgroupE","novel")) %>% plot()
+```
+
+## Zero-Order Effect, depending on Outgroup Comparison (UCLA v. Other, CSULA v. Other)
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroupU + ( WSR.Z | subID) + ( outgroupU | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("WSR.Z","outgroupU")) %>% plot()
+```
+
+## Zero-Order Effect, depending on Outgroup Comparison (Ordered from Negation-Low-High)
+
+```{r}
+fullTest$outgroupOrder <- factor(fullTest$outgroup, levels = c("Not UCR", "CSU LA", "UCLA"), ordered = T)
+m <- glmer( ingChoiceN ~ WSR.Z * outgroupOrder + ( WSR.Z | subID) + ( outgroupOrder | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("WSR.Z","outgroupOrder")) %>% plot()
+```
+
+
 
 ## Covariates
 
@@ -323,6 +382,17 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
   xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
 Sim.Condition.Plot
 ```
+
+#### UCR Status
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * UCR_Status + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+summary(m)
+ggpredict(m, c("WSR.Z","UCR_Status","outgroup")) %>% plot()
+```
+
 
 #### Identity Importance
 
@@ -976,17 +1046,38 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 ## Main effect
 
 ```{r}
-m <- lmer( scale(selfResp) ~ scale(inGsim) + scale(outGsim) + (  scale(inGsim) + scale(outGsim) | subID) + (1 | trait), data = fullTrain)
+m <- lmer( scale(selfResp) ~ scale(inGsimS) + scale(outGsimS) + (  scale(inGsimS) + scale(outGsimS) | subID) + (1 | trait), data = fullTrain)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
 ```
 
 ## Moderated by condition
 
 ```{r}
-m <- lmer( scale(selfResp) ~ scale(inGsim)*outgroup + scale(outGsim)*outgroup + (  scale(inGsim) + scale(outGsim) | subID) + ( outgroup | trait), data = fullTrain)
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup + scale(outGsimS)*outgroup + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
-ggpredict(m, c("inGsim","outgroup")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+ggpredict(m, c("inGsimS","outgroup")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
 ```
+
+## Metacontrast Ratio Moderated by Condition
+
+```{r}
+fullTrain$metaContrastS[is.infinite(fullTrain$metaContrastS)] <- NA
+m <- lmer( scale(selfResp) ~ scale(metaContrastS)*outgroup + (  scale(metaContrastS) | subID) + ( 1 | trait), data = fullTrain)
+```
+
+
+```{r}
+fullTrain$metaContrastS <- fullTrain$inGsimS/fullTrain$outGsimS
+m <- lmer( scale(selfResp) ~ scale(inGsimS) + outgroup + scale(desirability) + ( scale(metaContrastS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("metaContrastS","outgroup")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+
+fullTrain$outgroupOrder <- factor(fullTrain$outgroup, levels = c("Not UCR", "CSU LA", "UCLA"), ordered = T)
+m <- lmer( scale(selfResp) ~ scale(metaContrastS)*outgroupOrder + (  scale(inGsim) + scale(metaContrastS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("metaContrast","outgroupOrder")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
 
 ## Moderated by Group Homophily
 

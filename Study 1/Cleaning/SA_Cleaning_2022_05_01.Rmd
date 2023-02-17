@@ -614,6 +614,9 @@ for(i in uSubs){
   trialNumT1 <- trainSub$trialTotalT1[t]
   cleanTrain$inGsim[cleanTrain$subID==i & cleanTrain$trialTotalT1==trialNumT1] <- mean(simMat[trainSub$Idx[t],testSub$Idx[which(testSub$ingChoiceN==1)]])
   cleanTrain$outGsim[cleanTrain$subID==i & cleanTrain$trialTotalT1==trialNumT1] <- mean(simMat[trainSub$Idx[t],testSub$Idx[which(testSub$ingChoiceN==0)]])
+  
+  cleanTrain$inGsimS[cleanTrain$subID==i & cleanTrain$trialTotalT1==trialNumT1] <- sum(simMat[trainSub$Idx[t],testSub$Idx[which(testSub$ingChoiceN==1)]])
+  cleanTrain$outGsimS[cleanTrain$subID==i & cleanTrain$trialTotalT1==trialNumT1] <- sum(simMat[trainSub$Idx[t],testSub$Idx[which(testSub$ingChoiceN==0)]])
     
     
   }
@@ -628,6 +631,10 @@ trainSimDf <- as.data.frame(trainSimMat)
 testSimDf <- as.data.frame(testSimMat)
 
 cleanTrain$inOutDiff <- cleanTrain$inGsim - cleanTrain$outGsim
+cleanTrain$metaContrast <- cleanTrain$inGsim / cleanTrain$outGsim
+cleanTrain$metaContrastS <- cleanTrain$inGsimS / cleanTrain$outGsimS
+cleanTrain$metaContrast[is.infinite(cleanTrain$metaContrast)] <- NA
+cleanTrain$metaContrastS[is.infinite(cleanTrain$metaContrastS)] <- NA
 ```
 
 ```{r}
@@ -678,6 +685,7 @@ cleanTest4<-cleanTest4[order(cleanTest4$subID, cleanTest4$trialTotalT2),]
 cleanTest <- cleanTest4
 
 fullTest <- cleanTest %>% inner_join(indDiffsclean, by = "subID")
+fullTrain <- cleanTrain %>% inner_join(indDiffsclean, by = "subID")
 ```
 
 ```{r}
@@ -717,6 +725,6 @@ for(i in uSubs){
 
 ```{r}
 write.csv(fullTest, "./output/fullTest.csv", row.names = F)
-write.csv(cleanTrain, "./output/fullTrain.csv", row.names = F)
+write.csv(fullTrain, "./output/fullTrain.csv", row.names = F)
 ```
 
