@@ -5,9 +5,9 @@ library(igraph)
 library(loo)
 library(here)
 
-#here::i_am("./Study 1/Computational Model/SA1_ModelFitting.R")
+here::i_am("~/Documents/GitHub/SelfAnchoring/Study 2/Computational Model/SA2_Modeling_Final.R")
 
-fulldf <- read.csv(here("Study 2/Cleaning/output/fullTest.csv"))
+fulldf <- as.data.frame( arrow::read_parquet(here("Study 2/Cleaning/output/fullTest.parquet")) )
 fulldf <- fulldf[!is.na(fulldf$ingChoiceN),]
 
 traindf <- as.data.frame( arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet")) )
@@ -29,36 +29,38 @@ simMat <- similarity.dice(posGraph)
 Idxmat<-cbind(fulldf$IdxLeft, fulldf$IdxRight)
 fulldf$IdxChoose <- Idxmat[cbind(seq_along(fulldf$choice), fulldf$choice)]
 
-uIds<-unique(fulldf$subID)
-maxSubjs=length(uIds)
-maxTrials=max(fulldf$trialTotal)
-maxTrain=91
-
-groupChoice=array(0,c(maxSubjs, maxTrials))
-sg=array(0,c(maxSubjs,maxTrials))
-lengthArray <- matrix(nrow=length(uIds))
-lenTrain <- matrix(nrow=length(uIds))
-prevSim=array(0,c(maxSubjs,maxTrials,maxTrain))
-prevSelf=array(0,c(maxSubjs,maxTrain))
-
-inGssv=array(0,c(maxSubjs,maxTrials))
-outGssv=array(0,c(maxSubjs,maxTrials))
-inGmsv=array(0,c(maxSubjs,maxTrials))
-outGmsv=array(0,c(maxSubjs,maxTrials))
-
-inGssvG=array(0,c(maxSubjs,maxTrials))
-outGssvG=array(0,c(maxSubjs,maxTrials))
-inGmsvG=array(0,c(maxSubjs,maxTrials))
-outGmsvG=array(0,c(maxSubjs,maxTrials))
-
-des=array(0,c(maxSubjs,maxTrials))
-
-fulldf <- fulldf[order(fulldf$subID, fulldf$trialTotalT2),]
-
 uConds <- unique(fulldf$outgroup)
 for(c in uConds){
+  conddf <- subset(fulldf, outgroup==c)
+  uIds<-unique(conddf$subID)
+  maxSubjs=length(uIds)
+  maxTrials=max(conddf$trialTotal)
+  
+  maxTrain=91
+  
+  groupChoice=array(0,c(maxSubjs, maxTrials))
+  sg=array(0,c(maxSubjs,maxTrials))
+  lengthArray <- matrix(nrow=length(uIds))
+  lenTrain <- matrix(nrow=length(uIds))
+  prevSim=array(0,c(maxSubjs,maxTrials,maxTrain))
+  prevSelf=array(0,c(maxSubjs,maxTrain))
+  
+  inGssv=array(0,c(maxSubjs,maxTrials))
+  outGssv=array(0,c(maxSubjs,maxTrials))
+  inGmsv=array(0,c(maxSubjs,maxTrials))
+  outGmsv=array(0,c(maxSubjs,maxTrials))
+  
+  inGssvG=array(0,c(maxSubjs,maxTrials))
+  outGssvG=array(0,c(maxSubjs,maxTrials))
+  inGmsvG=array(0,c(maxSubjs,maxTrials))
+  outGmsvG=array(0,c(maxSubjs,maxTrials))
+  
+  des=array(0,c(maxSubjs,maxTrials))
+  
+  fulldf <- fulldf[order(fulldf$subID, fulldf$trialTotalT2),]
+  
   for(i in 1:length(uIds) ){
-    df <- subset(fulldf, subID==uIds[i])
+    df <- subset(conddf, subID==uIds[i])
     t <- nrow(df)
     lengthArray[i] <- t
     groupChoice[i,1:t]<-(df$ingChoiceN+1)
@@ -161,13 +163,13 @@ modelFile <- here("Computational Models/ProbBias.stan")
 cores<-detectCores()
 PBfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)
 traceplot(PBfit)
-PB_summary <- summary(PBfit, pars = c("bias", "tau"), probs = c(0.1, 0.9))$summary
+PB_summary <- summary(PBfit, pars = c("bias"), probs = c(0.1, 0.9))$summary
 print(PB_summary)
-get_posterior_mean(PBfit, pars=c('bias','tau'))[,5]
+get_posterior_mean(PBfit, pars=c('bias'))[,5]
 PBparams <- data.frame(bias=get_posterior_mean(PBfit, pars=c('bias'))[,5],
                        LL=get_posterior_mean(PBfit, pars=c('log_lik'))[,5])
 k <- 1
-PBparams$BIC <- log(lengthArray) * k - 2 * (PBparams$LL)
+PBparams$BIC <- log(model_data$nTrials) * k - 2 * (PBparams$LL)
 PBparams$AIC <- 2 * k - 2 * (PBparams$LL)
 PB_LL <- extract_log_lik(PBfit)
 PB_LOO <- loo(PB_LL)
@@ -186,11 +188,11 @@ assign(paste0("PB_WAIC.",i), PB_WAIC)
 
 #############################
 
-iter=2000
+iter=3000
 warmup=floor(iter/2)
 modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias.stan")
 cores<-detectCores()
-S_Logistic_1mOppose_Biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+S_Logistic_1mOppose_Biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
 traceplot(S_Logistic_1mOppose_Biasfit)
 S_Logistic_1mOppose_Bias_summary <- summary(S_Logistic_1mOppose_Biasfit, pars = c("tau", "m", "bias"), probs = c(0.1, 0.9))$summary
 print(S_Logistic_1mOppose_Bias_summary)
@@ -200,18 +202,18 @@ S_Logistic_1mOppose_Biasparams <- data.frame(Temp=get_posterior_mean(S_Logistic_
                                            bias=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('bias'))[,5],
                                            LL=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('log_lik'))[,5])
 k <- 3
-S_Logistic_1mOppose_Biasparams$BIC <- log(lengthArray) * k - 2 * (S_Logistic_1mOppose_Biasparams$LL)
+S_Logistic_1mOppose_Biasparams$BIC <- log(model_data$nTrials) * k - 2 * (S_Logistic_1mOppose_Biasparams$LL)
 S_Logistic_1mOppose_Biasparams$AIC <- 2 * k - 2 * (S_Logistic_1mOppose_Biasparams$LL)
 S_Logistic_1mOppose_Bias_LL <- extract_log_lik(S_Logistic_1mOppose_Biasfit)
 S_Logistic_1mOppose_Bias_LOO <- loo(S_Logistic_1mOppose_Bias_LL)
 S_Logistic_1mOppose_Bias_WAIC <- waic(S_Logistic_1mOppose_Bias_LL)
 
-assign(paste0("S_Logistic_1m_Oppose_Biasfit.",i), S_Logistic_1m_Oppose_Biasfit)
-assign(paste0("S_Logistic_1m_Oppose_Bias_summary.",i), S_Logistic_1m_Oppose_Bias_summary)
-assign(paste0("S_Logistic_1m_Oppose_Biasparams.",i), S_Logistic_1m_Oppose_Biasparams)
-assign(paste0("S_Logistic_1m_Oppose_Bias_LL.",i), S_Logistic_1m_Oppose_Bias_LL)
-assign(paste0("S_Logistic_1m_Oppose_Bias_LOO.",i), S_Logistic_1m_Oppose_Bias_LOO)
-assign(paste0("S_Logistic_1m_Oppose_Bias_WAIC.",i), S_Logistic_1m_Oppose_Bias_WAIC)
+assign(paste0("S_Logistic_1m_Oppose_Biasfit.",i), S_Logistic_1mOppose_Biasfit)
+assign(paste0("S_Logistic_1m_Oppose_Bias_summary.",i), S_Logistic_1mOppose_Bias_summary)
+assign(paste0("S_Logistic_1m_Oppose_Biasparams.",i), S_Logistic_1mOppose_Biasparams)
+assign(paste0("S_Logistic_1m_Oppose_Bias_LL.",i), S_Logistic_1mOppose_Bias_LL)
+assign(paste0("S_Logistic_1m_Oppose_Bias_LOO.",i), S_Logistic_1mOppose_Bias_LOO)
+assign(paste0("S_Logistic_1m_Oppose_Bias_WAIC.",i), S_Logistic_1mOppose_Bias_WAIC)
 
 #############################
 
@@ -219,33 +221,33 @@ assign(paste0("S_Logistic_1m_Oppose_Bias_WAIC.",i), S_Logistic_1m_Oppose_Bias_WA
 
 #############################
 
-iter=2000
-warmup=floor(iter/2)
-modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias_L.stan")
-cores<-detectCores()
-S_Logistic_1mOppose_Bias_Lfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
-traceplot(S_Logistic_1mOppose_Bias_Lfit)
-S_Logistic_1mOppose_Bias_L_summary <- summary(S_Logistic_1mOppose_Bias_Lfit, pars = c("tau", "m", "bias", "L"), probs = c(0.1, 0.9))$summary
-print(S_Logistic_1mOppose_Bias_L_summary)
-get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('tau', 'm', 'bias', 'L'))[,5]
-S_Logistic_1mOppose_Bias_Lparams <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('tau'))[,5],
-                                             m=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('m'))[,5],
-                                             bias=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('bias'))[,5],
-                                             L=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('L'))[,5],
-                                             LL=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('log_lik'))[,5])
-k <- 4
-S_Logistic_1mOppose_Bias_Lparams$BIC <- log(lengthArray) * k - 2 * (S_Logistic_1mOppose_Bias_Lparams$LL)
-S_Logistic_1mOppose_Bias_Lparams$AIC <- 2 * k - 2 * (S_Logistic_1mOppose_Bias_Lparams$LL)
-S_Logistic_1mOppose_Bias_L_LL <- extract_log_lik(S_Logistic_1mOppose_Bias_Lfit)
-S_Logistic_1mOppose_Bias_L_LOO <- loo(S_Logistic_1mOppose_Bias_L_LL)
-S_Logistic_1mOppose_Bias_L_WAIC <- waic(S_Logistic_1mOppose_Bias_L_LL)
-
-assign(paste0("S_Logistic_1m_Oppose_Bias_Lfit.",i), S_Logistic_1m_Oppose_Bias_Lfit)
-assign(paste0("S_Logistic_1m_Oppose_Bias_L_summary.",i), S_Logistic_1m_Oppose_Bias_L_summary)
-assign(paste0("S_Logistic_1m_Oppose_Bias_Lparams.",i), S_Logistic_1m_Oppose_Bias_Lparams)
-assign(paste0("S_Logistic_1m_Oppose_Bias_L_LL.",i), S_Logistic_1m_Oppose_Bias_L_LL)
-assign(paste0("S_Logistic_1m_Oppose_Bias_L_LOO.",i), S_Logistic_1m_Oppose_Bias_L_LOO)
-assign(paste0("S_Logistic_1m_Oppose_Bias_L_WAIC.",i), S_Logistic_1m_Oppose_Bias_L_WAIC)
+# iter=3000
+# warmup=floor(iter/2)
+# modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias_L.stan")
+# cores<-detectCores()
+# S_Logistic_1mOppose_Bias_Lfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
+# traceplot(S_Logistic_1mOppose_Bias_Lfit)
+# S_Logistic_1mOppose_Bias_L_summary <- summary(S_Logistic_1mOppose_Bias_Lfit, pars = c("tau", "m", "bias", "L"), probs = c(0.1, 0.9))$summary
+# print(S_Logistic_1mOppose_Bias_L_summary)
+# get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('tau', 'm', 'bias', 'L'))[,5]
+# S_Logistic_1mOppose_Bias_Lparams <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('tau'))[,5],
+#                                              m=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('m'))[,5],
+#                                              bias=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('bias'))[,5],
+#                                              L=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('L'))[,5],
+#                                              LL=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('log_lik'))[,5])
+# k <- 4
+# S_Logistic_1mOppose_Bias_Lparams$BIC <- log(model_data$nTrials) * k - 2 * (S_Logistic_1mOppose_Bias_Lparams$LL)
+# S_Logistic_1mOppose_Bias_Lparams$AIC <- 2 * k - 2 * (S_Logistic_1mOppose_Bias_Lparams$LL)
+# S_Logistic_1mOppose_Bias_L_LL <- extract_log_lik(S_Logistic_1mOppose_Bias_Lfit)
+# S_Logistic_1mOppose_Bias_L_LOO <- loo(S_Logistic_1mOppose_Bias_L_LL)
+# S_Logistic_1mOppose_Bias_L_WAIC <- waic(S_Logistic_1mOppose_Bias_L_LL)
+# 
+# assign(paste0("S_Logistic_1m_Oppose_Bias_Lfit.",i), S_Logistic_1mOppose_Bias_Lfit)
+# assign(paste0("S_Logistic_1m_Oppose_Bias_L_summary.",i), S_Logistic_1mOppose_Bias_L_summary)
+# assign(paste0("S_Logistic_1m_Oppose_Bias_Lparams.",i), S_Logistic_1mOppose_Bias_Lparams)
+# assign(paste0("S_Logistic_1m_Oppose_Bias_L_LL.",i), S_Logistic_1mOppose_Bias_L_LL)
+# assign(paste0("S_Logistic_1m_Oppose_Bias_L_LOO.",i), S_Logistic_1mOppose_Bias_L_LOO)
+# assign(paste0("S_Logistic_1m_Oppose_Bias_L_WAIC.",i), S_Logistic_1mOppose_Bias_L_WAIC)
 
 ############################
 
@@ -253,13 +255,17 @@ assign(paste0("S_Logistic_1m_Oppose_Bias_L_WAIC.",i), S_Logistic_1m_Oppose_Bias_
 
 ############################
 
-print(loo_compare(list("Bias"=PB_LOO,
-                       "SLogO.Bias"=S_Logistic_1mOppose_Bias_LOO,
-                       "SLogO.Bias.L"=S_Logistic_1mOppose_Bias_L_LOO
+comparison <- print(loo_compare(list("Bias"=PB_LOO,
+                       "SLogO.Bias"=S_Logistic_1mOppose_Bias_LOO
+#                       "SLogO.Bias.L"=S_Logistic_1mOppose_Bias_L_LOO
 )),simplify = F
 )
 
+assign(paste0("comparison",i),comparison)
+
 }
+
+
 
 model <- S_Logistic_1mOppose_Biasfit
 y_pred <- rstan::extract(model, pars='y_pred')$y_pred
@@ -354,4 +360,60 @@ qplot(y_correct_mean[,1:min(model_data$nTrials)],bins=100)
 mean(y_correct>.50)
 
 qplot(y_correct[,,1:min(model_data$nTrials)],bins=100)
+
+S_Logistic_1m_Oppose_Bias_LL.CSULA
+
+
+
+
+diffDist = output_group1$parVals$mu_pi - output_group2$parVals$mu_pi  # group1 - group2
+HDIofMCMC( diffDist )  # Compute the 95% Highest Density Interval (HDI).
+plotHDI( diffDist )    # plot the group mean differences
+
+
+
+
+CSULA_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,2])*10)
+UCLA_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,2])*10)
+NotUCR_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.NotUCR, pars = "mu_pr")$mu_pr[,2])*10)
+
+hBayesDM::plotHDI(CSULA_group_m_posterior - UCLA_group_m_posterior)
+hBayesDM::plotHDI(NotUCR_group_m_posterior - UCLA_group_m_posterior)
+hBayesDM::plotHDI(CSULA_group_m_posterior - NotUCR_group_m_posterior)
+
+CSULA_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,1])*10)
+UCLA_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,1])*10)
+NotUCR_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.NotUCR, pars = "mu_pr")$mu_pr[,1])*10)
+
+hBayesDM::plotHDI(CSULA_group_tau_posterior - UCLA_group_tau_posterior)
+hBayesDM::plotHDI(NotUCR_group_tau_posterior - UCLA_group_tau_posterior)
+hBayesDM::plotHDI(CSULA_group_tau_posterior - NotUCR_group_tau_posterior)
+
+CSULA_group_bias_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,3]))
+UCLA_group_bias_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,3]))
+NotUCR_group_bias_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.NotUCR, pars = "mu_pr")$mu_pr[,3]))
+
+hBayesDM::plotHDI(CSULA_group_bias_posterior - UCLA_group_bias_posterior)
+hBayesDM::plotHDI(NotUCR_group_bias_posterior - UCLA_group_bias_posterior)
+hBayesDM::plotHDI(CSULA_group_bias_posterior - NotUCR_group_bias_posterior)
+
+
+# ROPE Range
+ROPErange <- function(posterior){
+  rang <- c(-.1 * sd(posterior), .1 * sd(posterior) )
+  return(rang)
+}
+
+# for(i in 1:length(paramnames)){
+#   diff <- demPost[,i] - repPost[,i]
+#   assign(paste0(paramnames[i],"Diff"),diff)
+#   hdiofdiff <- hBayesDM::plotHDI(diff)
+#   assign(paste0(paramnames[i],"_HDI"),diff)
+#   ro <- bayestestR::rope(diff,range=ROPErange(diff))
+#   assign(paste0(paramnames[i],"_ROPE"),ro)
+#   pd <- bayestestR::p_direction(diff)
+#   assign(paste0( paramnames[i],"_pd"), pd )
+#   
+# }
+
       

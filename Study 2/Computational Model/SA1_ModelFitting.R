@@ -29,47 +29,6 @@ simMat <- similarity.dice(posGraph)
 Idxmat<-cbind(fulldf$IdxLeft, fulldf$IdxRight)
 fulldf$IdxChoose <- Idxmat[cbind(seq_along(fulldf$choice), fulldf$choice)]
 
-# uIds <- unique(fulldf$subID)
-# Idxmat<-matrix(ncol=2, nrow=nrow(fulldf), fulldf$IdxLeft, fulldf$IdxRight)
-# fulldf$Idxchoose <-Idxmat[cbind(seq_along(fulldf$choice), fulldf$choice)]
-# uIds<-unique(fulldf$subID)
-# fulldf$V_S <- NA
-# for(i in uIds){
-#   
-#   subDf <- subset(fulldf, subID==i)
-#   for(n in 1:nrow(subDf)){
-#     
-#     V_S <- .50
-#     ind <- subDf$Idxchoose[n]
-#     prevs <- fulldf$Idxchoose[1:(n-1)]
-#     
-#     if(ind<149 & sum(prevs<149) > 0){
-#       indC <- ind
-#       prevsP <- prevs[which(prevs<149)]
-#       curSim <- similarity.dice(posGraph)[indC,prevsP]
-#       
-#       prevFeed <- subDf$choiceProp[1:(n-1)]
-#       prevFeed2 <- prevFeed[which(prevs<149)]
-#     }else if(ind>148 & sum(prevs>148) > 0 ){
-#       indC <- ind-148
-#       prevsN <- prevs[which(prevs>148)] - 148
-#       curSim <- similarity.dice(negGraph)[indC,prevsN]
-#       
-#       prevFeed <- subDf$choiceProp[1:(n-1)]
-#       prevFeed2 <- prevFeed[which(prevs>148)]
-#     }
-#     
-#     V_S = sum(curSim * prevFeed2) / sum(curSim)
-#     
-#     if(is.na(V_S)){
-#       break
-#     }
-#     
-#     fulldf$V_S[fulldf$subID == i & fulldf$trialTotal==subDf$trialTotal[n]] <- V_S
-#   }
-#   
-# }
-
 uIds<-unique(fulldf$subID)
 maxSubjs=length(uIds)
 maxTrials=max(fulldf$trialTotal)

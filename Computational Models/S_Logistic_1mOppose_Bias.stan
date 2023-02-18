@@ -29,15 +29,15 @@ parameters {
 
 transformed parameters {
   // subject-level parameters
-  vector<lower=0, upper=10>[nSubjects] tau;
-  vector<lower=0, upper=10>[nSubjects] m;
-  vector<lower=0, upper=1>[nSubjects] bias;
+  vector<lower=0, upper=10>[nSubjects] tau; # temperature
+  vector<lower=0, upper=10>[nSubjects] m; # growth rate
+  vector<lower=0, upper=1>[nSubjects] bias; # bias
 
   for (i in 1:nSubjects) {
     
-    tau[i] = Phi_approx(mu_pr[1] + sigma[1] * tau_pr[i]) * 10;
-    m[i] = Phi_approx(mu_pr[2] + sigma[2] * m_pr[i]) * 10;
-    bias[i] = Phi_approx(mu_pr[3] + sigma[3] * bias_pr[i]);
+    tau[i] = Phi_approx(mu_pr[1] + sigma[1] * tau_pr[i]) * 10; 
+    m[i] = Phi_approx(mu_pr[2] + sigma[2] * m_pr[i]) * 10; 
+    bias[i] = Phi_approx(mu_pr[3] + sigma[3] * bias_pr[i]); 
     
   }
   
@@ -46,12 +46,13 @@ transformed parameters {
 model {
   // Hyperparameters
   mu_pr  ~ normal(0, 1);
-  sigma ~ normal(0, 0.2);
-  //sigma[3:4] ~ cauchy(0, 0.35);
+  // sigma ~ normal(0, 0.2);
+  sigma ~ normal(0, .8);
 
   // individual parameters
   tau_pr ~ normal(0, 1);
-  m_pr ~ normal(0, 1);
+  // m_pr ~ normal(0, 1);
+  m_pr ~ normal(0, 3); // making more diffuse
   bias_pr ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
@@ -63,20 +64,15 @@ model {
     vector[nTrain[s]] GPout;
     vector[nTrain[s]] PS;
 
-    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m[s])*(prevSelf[s,1:nTrain[s]]-4)));
-    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((m[s])*(prevSelf[s,1:nTrain[s]]-4)));
+    GPin[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((-m[s])*(prevSelf[s,1:nTrain[s]]-4))); # logistic function for transforming eval ratings to ingroup
+    GPout[1:nTrain[s]] = rep_vector(1,nTrain[s])./(1 + exp((m[s])*(prevSelf[s,1:nTrain[s]]-4))); # logistic function for transforming eval ratings to outgroup
     
     for (t in 1:nTrials[s]) {
       
-      // print(GPin)
-      // print(GPout)
-      
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
       
-      // simW[1] = dot_product(GPout[1:nTrain[s]],PS); // summation and multiplication of group probabilities with similarities
-      // simW[2] = dot_product(GPin[1:nTrain[s]],PS);
-      simW[1] = dot_product(GPout[1:nTrain[s]],PS);
-      simW[2] = dot_product(GPin[1:nTrain[s]],PS);
+      simW[1] = dot_product(GPout[1:nTrain[s]],PS); # dot-product of ingroup and sim
+      simW[2] = dot_product(GPin[1:nTrain[s]],PS); #dot-product of ingroup and sim
       
       prob[1] = ( (1 - bias[s]) * pow( ( simW[1] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
       prob[2] = ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) / ( ( (1 - bias[s]) *  pow( simW[1]  , tau[s] ) ) + ( (bias[s]) * pow( ( simW[2] ) ,tau[s] ) ) ); // convert to probabilities
@@ -130,8 +126,7 @@ generated quantities {
     for (t in 1:nTrials[s]) {
 
       PS[1:nTrain[s]] = prevSim[s,t,1:nTrain[s]]; // similarities from training to current generalization trait
-      // simW[1] = dot_product(GPout[1:nTrain[s]],PS); // summation and multiplication of group probabilities with similarities
-      // simW[2] = dot_product(GPin[1:nTrain[s]],PS);
+      
       simW[1] = dot_product(GPout[1:nTrain[s]],PS);
       simW[2] = dot_product(GPin[1:nTrain[s]],PS);
       
