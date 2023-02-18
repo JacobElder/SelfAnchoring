@@ -12,7 +12,6 @@ pkgs <-  c("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpu
 groundhog.day <- '2022-07-25'
 groundhog.library(pkgs, groundhog.day)
 here::i_am("Study 2/Analysis/SAs2_Analysis.Rmd")
-#plotDir <- "/Volumes/Research Project/Trait_TestRetest/WeekTRT/plots/"
 ```
 
 ```{r}
@@ -23,10 +22,6 @@ devtools::source_url("https://raw.githubusercontent.com/JacobElder/Miscellaneous
 
 
 ```{r}
-# fullTest <- read.csv("../Cleaning/output/fullTest.csv")
-# fullTrain <- read.csv("../Cleaning/output/fullTrain.csv")
-# traitsFreqs <- read.csv("../Cleaning/output/traitFreqOverUnder.csv")
-
 fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
 fullTrain <- arrow::read_parquet("../Cleaning/output/fullTrain.parquet")
 traitsFreqs <- arrow::read_parquet("../Cleaning/output/traitFreqOverUnder.parquet")
@@ -36,6 +31,8 @@ uSubs <- unique(fullTest$subID)
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
 
 allPosCents <- read.csv("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
+
+fullTrain <- indDiffs %>% select(subID, groupHomoph, seHomoph, SStatus:IdImp) %>% full_join(fullTrain, by="subID")
 ```
 
 ```{r}
@@ -95,11 +92,7 @@ fullTest$InOutStatus <- ifelse(fullTest$outgroup == "UCLA", fullTest$InUCLAStatu
 fullTest$InOutTherm <- ifelse(fullTest$outgroup == "UCLA", fullTest$InUCLATherm, 
        ifelse(fullTest$outgroup == "CSU LA", fullTest$InCSULATherm,
               ifelse(fullTest$outgroup == "Not UCR", fullTest$InOtherTherm, NA)))
-```
 
-
-
-```{r}
 fullTest$novel <- as.factor(fullTest$novel)
 levels(fullTest$novel) <- list("Trained"  = "0", "Held Out" = "1")
 
@@ -383,10 +376,12 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 Sim.Condition.Plot
 ```
 
+### Individual Differences
+
 #### UCR Status
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * UCR_Status + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * UCR_Status + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -397,7 +392,7 @@ ggpredict(m, c("WSR.Z","UCR_Status","outgroup")) %>% plot()
 #### Identity Importance
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * IdImp + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * IdImp + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -407,7 +402,7 @@ ggpredict(m, c("WSR.Z","IdImp","outgroup")) %>% plot()
 #### Self-Esteem
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(RSE) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(RSE) + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -417,7 +412,7 @@ ggpredict(m, c("WSR.Z","RSE","outgroup")) %>% plot()
 ### Need to Belong
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(NTB) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(NTB) + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -427,7 +422,7 @@ ggpredict(m, c("WSR.Z","NTB","outgroup")) %>% plot()
 ## Multidimensional Ingroup Identification
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(MGIS) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(MGIS) + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -437,7 +432,7 @@ ggpredict(m, c("WSR.Z","MGIS","outgroup")) %>% plot()
 ## Interdependent Self-Construal
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(SING.Inter) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(SING.Inter) + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -447,7 +442,7 @@ ggpredict(m, c("WSR.Z","SING.Inter","outgroup")) %>% plot()
 ## Entitativity
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(Ent) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(Ent) + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -457,7 +452,7 @@ ggpredict(m, c("WSR.Z","Ent","outgroup")) %>% plot()
 ## Self-Prototypicality
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(Proto) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(Proto) + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -467,7 +462,7 @@ ggpredict(m, c("WSR.Z","Proto","outgroup")) %>% plot()
 ## Need for Cognition
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(NFC) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(NFC) + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -477,7 +472,7 @@ ggpredict(m, c("WSR.Z","NFC","outgroup")) %>% plot()
 ## Group Similarity
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(GSim) + desirability.Z + evalLOO.Z + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * scale(GSim) + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
@@ -848,7 +843,7 @@ ggpredict(m, c("WSR.Z", "novel")) %>% plot(show.title=F) + xlab("Similarity-Weig
 ### Moderated by outgroup comparison
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * novel * outgroup + desirability.Z + ( WSR.Z + novel | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * novel * outgroup + ( WSR.Z + novel | subID) + ( outgroup | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
@@ -1058,6 +1053,104 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 ggpredict(m, c("inGsimS","outgroup")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
 ```
 
+### Individual Differences
+
+#### Identity Importance
+
+UCLA slope is steeper for people who UCR identity is important
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*IdImp + scale(outGsimS)*outgroup*IdImp + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","IdImp")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+#### Self-Concept Clarity
+
+Nah
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*SCC + scale(outGsimS)*outgroup*SCC + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","SCC")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+#### Social identification
+
+Nah
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*MGIS + scale(outGsimS)*outgroup*MGIS + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","MGIS")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+#### Entitativity
+
+Nah
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*Ent + scale(outGsimS)*outgroup*Ent + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","Ent")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+#### Self-Prototypicality
+
+Effect of ingroup sim steeper for CSU LA for those lower in self-prototypicality of group
+
+Effect of outgroup sim steeper for Not UCR for those higher in self-prototypicality of group
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*Proto + scale(outGsimS)*outgroup*Proto + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","Proto")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+ggpredict(m, c("outGsimS","outgroup","Proto")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+#### Need to Belong
+
+Effect of ingroup sim steeper for CSU LA for those lower in Need to Belong
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*NTB + scale(outGsimS)*outgroup*NTB + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","NTB")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+ggpredict(m, c("outGsimS","outgroup","NTB")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+#### Need for Cognition
+
+Effect of ingroup sim much steeper for UCLA for those lower in Need for Cognition, and much steeper for CSU LA for those higher in Need for Cognition
+
+Effect of outgroup sim for UCLA more positive for those higher in Need for Cognition and more negative for Not UCR for those higher in Need for Cognition
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*NFC + scale(outGsimS)*outgroup*NFC + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","NFC")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+ggpredict(m, c("outGsimS","outgroup","NFC")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+#### Rosenberg Self-Esteem
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*RSE + scale(outGsimS)*outgroup*RSE + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","RSE")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+ggpredict(m, c("outGsimS","outgroup","RSE")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
+#### Dialectical Self
+
+Effect of outgroup sim for Not UCR steeper for those lower in dialectical self
+
+```{r}
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup*DS + scale(outGsimS)*outgroup*DS + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+ggpredict(m, c("inGsimS","outgroup","DS")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+ggpredict(m, c("outGsimS","outgroup","DS")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
+```
+
 ## Metacontrast Ratio Moderated by Condition
 
 ```{r}
@@ -1119,7 +1212,7 @@ m <- glmer( ingChoiceN ~ WSR.Z * SE + ( WSR.Z | subID) + (1 | trait), data = ful
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
-ggpredict(m, c("SE","WSR.Z")) %>% plot(show.title=F) + xlab("Self-Esteem") + ylab("Self-Evaluation") + jtools::theme_apa()
+ggpredict(m, c("WSR.Z","SE")) %>% plot(show.title=F)
 ```
 
 # Do people higher in social identification self-project more?

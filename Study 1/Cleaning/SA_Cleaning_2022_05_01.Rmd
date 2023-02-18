@@ -54,7 +54,7 @@ allCombCents$Idx <- 1:296
 
 
 ```{r}
-setwd("/Volumes/Research Project/Self-Anchoring/Cleaning/input/")
+setwd("/Volumes/Research Project/Self-Anchoring/Study 1/Cleaning/input/")
 mergedRaw <- read_bulk(directory = ".", extension = ".csv", fun = read.csv)
 paste0("There are ", length(unique(mergedRaw$File)), " unique participants")
 ```
@@ -139,8 +139,8 @@ sketchMat$sketch <- ifelse(sketchMat$propSelf > .80 | sketchMat$propChoice > .90
 ```
 
 ```{r}
-postQs <- read.csv("/Volumes/Research Project/Self-Anchoring/Cleaning/Qualtrics Data/SA1postQs.csv")
-preQs <- read.csv("/Volumes/Research Project/Self-Anchoring/Cleaning/Qualtrics Data/SA1preQs.csv")
+postQs <- read.csv("/Volumes/Research Project/Self-Anchoring/Study 1/Cleaning/Qualtrics Data/SA1postQs.csv")
+preQs <- read.csv("/Volumes/Research Project/Self-Anchoring/Study 1/Cleaning/Qualtrics Data/SA1preQs.csv")
 preQs$id[which(duplicated(preQs$id))]
 preQs <- preQs %>% group_by(id) %>% filter(duplicated(id) | n()==1)
 
@@ -726,5 +726,8 @@ for(i in uSubs){
 ```{r}
 write.csv(fullTest, "./output/fullTest.csv", row.names = F)
 write.csv(fullTrain, "./output/fullTrain.csv", row.names = F)
+
+arrow::write_parquet(fullTest, "./output/fullTest.parquet")
+arrow::write_parquet(fullTrain, "./output/fullTrain.parquet")
 ```
 

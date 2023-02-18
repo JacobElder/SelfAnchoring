@@ -286,7 +286,6 @@ Sim.Condition.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=grou
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
 Sim.Condition.Plot
-l
 ```
 
 ## Covariates and Condition Differences

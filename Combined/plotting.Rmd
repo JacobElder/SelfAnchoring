@@ -1,0 +1,255 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(groundhog)
+pkgs <-  c("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist")
+groundhog.day <- '2022-07-25'
+groundhog.library(pkgs, groundhog.day)
+here::i_am("Combined/plotting.Rmd")
+```
+
+# Study 1 Import
+
+```{r}
+fullTest <- arrow::read_parquet(here("Study 1/Cleaning/output/fullTest.parquet"))
+fullTrain <- arrow::read_parquet(here("Study 1/Cleaning/output/fullTest.parquet"))
+
+traitsFreqs <- read.csv(here("Study 1/Cleaning/output/traitFreqOverUnder.csv"))
+
+
+uSubs <- unique(fullTest$subID)
+
+indDiffs <- fullTest[!duplicated(fullTest$subID),]
+indDiffs <- indDiffs %>% select(subID, groupHomoph, DS:SING.Inter)
+
+#fullTrain <- merge(fullTrain, indDiffs, by = "subID")
+
+#fullTrain$metaContrast <- fullTrain$inGsim / fullTrain$outGsim
+
+fullTest$ingChoiceN <- as.factor(fullTest$ingChoiceN)
+fullTest$novel <- as.factor(fullTest$novel)
+fullTest$selfResp.Z <- scale(fullTest$selfResp)
+fullTest$SE.Z <- scale(fullTest$SE)
+fullTest$iSE.Z <- scale(fullTest$iSE)
+fullTest$oSE.Z <- scale(fullTest$oSE)
+fullTest$predicted.Z <- scale(fullTest$predicted)
+fullTest$slope.Z <- scale(fullTest$slope)
+fullTest$entropy.Z <- scale(fullTest$entropy)
+fullTest$WSR.Z <- scale(fullTest$WSR)
+fullTest$neighAveOutSE.Z <- scale(fullTest$neighAveOutSE)
+fullTest$neighAveAllSE.Z <- scale(fullTest$neighAveAllSE)
+fullTest$neighAveInSE.Z <- scale(fullTest$neighAveInSE)
+fullTest$evalLOO.Z <- scale(fullTest$evalLOO)
+fullTest$propCorrLOO.Z <- scale(fullTest$propCorrLOO)
+fullTest$propCorr.Z <- scale(fullTest$propCorr)
+fullTest$desirability.Z <- scale(fullTest$desirability)
+fullTest$er.Z <- scale(fullTest$er)
+
+fullTest$novel <- as.factor(fullTest$novel)
+levels(fullTest$novel) <- list("Trained"  = "0", "Held Out" = "1")
+
+fullTest1 <- fullTest
+fullTrain1 <- fullTrain
+
+fullTest1$outgroup <- "Minimal"
+fullTest1$study <- "Study 1"
+
+fullTrain1$outgroup <- "Minimal"
+fullTrain1$study <- "Study 1"
+
+fullTrain1$subID <- 50000
+```
+
+# Study 2 Import
+
+```{r}
+fullTest <- arrow::read_parquet(here("Study 2//Cleaning/output/fullTest.parquet"))
+fullTrain <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet"))
+traitsFreqs <- arrow::read_parquet(here("Study 2/Cleaning/output/traitFreqOverUnder.parquet"))
+
+uSubs <- unique(fullTest$subID)
+
+indDiffs <- fullTest[!duplicated(fullTest$subID),]
+
+allPosCents <- read.csv("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
+
+fullTest$ingChoiceN <- as.factor(fullTest$ingChoiceN)
+fullTest$novel <- as.factor(fullTest$novel)
+fullTest$selfResp.Z <- scale(fullTest$selfResp)
+fullTest$SE.Z <- scale(fullTest$SE)
+fullTest$iSE.Z <- scale(fullTest$iSE)
+fullTest$oSE.Z <- scale(fullTest$oSE)
+fullTest$predicted.Z <- scale(fullTest$predicted)
+fullTest$slope.Z <- scale(fullTest$slope)
+fullTest$entropy.Z <- scale(fullTest$entropy)
+fullTest$WSR.Z <- scale(fullTest$WSR)
+fullTest$neighAveOutSE.Z <- scale(fullTest$neighAveOutSE)
+fullTest$neighAveAllSE.Z <- scale(fullTest$neighAveAllSE)
+fullTest$neighAveInSE.Z <- scale(fullTest$neighAveInSE)
+fullTest$evalLOO.Z <- scale(fullTest$evalLOO)
+fullTest$propCorrInLOO.Z <- scale(fullTest$propCorrInLOO)
+fullTest$propCorrOutLOO.Z <- scale(fullTest$propCorrOutLOO)
+#fullTest$propCorr.Z <- scale(fullTest$propCorr)
+fullTest$desirability.Z <- scale(fullTest$desirability)
+fullTest$er.Z <- scale(fullTest$er)
+fullTest$inDegree.Z <- scale(fullTest$inDegree)
+fullTest$outDegree.Z <- scale(fullTest$outDegree)
+fullTest$Ent.Z <- scale(fullTest$Ent)
+
+fullTest$outgroup <- as.factor(fullTest$outgroup)
+fullTest$outgroup <- relevel(fullTest$outgroup,"Not UCR")
+
+fullTest$outgroupE <- named.effects.ref(fullTest$outgroup, "Not UCR")
+
+mat = matrix(c(1/3, 1/3, 1/3, -.5, 1, -.5, -.5, -.5, 1), nrow = 3)
+mymat = solve(t(mat))
+mymat
+#remove the intercept (constant) term
+my.contrasts<-mymat[,2:3]
+colnames(my.contrasts) <- c("CSULA-Other", "UCLA-Other")
+fullTest$outgroupU <- fullTest$outgroup
+contrasts(fullTest$outgroupU) = my.contrasts
+
+
+mycontrasts2 = contrasts(fullTest$outgroup)
+mycontrasts2[,1] = c(-1/2, -1/2, 1)
+mycontrasts2[,2] = c(-1/2, 1, -1/2)
+contrasts(fullTest$outgroupU) = mycontrasts2
+
+fullTest2 <- fullTest
+fullTrain2 <- fullTrain
+
+fullTest2$study <- "Study 2"
+fullTrain2$study <- "Study 2"
+```
+
+# Study 3 Import
+
+```{r}
+
+fullTest <- arrow::read_parquet(here("Study 3/Cleaning/output/fullTest.parquet"))
+fullTrain <- arrow::read_parquet(here("Study 3/Cleaning/output/fullTrain.parquet"))
+traitsFreqs <- arrow::read_parquet(here("Study 3/Cleaning/output/traitFreqOverUnder.parquet"))
+
+uSubs <- unique(fullTest$subID)
+
+indDiffs <- fullTest[!duplicated(fullTest$subID),]
+
+allPosCents <- read.csv("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
+
+fullTest$ingChoiceN <- as.factor(fullTest$ingChoiceN)
+fullTest$novel <- as.factor(fullTest$novel)
+fullTest$selfResp.Z <- scale(fullTest$selfResp)
+fullTest$SE.Z <- scale(fullTest$SE)
+fullTest$iSE.Z <- scale(fullTest$iSE)
+fullTest$oSE.Z <- scale(fullTest$oSE)
+fullTest$predicted.Z <- scale(fullTest$predicted)
+fullTest$slope.Z <- scale(fullTest$slope)
+fullTest$entropy.Z <- scale(fullTest$entropy)
+fullTest$WSR.Z <- scale(fullTest$WSR)
+fullTest$neighAveOutSE.Z <- scale(fullTest$neighAveOutSE)
+fullTest$neighAveAllSE.Z <- scale(fullTest$neighAveAllSE)
+fullTest$neighAveInSE.Z <- scale(fullTest$neighAveInSE)
+fullTest$evalLOO.Z <- scale(fullTest$evalLOO)
+fullTest$propCorrInLOO.Z <- scale(fullTest$propCorrInLOO)
+fullTest$propCorrOutLOO.Z <- scale(fullTest$propCorrOutLOO)
+#fullTest$propCorr.Z <- scale(fullTest$propCorr)
+fullTest$desirability.Z <- scale(fullTest$desirability)
+fullTest$er.Z <- scale(fullTest$er)
+fullTest$inDegree.Z <- scale(fullTest$inDegree)
+fullTest$outDegree.Z <- scale(fullTest$outDegree)
+fullTest$Ent.Z <- scale(fullTest$Ent)
+
+fullTest$outgroup <- as.factor(fullTest$outgroup)
+fullTest$condition <- as.factor(fullTest$condition)
+fullTest$condition <- relevel(fullTest$condition,"Minority")
+
+fullTest$novel <- as.factor(fullTest$novel)
+levels(fullTest$novel) <- list("Trained"  = "0", "Held Out" = "1")
+
+fullTest3 <- fullTest
+fullTrain3 <- fullTrain
+
+fullTest3$study <- "Study 3"
+fullTrain3$study <- "Study 3"
+```
+
+# Similarity-to-Self on Ingroup Classification
+
+## Study 1: Minimal
+
+```{r}
+ss.m1 <- glmer( ingChoiceN ~ WSR + ( WSR | subID) + ( 1 | trait), data = fullTest1, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(ss.m1, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+p <- ggpredict(ss.m1, c("WSR"))
+Sim.Condition.Plot1 <-ggplot(p, aes(x, predicted)) +  geom_line() + geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=0.15) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
+Sim.Condition.Plot1
+```
+
+## Study 2: University
+
+```{r}
+ss.m2 <- glmer( ingChoiceN ~ WSR * outgroup + ( WSR | subID) + ( outgroup | trait), data = fullTest2, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(ss.m2, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+p <- ggpredict(ss.m2, c("WSR","outgroup"))
+Sim.Condition.Plot2 <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Not UCR","CSU LA","UCLA")) + scale_color_manual(labels = c("Not UCR","CSU LA","UCLA"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
+                      labels=c("Not UCR","CSU LA","UCLA"), values = wes_palette("Darjeeling1")) + theme(
+    legend.position = c(.6, .1),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
+Sim.Condition.Plot2
+```
+
+## Study 3: Race
+
+```{r}
+sim.m3 <- glmer( ingChoiceN ~ WSR * condition + ( WSR | subID) + ( condition | trait), data = fullTest3, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+tab_model(sim.m3, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
+p <- ggpredict(sim.m3, c("WSR","condition"))
+Sim.Condition.Plot3 <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Minority","Majority")) + scale_color_manual(labels = c("Minority","Majority"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
+                      labels=c("Minority","Majority"), values = wes_palette("Darjeeling1")) + theme(
+    legend.position = c(.6, .1),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
+Sim.Condition.Plot3
+```
+
+```{r}
+library(ggpubr)
+library(grid)
+threePlots <- function(plot1, plot2, plot3, xaxis, yaxis){
+  
+  arranged <- ggarrange(plot1 + rremove("ylab") + rremove("xlab"), plot2 + rremove("ylab") + rremove("xlab"), plot3 + rremove("ylab") + rremove("xlab"), ncol =1, nrow = 3, hjust=.42)
+  addedAxes <- annotate_figure(arranged, left = textGrob(yaxis, rot = 90, vjust = 1, hjust = .4, gp = gpar(cex = 1.3, fontsize=10)),
+                               bottom = textGrob(xaxis, vjust = -.25, gp = gpar(cex = 1.3, fontsize=10))
+  )
+  return(addedAxes)
+  
+}
+
+Sim.Condition.PlotComb <- threePlots(Sim.Condition.Plot1, Sim.Condition.Plot2, Sim.Condition.Plot3, "Similarity-to-Self","Prob. of Ingroup Classification")
+ggsave(plot=Sim.Condition.PlotComb, filename="~/Desktop/plottttttt.png", width=6, height=10, dpi=400)
+```
+
