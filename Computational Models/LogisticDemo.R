@@ -20,17 +20,16 @@ FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as
 FSplot
 #ggsave("~/Documents/UC Riverside/Studies/Feedback Study/Manuscript/Figures/FS_demonstration.jpg", units = "in", dpi = 600, width = 4, height = 4)
 
-Minputs <- c(4.407416, 2.48609)
+library(wesanderson)
+Minputs <- c(3.0, .75)
 df<-data.frame(Minputs=sort(rep(Minputs, 7)), eval=rep(1:7) )
 df$trans<-logFunc(df$eval, df$Minputs, shift = 0)
 FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as.factor(Minputs) )) +
-  geom_line() + geom_point() + xlab("Original Self-Evaluation") + ylab("Probability of Group Normativity")  + theme_classic() +
-  theme(legend.position="top") + labs(color="Growth Parameter")  + 
-  scale_color_manual(labels=c('Outgroup','Ingroup'), values = wes_palette("Darjeeling1"))
+  geom_line() + geom_point() + xlab("Original Self-Evaluation on Trait") + ylab("Trait's Ingroup Typicality")  + theme_classic() +
+  theme(legend.position="top") + labs(color="Projection Rate")  + 
+  scale_color_manual(labels=c('Extreme','Mild'), values = wes_palette("Darjeeling1"))
 FSplot
-
-
-
+ggsave(plot=FSplot, filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/CombinedPlot.png", width=6, height=4, dpi=400)
 
 
 logFunc <- function(input, slope=1, shift=0, L=1){

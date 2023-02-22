@@ -250,6 +250,6 @@ threePlots <- function(plot1, plot2, plot3, xaxis, yaxis){
 }
 
 Sim.Condition.PlotComb <- threePlots(Sim.Condition.Plot1, Sim.Condition.Plot2, Sim.Condition.Plot3, "Similarity-to-Self","Prob. of Ingroup Classification")
-ggsave(plot=Sim.Condition.PlotComb, filename="~/Desktop/plottttttt.png", width=6, height=10, dpi=400)
+ggsave(plot=Sim.Condition.PlotComb, filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/CombinedPlot.png", width=6, height=10, dpi=400)
 ```
 
