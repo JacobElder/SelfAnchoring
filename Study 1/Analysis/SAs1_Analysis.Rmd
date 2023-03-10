@@ -90,12 +90,6 @@ indDiffs %>% select(groupHomoph, DS:SING.Ind) %>% corToOne(., "groupHomoph")
 indDiffs %>% select(groupHomoph, DS:SING.Ind) %>% plotCorToOne(., "groupHomoph")
 ```
 
-```{r}
-indDiffs <- merge(indDiffs, biasanchor2params, by="subID")
-indDiffs %>% select(groupHomoph, SAo, DS:SING.Ind) %>% corToOne(., "SAo")
-indDiffs %>% select(groupHomoph, SAo, DS:SING.Ind) %>% plotCorToOne(., "SAo")
-```
-
 
 # (Attempt to) replicate prior work: Ingroup favoritism exhibited by ascribing more positive traits to ingroup
 
@@ -220,6 +214,7 @@ m <- glmer( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + (1 | trait), data = fullTest
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
 ```
 
 # Covariates
@@ -283,19 +278,20 @@ ggpredict(m, c("predicted.Z", "outDegree")) %>% plot(show.title=F) + xlab("Cross
 ## No covariates
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * novel + ( predicted.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * novel + ( WSR.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
-summary(m)
+tidy(m,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+parameters::equivalence_test(m)
 ```
 
 # Plot
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * novel + ( WSR.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR * novel + ( WSR + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
-p <- ggpredict(m, c("WSR.Z","novel"))
+p <- ggpredict(m, c("WSR","novel"))
 Novel.Generalization.Plot <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Evaluated","Novel")) + scale_color_manual(labels = c("Evaluated","Novel"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
                       labels=c("Evaluated","Novel"), values = wes_palette("Darjeeling1")) + theme(
     legend.position = c(.1, .65),

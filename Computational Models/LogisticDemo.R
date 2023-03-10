@@ -27,7 +27,7 @@ df$trans<-logFunc(df$eval, df$Minputs, shift = 0)
 FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as.factor(Minputs) )) +
   geom_line() + geom_point() + xlab("Original Self-Evaluation on Trait") + ylab("Trait's Ingroup Typicality")  + theme_classic() +
   theme(legend.position="top") + labs(color="Projection Rate")  + 
-  scale_color_manual(labels=c('Extreme','Mild'), values = wes_palette("Darjeeling1"))
+  scale_color_manual(labels=c('Mild','Extreme'), values = wes_palette("Darjeeling1"))
 FSplot
 ggsave(plot=FSplot, filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/CombinedPlot.png", width=6, height=4, dpi=400)
 

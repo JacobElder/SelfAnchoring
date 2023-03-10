@@ -270,7 +270,7 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 ```
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * condition + desirability.Z + ( WSR.Z + desirability.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * condition + ( WSR.Z | subID) + ( condition | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
@@ -746,11 +746,12 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 ## Similarity-Weighted Self-Evaluations
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * novel + desirability.Z + ( WSR.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m <- glmer( ingChoiceN ~ WSR.Z * novel + ( WSR.Z + novel | subID) + (1 | trait), data = fullTest, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
 ggpredict(m, c("WSR.Z", "novel")) %>% plot(show.title=F) + xlab("Similarity-Weighted Self-Descriptiveness") + ylab("Likelihood of Ingroup Choice") + jtools::theme_apa()
+parameters::equivalence_test(m)
 ```
 
 ### Moderated by outgroup comparison
