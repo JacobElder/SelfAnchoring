@@ -5,7 +5,7 @@ library(igraph)
 library(loo)
 library(here)
 
-#here::i_am("./Study 1/Computational Model/SA1_ModelFitting.R")
+here::i_am("./Study 1/Computational Model/SA1_Modeling_Final.R")
 
 fulldf <- read.csv(here("Study 1/Cleaning/output/fullTest.csv"))
 fulldf <- fulldf[!is.na(fulldf$ingChoiceN),]
@@ -272,6 +272,10 @@ print(loo_compare(list("Bias"=PB_LOO,
                        "SLogO.Bias.L"=S_Logistic_1mOppose_Bias_L_LOO
 )),simplify = F
 )
+
+S_Logistic_1mOppose_Biasparams$subID <- uIds
+write.csv(S_Logistic_1mOppose_Biasparams, here("Study 1/Cleaning/output/S_Logistic_1mOppose_Biasparams.csv"))
+arrow::write_parquet(S_Logistic_1mOppose_Biasparams, here("Study 1/Cleaning/output/S_Logistic_1mOppose_Biasparams.parquet"))
 
 model <- S_Logistic_1mOppose_Biasfit
 y_pred <- rstan::extract(model, pars='y_pred')$y_pred

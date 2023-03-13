@@ -9,49 +9,91 @@ devtools::source_url("https://raw.githubusercontent.com/JacobElder/Miscellaneous
 ```
 
 ```{r}
-params <- S_Logistic_1m_Oppose_Biasparams.UCLA
+params.UCLA <- S_Logistic_1m_Oppose_Biasparams.UCLA
 
 fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
-params$subID <- unique(subset(fullTest, outgroup=="UCLA")$subID)
+params.UCLA$subID <- unique(subset(fullTest, outgroup=="UCLA")$subID)
 
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
 indDiffs <- indDiffs %>% select(subID, groupHomoph, SStatus:IdImp)
-indDiffs <- indDiffs %>% full_join(params, by = "subID")
+indDiffs <- indDiffs %>% full_join(params.UCLA, by = "subID")
 
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% corToOne(., "m")
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% plotCorToOne(., "m")
 ```
+
+```{r}
+indDiffs %>% select(m, SING.Ind, NFC, RSE, SING.Inter, InUCLATherm, NTB, Proto, IdImp, MGIS_ISeSte) %>% corToOne(., "m")
+indDiffs %>% select(m, SING.Ind, NFC, RSE, SING.Inter, InUCLATherm, NTB, Proto, IdImp, MGIS_ISeSte) %>% plotCorToOne(., "m") + scale_x_discrete(labels=c("Independence","Need for Cognition", "Self-Esteem", "Interdependence","Need to Belong","Self-Protypicality","Identification","Similarity-to-Ingroup","Intergroup Bias"))
+```
+
 
 
 ```{r}
-params <- S_Logistic_1m_Oppose_Biasparams.CSULA
+params.CSULA <- S_Logistic_1m_Oppose_Biasparams.CSULA
 
 fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
-params$subID <- unique(subset(fullTest, outgroup=="CSU LA")$subID)
+params.CSULA$subID <- unique(subset(fullTest, outgroup=="CSU LA")$subID)
 
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
 indDiffs <- indDiffs %>% select(subID, groupHomoph, SStatus:IdImp)
-indDiffs <- indDiffs %>% full_join(params, by = "subID")
+indDiffs <- indDiffs %>% full_join(params.CSULA, by = "subID")
 
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% corToOne(., "m")
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% plotCorToOne(., "m")
 ```
+
+```{r}
+indDiffs %>% select(m, SING.Ind, NFC, RSE, SING.Inter, InUCLATherm, NTB, Proto, IdImp, MGIS_ISeSte) %>% corToOne(., "m")
+indDiffs %>% select(m, SING.Ind, NFC, RSE, SING.Inter, InCSULATherm, NTB, Proto, IdImp, MGIS_ISeSte) %>% plotCorToOne(., "m") + scale_x_discrete(labels=c("Self-Prototypicality","Interdependence", "Need to Belong", "Identification","Self-Esteem","Need for Cognition","Independence","Intergroup Bias","Similarity-to-Ingroup"))
+```
+
 
 
 ```{r}
-params <- S_Logistic_1m_Oppose_Biasparams.NotUCR
-params$subID <- uIds
+params.NotUCR <- S_Logistic_1m_Oppose_Biasparams.NotUCR
+params.NotUCR$subID <- uIds
 
 fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
-params$subID <- unique(subset(fullTest, outgroup=="Not UCR")$subID)
+params.NotUCR$subID <- unique(subset(fullTest, outgroup=="Not UCR")$subID)
 
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
-indDiffs <- indDiffs %>% select(subID, groupHomoph, SStatus:IdImp)
-indDiffs <- indDiffs %>% full_join(params, by = "subID")
+indDiffs <- indDiffs %>% select(subID, groupHomoph, SStatus:IdImp, Therm_1)
+indDiffs <- indDiffs %>% full_join(params.NotUCR, by = "subID")
 
-indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% corToOne(., "m")
-indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% plotCorToOne(., "m")
+indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% corToOne(., "m")
+indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% plotCorToOne(., "m")
 ```
+
+```{r}
+allParams <- rbind(cbind(params.CSULA, outgroup="CSULA"), cbind(params.NotUCR, outgroup="Not UCR"), cbind(params.UCLA, outgroup="UCLA"))
+
+fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
+indDiffs <- fullTest[!duplicated(fullTest$subID),]
+indDiffs <- indDiffs %>% select(subID, groupHomoph, Therm_1, SStatus:IdImp)
+indDiffs <- indDiffs %>% full_join(allParams, by = "subID")
+indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% corToOne(., "m")
+indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% plotCorToOne(., "m")
+
+allParams$outgroup <- as.factor(allParams$outgroup)
+allParams$subID <- as.factor(allParams$subID)
+allParams$University <- relevel(allParams$outgroup, ref = "Not UCR")
+
+
+
+m <- lmer( scale(m) ~ outgroup +  ( 1  | subID), data = allParams)
+summary(m)
+ggpredict(m, c("University")) %>% plot()
+
+m<-ezANOVA(allParams, dv = m, wid = subID, between = as.factor(outgroup) )
+m
+
+ggplot(allParams, aes(outgroup, m)) + 
+  ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
+  geom_boxplot(width = .2, outlier.shape = NA) + 
+  geom_jitter(width = .05, alpha = .3) + labs(y="Projection Rate",x="Outgroup Comparison") + jtools::theme_apa()
+```
+
 
 ```{r}
 indDiffs %>% select(bias, groupHomoph, SStatus:IdImp) %>%corToOne(., "bias")
