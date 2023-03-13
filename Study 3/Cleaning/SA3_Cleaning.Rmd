@@ -403,23 +403,35 @@ detach(indDiff)
 
 
 ```{r}
-#indDiff <- indDiff %>% rename(conf = Off4_1, decep = Off5)
 
 indDiffs <- indDiff
-#indDiffs <- indDiff %>% select(subID, Serious, UnderstandIns, UnderstandTr, Usable, DS, Proto, SCC, SI, RSE, NTB, NFC, SING.Ind, SING.Inter)
 
 sketchMat <- indDiffs %>% select(subID, Serious, UnderstandIns, UnderstandTr, Usable) %>% inner_join(sketchMat, by = "subID")
 
 sketchMat$remove <- ifelse(sketchMat$sketch > 0 |sketchMat$Usable == 2 | sketchMat$Serious < 4, 1, 0)
-#sketchMat$remove <- ifelse(is.na(sketchMat$Usable) | is.na(sketchMat$Serious), 2, sketchMat$remove)
+sketchMat$remove[is.na(sketchMat$remove)] <- 2
 ```
+
+
+```{r}
+table(sketchMat$sketch)
+table(sketchMat$Usable)
+table(sketchMat$Serious)
+
+table(sketchMat$remove)
+
+total <- length(unique(mergeTest$subID))
+```
+
 
 ```{r}
 library(Hmisc)
-length(unique(mergeTest$subID))
+unique(mergeTest$subID)
+paste0(unique(mergeTest$subID))
 cleanTest <- mergeTest[mergeTest$subID %in% sketchMat$subID[sketchMat$remove!=1],]
-unique(cleanTest$subID)
-length(unique(cleanTest$subID))
+
+
+paste0("Removed ", total-length(unique(cleanTest$subID)))
 ```
 
 ```{r}
@@ -434,7 +446,7 @@ indDiffsclean <- indDiffs[indDiffs$subID %in% sketchMat$subID[sketchMat$remove!=
 unique(indDiffsclean$subID)
 ```
 
-# 59353 has two CSVs. I deleted the first
+# 59353 has two CSVs
 
 ```{r}
 
@@ -449,6 +461,7 @@ for(i in uSubs){
   }
 }
 ```
+
 # Check if repeated CSVs are identical
 
 ```{r}

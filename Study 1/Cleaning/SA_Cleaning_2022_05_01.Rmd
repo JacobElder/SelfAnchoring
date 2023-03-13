@@ -273,13 +273,27 @@ indDiffs <- indDiff %>% select(subID, ConDeb, conf, decep, Serious, UnderstandIn
 
 sketchMat <- indDiffs %>% select(subID, ConDeb, conf, decep, Serious, UnderstandIns, UnderstandTr, Usable) %>% inner_join(sketchMat, by = "subID")
 
-sketchMat$remove <- ifelse(sketchMat$sketch > 0 | sketchMat$ConDeb == 2 | sketchMat$Usable == 2 | sketchMat$Serious < 5 | sketchMat$decep < 1, 1, 0)
+sketchMat$remove <- ifelse(sketchMat$sketch > 0 | sketchMat$ConDeb == 2 | sketchMat$Usable == 2 | sketchMat$Serious < 4, 1, 0)
+sketchMat$remove[is.na(sketchMat$remove)] <- 2
 ```
+
+```{r}
+table(sketchMat$sketch)
+table(sketchMat$ConDeb)
+table(sketchMat$Usable)
+table(sketchMat$Serious)
+table(sketchMat$decep)
+
+total <- length(unique(mergeTest$subID))
+```
+
 
 ```{r}
 unique(mergeTest$subID)
 cleanTest <- mergeTest[mergeTest$subID %in% sketchMat$subID[sketchMat$remove!=1],]
 unique(cleanTest$subID)
+
+paste0("Removed ", total-length(unique(cleanTest$subID)))
 ```
 
 ```{r}
@@ -331,8 +345,6 @@ duplicateFrame
 
 For IDs in which duplicate IDs have identical data, keep first instances. It doesn't matter.
 
-For IDs in which duplicated IDs have different data, keep second data. More likely to be the accurate data.
-
 ```{r}
 
 # subset duplicates
@@ -353,21 +365,21 @@ nrow(originalDataTest) + nrow(duplicatedDataTest) == nrow(cleanTest)
 nrow(originalDataTrain) + nrow(duplicatedDataTrain) == nrow(cleanTrain)
 
 for(t in 1:nrow(duplicateFrame)){
-  # if not identical data, keep last
-  if(duplicateFrame[t,2]==0){
-    curData <- duplicatedDataTest[duplicatedDataTest$subID==duplicatedIDs[t],]
-    originalDataTest <- rbind(originalDataTest, curData[duplicated(curData$trait),])
-    
-    curData <- duplicatedDataTrain[duplicatedDataTrain$subID==duplicatedIDs[t],]
-    originalDataTrain <- rbind(originalDataTrain, curData[duplicated(curData$trait),])
-  # if identical data, keep first
-  }else if(duplicateFrame[t,2]==1){
+  # # if not identical data, keep last
+  # if(duplicateFrame[t,2]==0){
+  #   curData <- duplicatedDataTest[duplicatedDataTest$subID==duplicatedIDs[t],]
+  #   originalDataTest <- rbind(originalDataTest, curData[duplicated(curData$trait),])
+  #   
+  #   curData <- duplicatedDataTrain[duplicatedDataTrain$subID==duplicatedIDs[t],]
+  #   originalDataTrain <- rbind(originalDataTrain, curData[duplicated(curData$trait),])
+  # # if identical data, keep first
+  # }else if(duplicateFrame[t,2]==1){
     curData <- duplicatedDataTest[duplicatedDataTest$subID==duplicatedIDs[t],]
     originalDataTest <- rbind(originalDataTest, curData[!duplicated(curData$trait),])
     
     curData <- duplicatedDataTrain[duplicatedDataTrain$subID==duplicatedIDs[t],]
     originalDataTrain <- rbind(originalDataTrain, curData[duplicated(curData$trait),])
-  }
+  # }
 }
 
 # Are all IDs identical as before?

@@ -460,17 +460,29 @@ indDiffs <- indDiff
 sketchMat <- indDiffs %>% select(subID, Serious, UnderstandIns, UnderstandTr, Usable) %>% inner_join(sketchMat, by = "subID")
 
 sketchMat$remove <- ifelse(sketchMat$sketch > 0 |sketchMat$Usable == 2 | sketchMat$Serious < 4, 1, 0)
-#sketchMat$remove <- ifelse(is.na(sketchMat$Usable) | is.na(sketchMat$Serious), 2, sketchMat$remove)
+sketchMat$remove[is.na(sketchMat$remove)] <- 2
 ```
+
+```{r}
+table(sketchMat$sketch)
+table(sketchMat$Usable)
+table(sketchMat$Serious)
+
+total <- length(unique(mergeTest$subID))
+```
+
 
 ```{r}
 library(Hmisc)
 unique(mergeTest$subID)
 # 6311
+paste0(unique(mergeTest$subID))
+
 cleanTest <- mergeTest[mergeTest$subID %in% sketchMat$subID[sketchMat$remove!=1],]
 #cleanTest <- mergeTest[mergeTest$subID %in% sketchMat$subID[sketchMat$remove==0],]
-unique(cleanTest$subID)
-length(unique(cleanTest$subID))
+
+
+paste0("Removed ", total-length(unique(cleanTest$subID)))
 ```
 
 ```{r}
@@ -512,7 +524,7 @@ if(length(duplicatedIDs)>0){
   filter(subID==duplicatedIDs[t])
 
   outcome <- all( checkDup1[!duplicated(checkDup1$trait),] == checkDup1[duplicated(checkDup1$trait),], na.rm = T )
-  repeatedIDs <- c(repeatedIDs, outcome)
+  repeatedIDs <- c(repeatedIDs, outcome )
   
 }
 duplicateFrame <- cbind(duplicatedIDs, repeatedIDs)

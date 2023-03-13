@@ -318,7 +318,7 @@ m <- glmer( ingChoiceN ~ WSR.Z * outgroupE + ( WSR.Z | subID) + ( outgroupE | tr
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
-ggpredict(m, c("WSR.Z","outgroupE","novel")) %>% plot()
+ggpredict(m, c("WSR.Z","outgroupE")) %>% plot()
 ```
 
 ## Zero-Order Effect, depending on Outgroup Comparison (UCLA v. Other, CSULA v. Other)
