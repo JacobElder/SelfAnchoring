@@ -5,7 +5,6 @@ data {
   int<lower = 1> nTrain[nSubjects]; // per participant number of training trials
   int<lower = 1> nTrials[nSubjects]; //per participant number of testing/generalization trials
   int<lower = 0, upper = 2> groupChoice[nSubjects,maxTrials]; // which group chosen
-  real sg[nSubjects, maxTrials]; // self-weighted similarity
   
   vector[maxTrain] prevSim[nSubjects, maxTrials]; // 3-dimensional matrix of subject's training traits similarities to testing traits
   //int<lower = 0, upper = 7> prevSelf[nSubjects,maxTrain]; // matrix of training self-evaluations
