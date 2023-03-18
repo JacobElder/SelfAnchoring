@@ -32,7 +32,7 @@ indDiffs <- fullTest[!duplicated(fullTest$subID),]
 
 allPosCents <- read.csv("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
 
-fullTrain <- indDiffs %>% select(subID, groupHomoph, seHomoph, SStatus:IdImp) %>% full_join(fullTrain, by="subID")
+#fullTrain <- indDiffs %>% select(subID, groupHomoph, seHomoph, SStatus:IdImp) %>% full_join(fullTrain, by="subID")
 ```
 
 ```{r}
@@ -61,6 +61,9 @@ fullTest$Ent.Z <- scale(fullTest$Ent)
 
 fullTest$outgroup <- as.factor(fullTest$outgroup)
 fullTest$outgroup <- relevel(fullTest$outgroup,"Not UCR")
+
+fullTrain$outgroup <- as.factor(fullTrain$outgroup)
+fullTrain$outgroup <- relevel(fullTrain$outgroup,"Not UCR")
 
 fullTest$outgroupE <- named.effects.ref(fullTest$outgroup, "Not UCR")
 
@@ -1049,7 +1052,7 @@ tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred
 ## Moderated by condition
 
 ```{r}
-m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup + scale(outGsimS)*outgroup + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
+m <- lmer( scale(selfResp) ~ scale(inGsimS)*outgroup + scale(outGsimS)+outgroup + (  scale(inGsimS) + scale(outGsimS) | subID) + ( 1 | trait), data = fullTrain)
 tab_model(m, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "B", string.se = "SE", string.stat = "t", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
 ggpredict(m, c("inGsimS","outgroup")) %>% plot(show.title=F) + xlab("Similarity to Ingroup Choices") + ylab("Self-Evaluation") + jtools::theme_apa()
 ```
@@ -1156,7 +1159,8 @@ ggpredict(m, c("outGsimS","outgroup","DS")) %>% plot(show.title=F) + xlab("Simil
 
 ```{r}
 fullTrain$metaContrastS[is.infinite(fullTrain$metaContrastS)] <- NA
-m <- lmer( scale(selfResp) ~ scale(metaContrastS)*outgroup + (  scale(metaContrastS) | subID) + ( 1 | trait), data = fullTrain)
+fullTrain$metaContrastS <- log(fullTrain$metaContrastS)
+m <- lmer( scale(selfResp) ~ scale(metaContrastS)*outgroup*IdImp.x + (  scale(metaContrastS) | subID) + ( 1 | trait), data = fullTrain)
 ```
 
 
