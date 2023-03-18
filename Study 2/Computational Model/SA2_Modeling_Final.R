@@ -5,7 +5,7 @@ library(igraph)
 library(loo)
 library(here)
 
-here::i_am("~/Documents/GitHub/SelfAnchoring/Study 2/Computational Model/SA2_Modeling_Final.R")
+here::i_am("./Study 2/Computational Model/SA2_Modeling_Final.R")
 
 fulldf <- as.data.frame( arrow::read_parquet(here("Study 2/Cleaning/output/fullTest.parquet")) )
 fulldf <- fulldf[!is.na(fulldf$ingChoiceN),]
