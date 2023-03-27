@@ -5,12 +5,12 @@ library(igraph)
 library(loo)
 library(here)
 
-here::i_am("./Study 2/Computational Model/SA2_Modeling_Final.R")
+here::i_am("./Study 3/Computational Model/SA3_Modeling_Final.R")
 
-fulldf <- as.data.frame( arrow::read_parquet(here("Study 2/Cleaning/output/fullTest.parquet")) )
+fulldf <- as.data.frame( arrow::read_parquet(here("Study 3/Cleaning/output/fullTest.parquet")) )
 fulldf <- fulldf[!is.na(fulldf$ingChoiceN),]
 
-traindf <- as.data.frame( arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet")) )
+traindf <- as.data.frame( arrow::read_parquet(here("Study 3/Cleaning/output/fullTrain.parquet")) )
 traindf <- traindf[!is.na(traindf$selfResp),]
 
 allPosCents <- read.csv("~/Google Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
@@ -29,9 +29,9 @@ simMat <- similarity.dice(posGraph)
 Idxmat<-cbind(fulldf$IdxLeft, fulldf$IdxRight)
 fulldf$IdxChoose <- Idxmat[cbind(seq_along(fulldf$choice), fulldf$choice)]
 
-uConds <- unique(fulldf$outgroup)
+uConds <- unique(fulldf$condition)
 for(c in uConds){
-  conddf <- subset(fulldf, outgroup==c)
+  conddf <- subset(fulldf, condition==c)
   uIds<-unique(conddf$subID)
   maxSubjs=length(uIds)
   maxTrials=max(conddf$trialTotal)
@@ -148,7 +148,7 @@ for(c in uConds){
   
 }
 
-for(i in c("CSULA","NotUCR","UCLA")){
+for(i in uConds){
   model_data <- get(paste0(i,"_model_data"))
 
 #############################
@@ -267,48 +267,69 @@ assign(paste0("comparison",i),comparison)
 
 save.image("/Volumes/Research Project/Self-Anchoring/Study 3/Analysis/ModelFittingSA3_Environment.RData")
 
-# Strict threshold
+any(S_Logistic_1m_Oppose_Bias_summary.Majority[,7]>1.01)
+any(S_Logistic_1m_Oppose_Bias_summary.Minority[,7]>1.01)
+S_Logistic_1m_Oppose_Bias_summary.Minority[which(S_Logistic_1m_Oppose_Bias_summary.Minority[,7]>1.01),]
 
-any(S_Logistic_1m_Oppose_Bias_summary.CSULA[,7]>1.01)
-any(S_Logistic_1m_Oppose_Bias_summary.UCLA[,7]>1.01)
-any(S_Logistic_1m_Oppose_Bias_summary.NotUCR[,7]>1.01)
+write.csv(S_Logistic_1m_Oppose_Biasparams.Majority, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.Majority, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.parquet"))
+write.csv(S_Logistic_1m_Oppose_Biasparams.Minority, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.Minority, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.parquet"))
 
-# Liberal threshold
+######
 
-any(S_Logistic_1m_Oppose_Bias_summary.CSULA[,7]>1.05)
-any(S_Logistic_1m_Oppose_Bias_summary.UCLA[,7]>1.05)
-any(S_Logistic_1m_Oppose_Bias_summary.NotUCR[,7]>1.05)
+y_correct <- y_pred
 
-write.csv(S_Logistic_1m_Oppose_Biasparams.UCLA, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.UCLA, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
-write.csv(S_Logistic_1m_Oppose_Biasparams.CSULA, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.CSULA, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
-write.csv(S_Logistic_1m_Oppose_Biasparams.NotUCR, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.NotUCR, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
+for(i in 1:numSubjs){
+  y_correct[,i,]<-apply(y_pred[,i,], 1, function(x) x==true_y[i,])
+}
 
-CSULA_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,2])*10)
-UCLA_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,2])*10)
-NotUCR_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.NotUCR, pars = "mu_pr")$mu_pr[,2])*10)
+y_correct_mean = apply(y_correct, c(2,3), mean)  # average of 4000 MCMC samples
 
-hBayesDM::plotHDI(CSULA_group_m_posterior - UCLA_group_m_posterior)
-hBayesDM::plotHDI(NotUCR_group_m_posterior - UCLA_group_m_posterior)
-hBayesDM::plotHDI(CSULA_group_m_posterior - NotUCR_group_m_posterior)
+dim(y_correct_mean)  # y_pred_mean --> 58 (subjects) x 148 (trials)
 
-CSULA_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,1])*10)
-UCLA_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,1])*10)
-NotUCR_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.NotUCR, pars = "mu_pr")$mu_pr[,1])*10)
+numSubjs = dim(y_correct_mean)[2]  # number of subjects
 
-hBayesDM::plotHDI(CSULA_group_tau_posterior - UCLA_group_tau_posterior)
-hBayesDM::plotHDI(NotUCR_group_tau_posterior - UCLA_group_tau_posterior)
-hBayesDM::plotHDI(CSULA_group_tau_posterior - NotUCR_group_tau_posterior)
+subjList = uIds  # list of subject IDs
+maxT = maxTrials  # maximum number of trials
+true_y = array(NA, c(numSubjs, maxT)) # true data (`true_y`)
 
-CSULA_group_bias_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,3]))
-UCLA_group_bias_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,3]))
-NotUCR_group_bias_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.NotUCR, pars = "mu_pr")$mu_pr[,3]))
+## true data for each subject
+for (i in 1:numSubjs) {
+  tmpID = subjList[i]
+  tmpData = subset(fulldf, subID == tmpID)
+  true_y[i, ] = model_data$groupChoice[i, ]-1
+  #true_y[i, ] = c((tmpData$ingChoiceN+1),rep(NA,(maxT-length(tmpData$ingChoiceN))))  # only for data with a 'choice' column
+}
 
-hBayesDM::plotHDI(CSULA_group_bias_posterior - UCLA_group_bias_posterior)
-hBayesDM::plotHDI(NotUCR_group_bias_posterior - UCLA_group_bias_posterior)
-hBayesDM::plotHDI(CSULA_group_bias_posterior - NotUCR_group_bias_posterior)
+min(model_data$nTrials)
+
+qplot(y_correct_mean[,1:min(model_data$nTrials)],bins=100)
+mean(y_correct>.50)
+
+qplot(y_correct[,,1:min(model_data$nTrials)],bins=100)
+
+S_Logistic_1m_Oppose_Bias_LL.CSULA
+
+
+#########
+# GROUP DIFFERENCES
+#########
+
+Majority_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.Majority, pars = "mu_pr")$mu_pr[,2])*10)
+Minority_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.Minority, pars = "mu_pr")$mu_pr[,2])*10)
+
+hBayesDM::plotHDI(Majority_group_m_posterior - Minority_group_m_posterior)
+
+Majority_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.Majority, pars = "mu_pr")$mu_pr[,1])*10)
+Minority_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.Minority, pars = "mu_pr")$mu_pr[,1])*10)
+
+hBayesDM::plotHDI(Majority_group_tau_posterior - Minority_group_tau_posterior)
+
+Majority_group_bias_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.Majority, pars = "mu_pr")$mu_pr[,3]))
+Minority_group_bias_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.Minority, pars = "mu_pr")$mu_pr[,3]))
+
+hBayesDM::plotHDI(Majority_group_bias_posterior - Minority_group_bias_posterior)
 
 
 # ROPE Range

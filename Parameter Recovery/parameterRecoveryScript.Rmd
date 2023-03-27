@@ -26,16 +26,29 @@ simMat <- similarity.dice(posGraph)
 
 
 ```{r}
+maxSubjs<- 100
+set.seed(52)
+#sampTemps <- runif(iter, min=.5, max=9) #rtruncnorm(iter, a=0, b=10, mean = 5, sd = 1.5)
+sampTemps <- rtruncnorm(maxSubjs, a=1, b=9, mean = 6, sd = 1.5)
+#sampMs <- runif(iter, min=.1, max=5) # rtruncnorm(iter, a=0, b=10, mean = 5, sd = 1.5)
+sampMs <- rtruncnorm(maxSubjs, a=.1, b=5, mean = 1.5, sd = 1)
+sampBiass <- rtruncnorm(maxSubjs, a=.1, b=.9, mean = .5, sd = .15)
+
+origParams <- data.frame(temp=sampTemps,m=sampMs,bias=sampBiass)
+```
+
+```{r}
 maxSubjs<- 250
 set.seed(52)
 #sampTemps <- runif(iter, min=.5, max=9) #rtruncnorm(iter, a=0, b=10, mean = 5, sd = 1.5)
-sampTemps <- rtruncnorm(maxSubjs, a=.5, b=9.5, mean = 7.5, sd = 1.5)
+sampTemps <- rtruncnorm(maxSubjs, a=1, b=9, mean = 7.5, sd = .5)
 #sampMs <- runif(iter, min=.1, max=5) # rtruncnorm(iter, a=0, b=10, mean = 5, sd = 1.5)
-sampMs <- rtruncnorm(maxSubjs, a=.1, b=5, mean = 1.5, sd = 1.5)
-sampBiass <- rtruncnorm(maxSubjs, a=.1, b=.9, mean = .5, sd = .25)
+sampMs <- rtruncnorm(maxSubjs, a=.1, b=5, mean = .55, sd = 1)
+sampBiass <- rtruncnorm(maxSubjs, a=.1, b=.9, mean = .5, sd = .15)
 
-origParams <- data.frame(temp=sample(sampTemps),m=sample(sampMs),bias=sample(sampBiass))
+origParams <- data.frame(temp=sampTemps,m=sampMs,bias=sampBiass)
 ```
+
 
 ```{r}
 selfSimGen <- function(Idx,simMat,coef=30,error=3){
@@ -124,7 +137,7 @@ for(n in 1:maxSubjs){
   evals <- subDf$selfResp
   trainIdx <- subDf$Idx
   
-  trainIdx=sample(1:148,91)
+  #trainIdx=sample(1:148,91)
   testIdx=sample(1:148)
   choices <- PR_S_Logistic_1mOppose_Bias(evals, trainIdx, testIdx, simMat, as.numeric(origParams[n,]))
   
@@ -151,7 +164,9 @@ for(i in 1:maxSubjs ){
   lengthArray[i] <- maxTrials
   groupChoice[i,1:t]<- subList[[i]][[4]]
   
-  lenTrain[i] <- maxTrain
+  #lenTrain[i] <- maxTrain
+  lenTrain[i] <- length(subList[[i]][[1]])
+  
   prevSelf[i,1:lenTrain[i]] <- subList[[i]][[1]]
   trainIdx <- subList[[i]][[2]]
   testIdx <- subList[[i]][[3]]
@@ -249,7 +264,7 @@ ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
     size = 25) )+
  coord_fixed()
 
-greekLab <- c(expression(alpha[p]), expression(alpha[n]), expression(phi) )
+greekLab <- c(expression(beta), expression(alpha), expression(gamma) )
 
 FitSimHeatMap <- ggheatmap + 
 geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
