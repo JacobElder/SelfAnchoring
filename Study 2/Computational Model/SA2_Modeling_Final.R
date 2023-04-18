@@ -265,7 +265,7 @@ assign(paste0("comparison",i),comparison)
 
 }
 
-save.image("/Volumes/Research Project/Self-Anchoring/Study 3/Analysis/ModelFittingSA3_Environment.RData")
+save.image("/Volumes/Research Project/Self-Anchoring/Study 2/Analysis/ModelFittingSA2_Environment.RData")
 
 # Strict threshold
 
@@ -273,32 +273,36 @@ any(S_Logistic_1m_Oppose_Bias_summary.CSULA[,7]>1.01)
 any(S_Logistic_1m_Oppose_Bias_summary.UCLA[,7]>1.01)
 any(S_Logistic_1m_Oppose_Bias_summary.NotUCR[,7]>1.01)
 
+S_Logistic_1m_Oppose_Bias_summary.CSULA[which(S_Logistic_1m_Oppose_Bias_summary.CSULA[,7]>1.01),]
+S_Logistic_1m_Oppose_Bias_summary.UCLA[which(S_Logistic_1m_Oppose_Bias_summary.UCLA[,7]>1.01),]
+S_Logistic_1m_Oppose_Bias_summary.NotUCR[which(S_Logistic_1m_Oppose_Bias_summary.NotUCR[,7]>1.01),]
+
 # Liberal threshold
 
 any(S_Logistic_1m_Oppose_Bias_summary.CSULA[,7]>1.05)
 any(S_Logistic_1m_Oppose_Bias_summary.UCLA[,7]>1.05)
 any(S_Logistic_1m_Oppose_Bias_summary.NotUCR[,7]>1.05)
 
-write.csv(S_Logistic_1m_Oppose_Biasparams.UCLA, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.UCLA, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
-write.csv(S_Logistic_1m_Oppose_Biasparams.CSULA, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.CSULA, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
-write.csv(S_Logistic_1m_Oppose_Biasparams.NotUCR, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.NotUCR, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
+write.csv(S_Logistic_1m_Oppose_Biasparams.UCLA, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.UCLA, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
+write.csv(S_Logistic_1m_Oppose_Biasparams.CSULA, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.CSULA, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
+write.csv(S_Logistic_1m_Oppose_Biasparams.NotUCR, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.NotUCR, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
 
 CSULA_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,2])*10)
 UCLA_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,2])*10)
 NotUCR_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.NotUCR, pars = "mu_pr")$mu_pr[,2])*10)
 
-hBayesDM::plotHDI(CSULA_group_m_posterior - UCLA_group_m_posterior)
-hBayesDM::plotHDI(NotUCR_group_m_posterior - UCLA_group_m_posterior)
-hBayesDM::plotHDI(CSULA_group_m_posterior - NotUCR_group_m_posterior)
+hBayesDM::plotHDI(CSULA_group_m_posterior - UCLA_group_m_posterior, credMass = .89)
+hBayesDM::plotHDI(NotUCR_group_m_posterior - UCLA_group_m_posterior, credMass = .89)
+hBayesDM::plotHDI(CSULA_group_m_posterior - NotUCR_group_m_posterior, credMass = .89)
 
 CSULA_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,1])*10)
 UCLA_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,1])*10)
 NotUCR_group_tau_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.NotUCR, pars = "mu_pr")$mu_pr[,1])*10)
 
-hBayesDM::plotHDI(CSULA_group_tau_posterior - UCLA_group_tau_posterior)
+hBayesDM::plotHDI(CSULA_group_tau_posterior - UCLA_group_tau_posterior, credMass = .89)
 hBayesDM::plotHDI(NotUCR_group_tau_posterior - UCLA_group_tau_posterior)
 hBayesDM::plotHDI(CSULA_group_tau_posterior - NotUCR_group_tau_posterior)
 

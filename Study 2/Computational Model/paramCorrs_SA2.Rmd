@@ -6,17 +6,20 @@ output: html_notebook
 
 ```{r}
 devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+here::i_am("./Study 2/Computational Model/paramCorrs_SA2.Rmd")
+pacman::p_load(tidyverse)
 ```
 
 ```{r}
-params.UCLA <- S_Logistic_1m_Oppose_Biasparams.UCLA
+#params.UCLA <- S_Logistic_1m_Oppose_Biasparams.UCLA
+params.UCLA <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
 
-fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
+fullTest <- arrow::read_parquet(here::here("Study 2/Cleaning/output/fullTest.parquet"))
 params.UCLA$subID <- unique(subset(fullTest, outgroup=="UCLA")$subID)
 
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
 indDiffs <- indDiffs %>% select(subID, groupHomoph, SStatus:IdImp)
-indDiffs <- indDiffs %>% full_join(params.UCLA, by = "subID")
+indDiffs <- indDiffs %>% right_join(params.UCLA, by = "subID")
 
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% corToOne(., "m")
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% plotCorToOne(., "m")
@@ -30,14 +33,14 @@ indDiffs %>% select(m, SING.Ind, NFC, RSE, SING.Inter, InUCLATherm, NTB, Proto, 
 
 
 ```{r}
-params.CSULA <- S_Logistic_1m_Oppose_Biasparams.CSULA
+params.CSULA <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
 
-fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
+fullTest <- arrow::read_parquet(here::here("Study 2/Cleaning/output/fullTest.parquet"))
 params.CSULA$subID <- unique(subset(fullTest, outgroup=="CSU LA")$subID)
 
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
 indDiffs <- indDiffs %>% select(subID, groupHomoph, SStatus:IdImp)
-indDiffs <- indDiffs %>% full_join(params.CSULA, by = "subID")
+indDiffs <- indDiffs %>% right_join(params.CSULA, by = "subID")
 
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% corToOne(., "m")
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp) %>% plotCorToOne(., "m")
@@ -51,10 +54,9 @@ indDiffs %>% select(m, SING.Ind, NFC, RSE, SING.Inter, InCSULATherm, NTB, Proto,
 
 
 ```{r}
-params.NotUCR <- S_Logistic_1m_Oppose_Biasparams.NotUCR
-params.NotUCR$subID <- uIds
+params.NotUCR <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
 
-fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
+fullTest <- arrow::read_parquet(here::here("Study 2/Cleaning/output/fullTest.parquet"))
 params.NotUCR$subID <- unique(subset(fullTest, outgroup=="Not UCR")$subID)
 
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
@@ -66,6 +68,21 @@ indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% plotCorToOne(., 
 ```
 
 ```{r}
+params.All <- rbind(params.UCLA, params.NotUCR, params.CSULA)
+
+fullTest <- arrow::read_parquet(here::here("Study 2/Cleaning/output/fullTest.parquet"))
+
+indDiffs <- fullTest[!duplicated(fullTest$subID),]
+indDiffs <- indDiffs %>% select(subID, groupHomoph, SStatus:IdImp, Therm_1)
+indDiffs <- indDiffs %>% full_join(params.All, by = "subID")
+
+indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% corToOne(., "m")
+indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% plotCorToOne(., "m")
+
+```
+
+
+```{r}
 allParams <- rbind(cbind(params.CSULA, outgroup="CSULA"), cbind(params.NotUCR, outgroup="Not UCR"), cbind(params.UCLA, outgroup="UCLA"))
 
 fullTest <- arrow::read_parquet("../Cleaning/output/fullTest.parquet")
@@ -74,85 +91,27 @@ indDiffs <- indDiffs %>% select(subID, groupHomoph, Therm_1, SStatus:IdImp)
 indDiffs <- indDiffs %>% full_join(allParams, by = "subID")
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% corToOne(., "m")
 indDiffs %>% select(m, groupHomoph, SStatus:IdImp, Therm_1) %>% plotCorToOne(., "m")
+indDiffs$outgroup <- as.factor(indDiffs$outgroup)
+indDiffs$outgroup <- relevel(indDiffs$outgroup, ref = "Not UCR")
 
 allParams$outgroup <- as.factor(allParams$outgroup)
 allParams$subID <- as.factor(allParams$subID)
 allParams$University <- relevel(allParams$outgroup, ref = "Not UCR")
 
-
-
-m <- lmer( scale(m) ~ outgroup +  ( 1  | subID), data = allParams)
-summary(m)
-ggpredict(m, c("University")) %>% plot()
-
-m<-ezANOVA(allParams, dv = m, wid = subID, between = as.factor(outgroup) )
+m<-ez::ezANOVA(allParams, dv = m, wid = subID, between = as.factor(outgroup) )
 m
 
-ggplot(allParams, aes(outgroup, m)) + 
+groupDiffs.2 <- ggplot(allParams, aes(outgroup, m)) + 
   ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
   geom_boxplot(width = .2, outlier.shape = NA) + 
-  geom_jitter(width = .05, alpha = .3) + labs(y="Projection Rate",x="Outgroup Comparison") + jtools::theme_apa()
-```
-
-
-```{r}
-indDiffs %>% select(bias, groupHomoph, SStatus:IdImp) %>%corToOne(., "bias")
-indDiffs %>% select(bias, groupHomoph, SStatus:IdImp) %>%plotCorToOne(., "bias")
+  geom_jitter(width = .05, alpha = .3) + labs(y="Projection Rate",x="University Outgroup Comparison") + jtools::theme_apa()
+groupDiffs.2
 ```
 
 ```{r}
-indDiffs %>% select(Temp, groupHomoph, SStatus:IdImp) %>% corToOne(., "Temp")
-indDiffs %>% select(Temp, groupHomoph, SStatus:IdImp) %>% plotCorToOne(., "Temp")
+
+Id.ProjRate.Scatter.2 <- ggplot(indDiffs, aes(MGIS,m,color=outgroup)) + geom_point() + geom_smooth(method="lm") + jtools::theme_apa() + scale_color_manual(values = natparks.pals("Saguaro",3)) +
+    scale_fill_manual(values = natparks.pals("Saguaro", 3)) + xlab("Social Identification") + ylab("Projection Rate")
+Id.ProjRate.Scatter.2
 ```
 
-```{r}
-params <- S_Linear_1mSumOne_Biasparams
-params$subID <- uIds
-
-fullTest <- read.csv("~/Documents/GitHub/SelfAnchoring/Study 1/Cleaning/output/fullTest.csv")
-
-indDiffs <- fullTest[!duplicated(fullTest$subID),]
-indDiffs <- indDiffs %>% select(subID, DS:SING.Inter)
-indDiffs <- indDiffs %>% full_join(params, by = "subID")
-```
-
-```{r}
-indDiffs %>% select(m, DS:SING.Inter) %>% corToOne(., "m")
-indDiffs %>% select(m, DS:SING.Inter) %>% plotCorToOne(., "m")
-```
-
-```{r}
-indDiffs %>% select(bias, DS:SING.Inter) %>% corToOne(., "bias")
-indDiffs %>% select(bias, DS:SING.Inter) %>% plotCorToOne(., "bias")
-```
-
-```{r}
-params <- S_Logistic_1mOppose_Bias_Lparams
-params$subID <- uIds
-
-fullTest <- read.csv("~/Documents/GitHub/SelfAnchoring/Study 1/Cleaning/output/fullTest.csv")
-
-indDiffs <- fullTest[!duplicated(fullTest$subID),]
-indDiffs <- indDiffs %>% select(subID, DS:SING.Inter)
-indDiffs <- indDiffs %>% full_join(params, by = "subID")
-```
-
-```{r}
-indDiffs %>% select(m, DS:SING.Inter) %>% corToOne(., "m")
-indDiffs %>% select(m, DS:SING.Inter) %>% plotCorToOne(., "m")
-```
-
-```{r}
-indDiffs %>% select(bias, DS:SING.Inter) %>% corToOne(., "bias")
-indDiffs %>% select(bias, DS:SING.Inter) %>% plotCorToOne(., "bias")
-```
-
-```{r}
-indDiffs %>% select(L, DS:SING.Inter) %>% corToOne(., "L")
-indDiffs %>% select(L, DS:SING.Inter) %>% plotCorToOne(., "L")
-```
-
-```{r}
-indDiffs %>% select(Temp, DS:SING.Inter) %>% corToOne(., "Temp")
-indDiffs %>% select(Temp, DS:SING.Inter) %>% plotCorToOne(., "Temp")
-```
