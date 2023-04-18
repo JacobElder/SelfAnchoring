@@ -12,17 +12,24 @@ editor: visual
 library(groundhog)
 library(pacman)
 
-# pkgs <-  c("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist")
+# pkgs <-  c("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist", "gtsummary")
 # groundhog.day <- '2023-03-02'
 # groundhog.library(pkgs, groundhog.day)
 
-pacman::p_load("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist", "gtsummary")
+pacman::p_load("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist", "gtsummary","brms","kableExtra","bayestestR","ordbetareg")
 
 here::i_am("Combined/reportingAnalyses.qmd")
 
 devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
 devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/plotCommAxes.R")
 devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/named.effects.ref.R")
+```
+
+Workspace
+
+```{r}
+load("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv.RData")
+save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv.RData")
 ```
 
 # Study 1
@@ -68,19 +75,25 @@ fullTrain1$metaContrastS <- log(fullTrain1$metaContrastS)
 fullTrain1$metaContrastS.Z <- scale(fullTrain1$metaContrastS)
 fullTrain1$inGsimS.Z <- scale(fullTrain1$inGsimS)
 fullTrain1$outGsimS.Z <- scale(fullTrain1$outGsimS)
+
+ncores = parallel::detectCores()
+options(mc.cores = parallel::detectCores())
 ```
 
 ## **People Classify Desirable Traits as Ingroup Characteristic**
 
 ```{r}
-m <- glmer( ingChoiceN ~ desirability.Z +  ( desirability.Z | subID) + ( 1 | trait), data = fullTest1, family = binomial, control = glmerControl(optimizer = "bobyqa",
+m1 <- glmer( ingChoiceN ~ desirability.Z +  ( desirability.Z | subID) + ( 1 | trait), data = fullTest1, family = binomial, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 100000)),
     nAGQ = 1)
-m %>%
+m1 %>%
   tbl_regression(
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+
+DES.ING <-brm( ingChoiceN ~ desirability.Z + ( desirability.Z | subID) + (1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
+sexit(DES.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ## **People Classify Self-Descriptive Traits as Ingroup Characteristic**
@@ -94,6 +107,12 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+
+```
+
+```{r}
+SELF.ING <-brm( ingChoiceN ~ selfResp.Z +  ( selfResp.Z | subID) + ( 1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
+sexit(SELF.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ## **People Classify Similar-to-Self Traits as Ingroup Characteristic**
@@ -107,6 +126,12 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+
+```
+
+```{r}
+WSR.ING <-brm( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + ( 1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ### Do people use similarity-to-self for novel traits?
@@ -122,7 +147,14 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
-parameters::equivalence_test(m)
+
+parameters::equivalence_test(m, rule = "cet")
+```
+
+```{r}
+WSRNOV.ING <-brm( ingChoiceN ~ WSR.Z * novel + ( WSR.Z + novel | subID) + ( 1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSRNOV.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+equivalence_test(WSRNOV.ING, rule = "bayes")
 ```
 
 ### Does effect of similarity-to-self differ depending on degree centrality?
@@ -138,6 +170,12 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+
+```
+
+```{r}
+WSROUT.ING <-brm( ingChoiceN ~ WSR.Z * outDegree.Z + ( WSR.Z + outDegree.Z | subID) + ( 1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSROUT.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 Small but nonsignificant differences for higher indegree traits
@@ -153,6 +191,11 @@ m %>%
   )
 ```
 
+```{r}
+WSRIN.ING <-brm( ingChoiceN ~ WSR.Z * inDegree.Z + ( WSR.Z + inDegree.Z | subID) + ( 1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSRIN.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ## **Projection to the Ingroup, Rather than Rejection of the Outgroup**
 
 ### Metacontrast ratio (summed similarity to ingroup over summed similarity to outgroup) is strongly associated with self-descriptiveness
@@ -166,6 +209,11 @@ m %>%
 r2beta(m)
 ```
 
+```{r}
+MCS.SR <-brm( selfResp ~ metaContrastS.Z + (  metaContrastS.Z | subID) + (1 | trait), data = fullTrain1, cores=ncores, family = cumulative(link = "logit") )
+sexit(MCS.SR) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ### What are the relative contributions summed similarity to ingroup and summed similarity to outgroup?
 
 ```{r}
@@ -175,6 +223,11 @@ m %>%
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
 r2beta(m)
+```
+
+```{r}
+ISOS.SR <-brm( selfResp ~ inGsimS.Z + outGsimS.Z + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain1, cores=ncores, family = cumulative(link = "logit") )
+sexit(ISOS.SR) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ## Correlates of Homophily in Group Classifications
@@ -259,11 +312,23 @@ warmthDf$University <- gsub("Therm_4","CSU LA", warmthDf$University)
 warmthDf$University <- as.factor(warmthDf$University)
 warmthDf$subID <- as.factor(warmthDf$subID)
 warmthDf$University <- relevel(warmthDf$University, ref = "UCR")
-
+#warmthDf$University <- named.effects.ref(warmthDf$University, "UCR")
 m <- lmer( scale(Warmth) ~ University +  ( 1  | subID), data = warmthDf)
 summary(m)
 ggpredict(m, c("University")) %>% plot()
+```
 
+```{r}
+warmthDf$WarmthD <- warmthDf$Warmth/100
+WARM.UNI <- ordbetareg(WarmthD ~ as.factor(University) +
+                               (1|subID), 
+                       data=warmthDf,
+                cores=ncores)
+sexit(WARM.UNI) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describeBy(warmthDf$WarmthD, warmthDf$University)
+```
+
+```{r}
 m<-ezANOVA(warmthDf, dv = Warmth, wid = subID, between = as.factor(University) )
 m
 
@@ -288,7 +353,15 @@ statusDf$University <- relevel(statusDf$University, ref = "UCR")
 m <- lmer( scale(Status) ~ University +  ( 1  | subID), data = statusDf)
 summary(m)
 ggpredict(m, c("University")) %>% plot()
+```
 
+```{r}
+STAT.UNIV <-brm( Status ~ University + (  1 | subID), data = statusDf, cores=ncores, family = cumulative(link = "logit") )
+sexit(STAT.UNIV) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+psych::describeBy(statusDf$Status, statusDf$University)
+```
+
+```{r}
 m<-ezANOVA(statusDf, dv = Status, wid = subID, between = as.factor(University) )
 m
 
@@ -311,6 +384,11 @@ m %>%
   )
 ```
 
+```{r}
+DES.ING.2 <-brm( ingChoiceN ~ desirability.Z + ( desirability.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(DES.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ### Compared across conditions
 
 ```{r}
@@ -322,6 +400,12 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+DES.ING.COND.2 <-brm( ingChoiceN ~ desirability.Z * outgroup + ( desirability.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(DES.ING.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(DES.ING.COND.2, c("desirability.Z", "outgroup")) %>% plot()
 ```
 
 ## **People Classify Self-Descriptive Traits as Ingroup Characteristic**
@@ -337,6 +421,11 @@ m %>%
   )
 ```
 
+```{r}
+SR.ING.2 <-brm( ingChoiceN ~ selfResp.Z + ( selfResp.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(SR.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ### Compared across conditions
 
 ```{r}
@@ -348,6 +437,12 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+SR.ING.COND.2 <-brm( ingChoiceN ~ selfResp.Z * outgroup + ( selfResp.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(SR.ING.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(SR.ING.COND.2, c("selfResp.Z", "outgroup")) %>% plot()
 ```
 
 ## **People Classify Similar-to-Self Traits as Ingroup Characteristic**
@@ -363,6 +458,11 @@ m %>%
   )
 ```
 
+```{r}
+WSR.ING.2 <-brm( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ### Compared across conditions
 
 ```{r}
@@ -374,6 +474,12 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+WSR.ING.COND.2 <- brm( ingChoiceN ~ WSR.Z * outgroup + ( WSR.Z | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(WSR.ING.COND.2, c("WSR.Z", "outgroup")) %>% plot()
 ```
 
 ### Do people use similarity-to-self for novel traits?
@@ -392,6 +498,12 @@ m %>%
 parameters::equivalence_test(m)
 ```
 
+```{r}
+WSRNOV.ING.2 <-brm( ingChoiceN ~ WSR.Z * novel + ( WSR.Z + novel | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSRNOV.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+equivalence_test(WSRNOV.ING.2, rule = "bayes")
+```
+
 #### Compared across conditions
 
 ```{r}
@@ -404,6 +516,12 @@ m %>%
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
 parameters::equivalence_test(m)
+```
+
+```{r}
+WSRNOV.ING.COND.2 <-brm( ingChoiceN ~ WSR.Z * novel * outgroup + ( WSR.Z + novel | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSRNOV.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+equivalence_test(WSRNOV.ING.COND.2, rule = "bayes")
 ```
 
 ### Does effect of similarity-to-self differ depending on degree centrality?
@@ -421,6 +539,11 @@ m %>%
   )
 ```
 
+```{r}
+WSROUT.ING.2 <-brm( ingChoiceN ~ WSR.Z * outDegree.Z + ( WSR.Z + outDegree.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSROUT.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 Small but nonsignificant differences for higher indegree traits
 
 ```{r}
@@ -432,6 +555,11 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+WSRIN.ING.2 <-brm( ingChoiceN ~ WSR.Z * inDegree.Z + ( WSR.Z + inDegree.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSRIN.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ## **Projection to the Ingroup, Rather than Rejection of the Outgroup**
@@ -449,6 +577,11 @@ m %>%
 r2beta(m)
 ```
 
+```{r}
+MCS.SR.2 <-brm( selfResp ~ metaContrastS.Z + (  metaContrastS.Z | subID) + (1 | trait), data = fullTrain2, cores=ncores, family = cumulative(link = "logit") )
+sexit(MCS.SR.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ### Metacontrast ratio compared across condition
 
 ```{r}
@@ -460,6 +593,11 @@ m %>%
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
 r2beta(m)
+```
+
+```{r}
+MCS.SR.COND.2 <-brm( selfResp ~ metaContrastS.Z * outgroup + (  metaContrastS.Z | subID) + ( outgroup | trait), data = fullTrain2, cores=ncores, family = cumulative(link = "logit") )
+sexit(MCS.SR.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ### What are the relative contributions summed similarity to ingroup and summed similarity to outgroup?
@@ -474,7 +612,12 @@ m %>%
 r2beta(m)
 ```
 
-### Summed Similarity to Ingroup Compared Across Conditions
+```{r}
+ISOS.SR.2 <-brm( selfResp ~ inGsimS.Z + outGsimS.Z + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain2, cores=ncores, family = cumulative(link = "logit") )
+sexit(ISOS.SR.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
+### Summed Similarity Compared Across Conditions
 
 ```{r}
 m <- lmer( scale(selfResp) ~ inGsimS.Z * outgroup + outGsimS.Z + (  inGsimS.Z + outGsimS.Z | subID) + ( outgroup | trait), data = fullTrain2)
@@ -485,16 +628,9 @@ m %>%
 r2beta(m)
 ```
 
-### Summed Similarity to Outgroup Compared Across Conditions
-
 ```{r}
-m <- lmer( scale(selfResp) ~ inGsimS.Z + outGsimS.Z * outgroup + (  inGsimS.Z + outGsimS.Z | subID) + ( outgroup | trait), data = fullTrain2)
-summary(m)
-m %>%
-  tbl_regression(
-    pvalue_fun = ~ style_pvalue(.x, digits = 2),
-  )
-r2beta(m)
+ISOS.SR.COND.2 <-brm( selfResp ~ inGsimS.Z * outgroup + outGsimS.Z * outgroup + (  inGsimS.Z + outGsimS.Z | subID) + ( outgroup | trait), data = fullTrain2, cores=ncores, family = cumulative(link = "logit") )
+sexit(ISOS.SR.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ## Correlates of Homophily in Group Classifications
@@ -513,6 +649,10 @@ TBD
 ### Parameter Recovery
 
 ### Parameter Correlations with Individual Differences
+
+```{r}
+save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv.RData")
+```
 
 # Study 3
 
@@ -589,6 +729,16 @@ ggplot(warmthDf, aes(Group, Warmth)) +
   geom_jitter(width = .05, alpha = .3) + labs(y="Perceived Warmth",x="University") + jtools::theme_apa()
 ```
 
+```{r}
+warmthDf$WarmthD <- warmthDf$Warmth/100
+WARM.RACE <- ordbetareg(WarmthD ~ as.factor(Group) +
+                               (1|subID), 
+                       data=warmthDf,
+                cores=ncores)
+sexit(WARM.RACE) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describeBy(warmthDf$WarmthD, warmthDf$Group)
+```
+
 ### Status
 
 ```{r, echo=F}
@@ -613,6 +763,12 @@ ggplot(statusDf, aes(Group, Status)) +
   geom_jitter(width = .05, alpha = .3) + labs(y="Perceived Status",x="University") + jtools::theme_apa()
 ```
 
+```{r}
+STAT.GROUP <-brm( Status ~ Group + (  1 | subID), data = statusDf, cores=ncores, family = cumulative(link = "logit") )
+sexit(STAT.GROUP) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+psych::describeBy(statusDf$Status, statusDf$Group)
+```
+
 ## **People Classify Desirable Traits as Ingroup Characteristic**
 
 ```{r}
@@ -624,6 +780,11 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+DES.ING.3 <-brm( ingChoiceN ~ desirability.Z + ( desirability.Z | subID) + ( 1 | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(DES.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ### Compared across conditions
@@ -639,6 +800,12 @@ m %>%
   )
 ```
 
+```{r}
+DES.ING.COND.3 <-brm( ingChoiceN ~ desirability.Z * condition + ( desirability.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(DES.ING.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(DES.ING.COND.3, c("desirability.Z", "condition")) %>% plot()
+```
+
 ## **People Classify Self-Descriptive Traits as Ingroup Characteristic**
 
 ```{r}
@@ -650,6 +817,11 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+SR.ING.3 <-brm( ingChoiceN ~ selfResp.Z + ( selfResp.Z | subID) + ( 1 | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(SR.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ### Compared across conditions
@@ -665,6 +837,12 @@ m %>%
   )
 ```
 
+```{r}
+SR.ING.COND.3 <-brm( ingChoiceN ~ selfResp.Z * condition + ( selfResp.Z | subID) + ( condition | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(SR.ING.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(SR.ING.COND.3, c("selfResp.Z", "condition")) %>% plot()
+```
+
 ## **People Classify Similar-to-Self Traits as Ingroup Characteristic**
 
 ```{r}
@@ -678,6 +856,11 @@ m %>%
   )
 ```
 
+```{r}
+WSR.ING.3 <-brm( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + ( 1 | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ### Compared across conditions
 
 ```{r}
@@ -689,6 +872,12 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+WSR.ING.COND.3 <- brm( ingChoiceN ~ WSR.Z * condition + ( WSR.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(WSR.ING.COND.3, c("WSR.Z", "condition")) %>% plot()
 ```
 
 ### Do people use similarity-to-self for novel traits?
@@ -707,7 +896,13 @@ m %>%
 parameters::equivalence_test(m)
 ```
 
-#### Similarity-to-self compared across conditions
+```{r}
+WSRNOV.ING.3 <-brm( ingChoiceN ~ WSR.Z * novel + ( WSR.Z + novel | subID) + ( 1 | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSRNOV.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+equivalence_test(WSRNOV.ING.3, rule = "bayes")
+```
+
+#### Compared across conditions
 
 ```{r}
 m <- glmer( ingChoiceN ~ WSR.Z * novel * condition + ( WSR.Z + novel | subID) + ( condition | trait), data = fullTest3, family = binomial, control = glmerControl(optimizer = "bobyqa",
@@ -719,6 +914,12 @@ m %>%
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
 parameters::equivalence_test(m)
+```
+
+```{r}
+WSRNOV.ING.COND.3 <-brm( ingChoiceN ~ WSR.Z * novel * condition + ( WSR.Z + novel | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSRNOV.ING.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+equivalence_test(WSRNOV.ING.COND.3, rule = "bayes")
 ```
 
 ### Does effect of similarity-to-self differ depending on degree centrality?
@@ -736,6 +937,11 @@ m %>%
   )
 ```
 
+```{r}
+WSROUT.ING.3 <-brm( ingChoiceN ~ WSR.Z * outDegree.Z + ( WSR.Z + outDegree.Z | subID) + ( 1 | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSROUT.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 Small but nonsignificant differences for higher indegree traits
 
 ```{r}
@@ -747,6 +953,11 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+WSRIN.ING.3 <-brm( ingChoiceN ~ WSR.Z * inDegree.Z + ( WSR.Z + inDegree.Z | subID) + ( 1 | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSRIN.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ## **Projection to the Ingroup, Rather than Rejection of the Outgroup**
@@ -762,6 +973,11 @@ m %>%
 r2beta(m)
 ```
 
+```{r}
+MCS.SR.3 <-brm( selfResp ~ metaContrastS.Z + (  metaContrastS.Z | subID) + (1 | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
+sexit(MCS.SR.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ### Metacontrast ratio compared across condition
 
 ```{r}
@@ -771,6 +987,11 @@ m %>%
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
 r2beta(m)
+```
+
+```{r}
+MCS.SR.COND.3 <-brm( selfResp ~ metaContrastS.Z * condition + (  metaContrastS.Z | subID) + ( condition | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
+sexit(MCS.SR.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ### What are the relative contributions summed similarity to ingroup and summed similarity to outgroup?
@@ -795,6 +1016,11 @@ m %>%
 r2beta(m)
 ```
 
+```{r}
+ISOS.SR.3 <-brm( selfResp ~ inGsimS.Z + outGsimS.Z + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
+sexit(ISOS.SR.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ### Summed Similarity to Outgroup Compared Across Conditions
 
 ```{r}
@@ -804,6 +1030,11 @@ m %>%
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
 r2beta(m)
+```
+
+```{r}
+ISOS.SR.COND.3 <-brm( selfResp ~ inGsimS.Z * outgroup + outGsimS.Z * condition + (  inGsimS.Z + outGsimS.Z | subID) + ( condition | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
+sexit(ISOS.SR.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ## Correlates of Homophily in Group Classifications

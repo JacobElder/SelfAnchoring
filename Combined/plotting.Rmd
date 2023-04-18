@@ -4,11 +4,16 @@ output: html_notebook
 ---
 
 ```{r}
-library(groundhog)
-pkgs <-  c("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist")
+#library(groundhog)
+#pkgs <-  c("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist")
+pacman::p_load("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist","tidyverse")
 groundhog.day <- '2022-07-25'
-groundhog.library(pkgs, groundhog.day)
+#groundhog.library(pkgs, groundhog.day)
 here::i_am("Combined/plotting.Rmd")
+
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/plotCommAxes.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/named.effects.ref.R")
 ```
 
 # Study 1 Import
@@ -187,7 +192,7 @@ ss.m1 <- glmer( ingChoiceN ~ WSR + ( WSR | subID) + ( 1 | trait), data = fullTes
     nAGQ = 1)
 tab_model(ss.m1, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 3, emph.p = F, dv.labels = "Ingroup Prediction")
 p <- ggpredict(ss.m1, c("WSR"))
-Sim.Condition.Plot1 <-ggplot(p, aes(x, predicted)) +  geom_line() + geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=0.15) + theme(axis.text=element_text(size=12),
+Sim.Condition.Plot1 <-ggplot(p, aes(x, predicted)) +  geom_line() + geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=0.15) + theme(axis.text=element_text(size=10),
         axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
@@ -204,11 +209,11 @@ tab_model(ss.m2, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string.
 p <- ggpredict(ss.m2, c("WSR","outgroup"))
 Sim.Condition.Plot2 <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Not UCR","CSU LA","UCLA")) + scale_color_manual(labels = c("Not UCR","CSU LA","UCLA"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
                       labels=c("Not UCR","CSU LA","UCLA"), values = wes_palette("Darjeeling1")) + theme(
-    legend.position = c(.6, .1),
+    legend.position = c(.50, .1),
     legend.justification = c("left", "bottom"),
     legend.box.just = "left",
     legend.margin = margin(6, 6, 6, 6)
-    ) + theme(axis.text=element_text(size=12),
+    ) + theme(axis.text=element_text(size=10),
         axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
@@ -225,11 +230,11 @@ tab_model(sim.m3, collapse.ci = T, show.stat=T, show.r2 = T, show.se = T, string
 p <- ggpredict(sim.m3, c("WSR","condition"))
 Sim.Condition.Plot3 <-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Minority","Majority")) + scale_color_manual(labels = c("Minority","Majority"), values = wes_palette("Darjeeling1")) + scale_fill_manual( 
                       labels=c("Minority","Majority"), values = wes_palette("Darjeeling1")) + theme(
-    legend.position = c(.6, .1),
+    legend.position = c(.58, .1),
     legend.justification = c("left", "bottom"),
     legend.box.just = "left",
     legend.margin = margin(6, 6, 6, 6)
-    ) + theme(axis.text=element_text(size=12),
+    ) + theme(axis.text=element_text(size=10),
         axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   xlab("Similarity-to-Self") + ylab("Probability of Ingroup Classification")
@@ -252,4 +257,24 @@ threePlots <- function(plot1, plot2, plot3, xaxis, yaxis){
 Sim.Condition.PlotComb <- threePlots(Sim.Condition.Plot1, Sim.Condition.Plot2, Sim.Condition.Plot3, "Similarity-to-Self","Prob. of Ingroup Classification")
 ggsave(plot=Sim.Condition.PlotComb, filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/CombinedPlot.png", width=6, height=10, dpi=400)
 ```
+
+```{r}
+threePlots <- function(plot1, plot2, plot3, xaxis, yaxis){
+  
+  arranged <- ggarrange(plot1 + rremove("ylab") + rremove("xlab"), plot2 + rremove("ylab") + rremove("xlab"), plot3 + rremove("ylab") + rremove("xlab"), ncol = 3, nrow = 1, hjust=.42)
+  addedAxes <- annotate_figure(arranged, left = textGrob(yaxis, rot = 90, vjust = 1, hjust = .4, gp = gpar(cex = 1.3, fontsize=8)),
+                               bottom = textGrob(xaxis, vjust = -.35, hjust = .33, gp = gpar(cex = 1.3, fontsize=8))
+  )
+  return(addedAxes)
+  
+}
+Sim.Condition.PlotComb <- threePlots(Sim.Condition.Plot1, Sim.Condition.Plot2, Sim.Condition.Plot3, "Similarity-to-Self","Prob. of Ingroup Classification")
+#Sim.Condition.PlotComb <- Sim.Condition.PlotComb +
+#  theme(plot.margin = margin(1.2,1.2,1.2,1.2, "in"))
+
+library(patchwork)
+Sim.Condition.PlotComb <- Sim.Condition.Plot1 + Sim.Condition.Plot2 + Sim.Condition.Plot3
+ggsave(plot=Sim.Condition.PlotComb, filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/CombinedPlot.png", width=10, height=6, dpi=400)
+```
+
 

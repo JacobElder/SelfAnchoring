@@ -1,0 +1,45 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(here)
+library(tidyverse)
+```
+
+
+
+```{r}
+fullTest1 <- arrow::read_parquet(here("Study 1//Cleaning/output/fullTest.parquet"))
+fullTrain1 <- arrow::read_parquet(here("Study 1/Cleaning/output/fullTrain.parquet"))
+
+traitsFreqs1 <- read.csv(here("Study 1//Cleaning/output/traitFreqOverUnder.csv"))
+
+uSubs <- unique(fullTest1$subID)
+
+indDiffs1 <- fullTest1[!duplicated(fullTest1$subID),]
+indDiffs1 <- indDiffs1 %>% select(subID, groupHomoph, DS:SING.Inter)
+
+fullTest2 <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTest.parquet"))
+fullTrain2 <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet"))
+
+uSubs <- unique(fullTest2$subID)
+
+indDiffs2 <- fullTest2[!duplicated(fullTest2$subID),]
+
+fullTest3 <- arrow::read_parquet(here("Study 3//Cleaning/output/fullTest.parquet"))
+fullTrain3 <- arrow::read_parquet(here("Study 3/Cleaning/output/fullTrain.parquet"))
+
+uSubs <- unique(fullTest3$subID)
+
+indDiffs3 <- fullTest3[!duplicated(fullTest3$subID),]
+```
+
+```{r}
+nrow(indDiffs1)
+nrow(indDiffs2)
+nrow(indDiffs3)
+```
+
+

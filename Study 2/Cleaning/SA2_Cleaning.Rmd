@@ -175,6 +175,8 @@ indDiff$id[which(duplicated(indDiff$id))]
 indDiff <- indDiff[!duplicated(indDiff$id),]
 
 indDiff <- indDiff %>% rename(subID = id)
+
+write.csv(indDiff, "/Volumes/Research Project/Self-Anchoring/Study 2/Cleaning/Qualtrics Data/CleanSA2Qs.csv")
 ```
 
 ```{r}
