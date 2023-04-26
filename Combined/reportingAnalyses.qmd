@@ -9,7 +9,7 @@ editor: visual
 ---
 
 ```{r, include=F}
-library(groundhog)
+#library(groundhog)
 library(pacman)
 
 # pkgs <-  c("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist", "gtsummary")
@@ -49,32 +49,32 @@ indDiffs1 <- indDiffs1 %>% select(subID, groupHomoph, DS:SING.Inter)
 ```{r, include=F}
 fullTest1$ingChoiceN <- as.factor(fullTest1$ingChoiceN)
 fullTest1$novel <- as.factor(fullTest1$novel)
-fullTest1$selfResp.Z <- scale(fullTest1$selfResp)
-fullTest1$SE.Z <- scale(fullTest1$SE)
-fullTest1$iSE.Z <- scale(fullTest1$iSE)
-fullTest1$oSE.Z <- scale(fullTest1$oSE)
-fullTest1$predicted.Z <- scale(fullTest1$predicted)
-fullTest1$slope.Z <- scale(fullTest1$slope)
-fullTest1$entropy.Z <- scale(fullTest1$entropy)
-fullTest1$WSR.Z <- scale(fullTest1$WSR)
-fullTest1$neighAveOutSE.Z <- scale(fullTest1$neighAveOutSE)
-fullTest1$neighAveAllSE.Z <- scale(fullTest1$neighAveAllSE)
-fullTest1$neighAveInSE.Z <- scale(fullTest1$neighAveInSE)
-fullTest1$evalLOO.Z <- scale(fullTest1$evalLOO)
-fullTest1$propCorrLOO.Z <- scale(fullTest1$propCorrLOO)
-fullTest1$propCorr.Z <- scale(fullTest1$propCorr)
-fullTest1$desirability.Z <- scale(fullTest1$desirability)
-fullTest1$er.Z <- scale(fullTest1$er)
-fullTest1$outDegree.Z <- scale(fullTest1$outDegree)
-fullTest1$inDegree.Z <- scale(fullTest1$inDegree)
+fullTest1$selfResp.Z <- as.numeric(scale(fullTest1$selfResp)[,1])
+fullTest1$SE.Z <- as.numeric(scale(fullTest1$SE)[,1])
+fullTest1$iSE.Z <- as.numeric(scale(fullTest1$iSE)[,1])
+fullTest1$oSE.Z <- as.numeric(scale(fullTest1$oSE)[,1])
+fullTest1$predicted.Z <- as.numeric(scale(fullTest1$predicted)[,1])
+fullTest1$slope.Z <- as.numeric(scale(fullTest1$slope)[,1])
+fullTest1$entropy.Z <- as.numeric(scale(fullTest1$entropy)[,1])
+fullTest1$WSR.Z <- as.numeric(scale(fullTest1$WSR)[,1])
+fullTest1$neighAveOutSE.Z <- as.numeric(scale(fullTest1$neighAveOutSE)[,1])
+fullTest1$neighAveAllSE.Z <- as.numeric(scale(fullTest1$neighAveAllSE)[,1])
+fullTest1$neighAveInSE.Z <- as.numeric(scale(fullTest1$neighAveInSE)[,1])
+fullTest1$evalLOO.Z <- as.numeric(scale(fullTest1$evalLOO)[,1])
+fullTest1$propCorrLOO.Z <- as.numeric(scale(fullTest1$propCorrLOO)[,1])
+fullTest1$propCorr.Z <- as.numeric(scale(fullTest1$propCorr)[,1])
+fullTest1$desirability.Z <- as.numeric(scale(fullTest1$desirability)[,1])
+fullTest1$er.Z <- as.numeric(scale(fullTest1$er)[,1])
+fullTest1$outDegree.Z <- as.numeric(scale(fullTest1$outDegree)[,1])
+fullTest1$inDegree.Z <- as.numeric(scale(fullTest1$inDegree)[,1])
 
 fullTest1$novel <- as.factor(fullTest1$novel)
 levels(fullTest1$novel) <- list("Trained"  = "0", "Held Out" = "1")
 
 fullTrain1$metaContrastS <- log(fullTrain1$metaContrastS)
-fullTrain1$metaContrastS.Z <- scale(fullTrain1$metaContrastS)
-fullTrain1$inGsimS.Z <- scale(fullTrain1$inGsimS)
-fullTrain1$outGsimS.Z <- scale(fullTrain1$outGsimS)
+fullTrain1$metaContrastS.Z <- as.numeric(scale(fullTrain1$metaContrastS)[,1])
+fullTrain1$inGsimS.Z <- as.numeric(scale(fullTrain1$inGsimS)[,1])
+fullTrain1$outGsimS.Z <- as.numeric(scale(fullTrain1$outGsimS)[,1])
 
 ncores = parallel::detectCores()
 options(mc.cores = parallel::detectCores())
@@ -217,7 +217,7 @@ sexit(MCS.SR) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) 
 ### What are the relative contributions summed similarity to ingroup and summed similarity to outgroup?
 
 ```{r}
-m <- lmer( scale(selfResp) ~ inGsimS.Z + outGsimS.Z + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain1)
+m <- lmer( scale(selfResp) ~ inGsimS.Z + outGsimS.Z  + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain1)
 m %>%
   tbl_regression(
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
@@ -263,22 +263,22 @@ indDiffs2 <- fullTest2[!duplicated(fullTest2$subID),]
 ```{r, include = F}
 fullTest2$ingChoiceN <- as.factor(fullTest2$ingChoiceN)
 fullTest2$novel <- as.factor(fullTest2$novel)
-fullTest2$selfResp.Z <- scale(fullTest2$selfResp)
-fullTest2$SE.Z <- scale(fullTest2$SE)
-fullTest2$iSE.Z <- scale(fullTest2$iSE)
-fullTest2$oSE.Z <- scale(fullTest2$oSE)
-fullTest2$predicted.Z <- scale(fullTest2$predicted)
-fullTest2$slope.Z <- scale(fullTest2$slope)
-fullTest2$entropy.Z <- scale(fullTest2$entropy)
-fullTest2$WSR.Z <- scale(fullTest2$WSR)
-fullTest2$neighAveOutSE.Z <- scale(fullTest2$neighAveOutSE)
-fullTest2$neighAveAllSE.Z <- scale(fullTest2$neighAveAllSE)
-fullTest2$neighAveInSE.Z <- scale(fullTest2$neighAveInSE)
-fullTest2$evalLOO.Z <- scale(fullTest2$evalLOO)
-fullTest2$desirability.Z <- scale(fullTest2$desirability)
-fullTest2$er.Z <- scale(fullTest2$er)
-fullTest2$outDegree.Z <- scale(fullTest2$outDegree)
-fullTest2$inDegree.Z <- scale(fullTest2$inDegree)
+fullTest2$selfResp.Z <- as.numeric(scale(fullTest2$selfResp)[,1])
+fullTest2$SE.Z <- as.numeric(scale(fullTest2$SE)[,1])
+fullTest2$iSE.Z <- as.numeric(scale(fullTest2$iSE)[,1])
+fullTest2$oSE.Z <- as.numeric(scale(fullTest2$oSE)[,1])
+fullTest2$predicted.Z <- as.numeric(scale(fullTest2$predicted)[,1])
+fullTest2$slope.Z <- as.numeric(scale(fullTest2$slope)[,1])
+fullTest2$entropy.Z <- as.numeric(scale(fullTest2$entropy)[,1])
+fullTest2$WSR.Z <- as.numeric(scale(fullTest2$WSR)[,1])
+fullTest2$neighAveOutSE.Z <- as.numeric(scale(fullTest2$neighAveOutSE)[,1])
+fullTest2$neighAveAllSE.Z <- as.numeric(scale(fullTest2$neighAveAllSE)[,1])
+fullTest2$neighAveInSE.Z <- as.numeric(scale(fullTest2$neighAveInSE)[,1])
+fullTest2$evalLOO.Z <- as.numeric(scale(fullTest2$evalLOO)[,1])
+fullTest2$desirability.Z <- as.numeric(scale(fullTest2$desirability)[,1])
+fullTest2$er.Z <- as.numeric(scale(fullTest2$er)[,1])
+fullTest2$outDegree.Z <- as.numeric(scale(fullTest2$outDegree)[,1])
+fullTest2$inDegree.Z <- as.numeric(scale(fullTest2$inDegree)[,1])
 
 fullTest2$novel <- as.factor(fullTest2$novel)
 levels(fullTest2$novel) <- list("Trained"  = "0", "Held Out" = "1")
@@ -286,9 +286,9 @@ levels(fullTest2$novel) <- list("Trained"  = "0", "Held Out" = "1")
 fullTrain2$metaContrastS <- (fullTrain2$inGsimS/fullTrain2$outGsimS)
 fullTrain2$metaContrastS <- log(fullTrain2$metaContrastS)
 fullTrain2$metaContrastS[is.infinite(fullTrain2$metaContrastS)] <- NA
-fullTrain2$metaContrastS.Z <- scale(fullTrain2$metaContrastS)
-fullTrain2$inGsimS.Z <- scale(fullTrain2$inGsimS)
-fullTrain2$outGsimS.Z <- scale(fullTrain2$outGsimS)
+fullTrain2$metaContrastS.Z <- as.numeric(scale(fullTrain2$metaContrastS)[,1])
+fullTrain2$inGsimS.Z <- as.numeric(scale(fullTrain2$inGsimS)[,1])
+fullTrain2$outGsimS.Z <- as.numeric(scale(fullTrain2$outGsimS)[,1])
 
 fullTest2$outgroup <- as.factor(fullTest2$outgroup)
 fullTest2$outgroup <- relevel(fullTest2$outgroup,"Not UCR")
@@ -603,7 +603,8 @@ sexit(MCS.SR.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direc
 ### What are the relative contributions summed similarity to ingroup and summed similarity to outgroup?
 
 ```{r}
-m <- lmer( scale(selfResp) ~ inGsimS.Z * outgroup + outGsimS.Z + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain2)
+m <- lmer( scale(selfResp) ~ inGsimS.Z * Therm_1 * outgroup + outGsimS.Z * Therm_1 * outgroup
+           + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain2)
 summary(m)
 m %>%
   tbl_regression(
@@ -668,22 +669,22 @@ indDiffs3 <- fullTest3[!duplicated(fullTest3$subID),]
 ```{r, include = F}
 fullTest3$ingChoiceN <- as.factor(fullTest3$ingChoiceN)
 fullTest3$novel <- as.factor(fullTest3$novel)
-fullTest3$selfResp.Z <- scale(fullTest3$selfResp)
-fullTest3$SE.Z <- scale(fullTest3$SE)
-fullTest3$iSE.Z <- scale(fullTest3$iSE)
-fullTest3$oSE.Z <- scale(fullTest3$oSE)
-fullTest3$predicted.Z <- scale(fullTest3$predicted)
-fullTest3$slope.Z <- scale(fullTest3$slope)
-fullTest3$entropy.Z <- scale(fullTest3$entropy)
-fullTest3$WSR.Z <- scale(fullTest3$WSR)
-fullTest3$neighAveOutSE.Z <- scale(fullTest3$neighAveOutSE)
-fullTest3$neighAveAllSE.Z <- scale(fullTest3$neighAveAllSE)
-fullTest3$neighAveInSE.Z <- scale(fullTest3$neighAveInSE)
-fullTest3$evalLOO.Z <- scale(fullTest3$evalLOO)
-fullTest3$desirability.Z <- scale(fullTest3$desirability)
-fullTest3$er.Z <- scale(fullTest3$er)
-fullTest3$outDegree.Z <- scale(fullTest3$outDegree)
-fullTest3$inDegree.Z <- scale(fullTest3$inDegree)
+fullTest3$selfResp.Z <- as.numeric(scale(fullTest3$selfResp)[,1])
+fullTest3$SE.Z <- as.numeric(scale(fullTest3$SE)[,1])
+fullTest3$iSE.Z <- as.numeric(scale(fullTest3$iSE)[,1])
+fullTest3$oSE.Z <- as.numeric(scale(fullTest3$oSE)[,1])
+fullTest3$predicted.Z <- as.numeric(scale(fullTest3$predicted)[,1])
+fullTest3$slope.Z <- as.numeric(scale(fullTest3$slope)[,1])
+fullTest3$entropy.Z <- as.numeric(scale(fullTest3$entropy)[,1])
+fullTest3$WSR.Z <- as.numeric(scale(fullTest3$WSR)[,1])
+fullTest3$neighAveOutSE.Z <- as.numeric(scale(fullTest3$neighAveOutSE)[,1])
+fullTest3$neighAveAllSE.Z <- as.numeric(scale(fullTest3$neighAveAllSE)[,1])
+fullTest3$neighAveInSE.Z <- as.numeric(scale(fullTest3$neighAveInSE)[,1])
+fullTest3$evalLOO.Z <- as.numeric(scale(fullTest3$evalLOO)[,1])
+fullTest3$desirability.Z <- as.numeric(scale(fullTest3$desirability)[,1])
+fullTest3$er.Z <- as.numeric(scale(fullTest3$er)[,1])
+fullTest3$outDegree.Z <- as.numeric(scale(fullTest3$outDegree)[,1])
+fullTest3$inDegree.Z <- as.numeric(scale(fullTest3$inDegree)[,1])
 
 fullTest3$novel <- as.factor(fullTest3$novel)
 levels(fullTest3$novel) <- list("Trained"  = "0", "Held Out" = "1")
@@ -691,9 +692,9 @@ levels(fullTest3$novel) <- list("Trained"  = "0", "Held Out" = "1")
 fullTrain3$metaContrastS <- (fullTrain3$inGsimS/fullTrain3$outGsimS)
 fullTrain3$metaContrastS <- log(fullTrain3$metaContrastS)
 fullTrain3$metaContrastS[is.infinite(fullTrain3$metaContrastS)] <- NA
-fullTrain3$metaContrastS.Z <- scale(fullTrain3$metaContrastS)
-fullTrain3$inGsimS.Z <- scale(fullTrain3$inGsimS)
-fullTrain3$outGsimS.Z <- scale(fullTrain3$outGsimS)
+fullTrain3$metaContrastS.Z <- as.numeric(scale(fullTrain3$metaContrastS)[,1])
+fullTrain3$inGsimS.Z <- as.numeric(scale(fullTrain3$inGsimS)[,1])
+fullTrain3$outGsimS.Z <- as.numeric(scale(fullTrain3$outGsimS)[,1])
 
 fullTest3$condition <- as.factor(fullTest3$condition)
 fullTest3$condition <- relevel(fullTest3$condition,"Majority")
@@ -838,7 +839,7 @@ m %>%
 ```
 
 ```{r}
-SR.ING.COND.3 <-brm( ingChoiceN ~ selfResp.Z * condition + ( selfResp.Z | subID) + ( condition | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+SR.ING.COND.3 <-brm( ingChoiceN ~ selfResp.Z * condition + ( selfResp.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
 sexit(SR.ING.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ggpredict(SR.ING.COND.3, c("selfResp.Z", "condition")) %>% plot()
 ```
@@ -864,8 +865,7 @@ sexit(WSR.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction
 ### Compared across conditions
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * condition + ( WSR.Z | subID) + ( condition | trait), data = fullTest3, family = binomial, control = glmerControl(optimizer = "bobyqa",
-                                    optCtrl = list(maxfun = 100000)),
+m <- glmer( ingChoiceN ~ WSR.Z * condition * MGIS + racid + ( 1 | subID) + ( 1 | trait), data = fullTest3, family = binomial, control = glmerControl(optimizer = "bobyqa"),
     nAGQ = 1)
 m %>%
   tbl_regression(
@@ -878,6 +878,12 @@ m %>%
 WSR.ING.COND.3 <- brm( ingChoiceN ~ WSR.Z * condition + ( WSR.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
 sexit(WSR.ING.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ggpredict(WSR.ING.COND.3, c("WSR.Z", "condition")) %>% plot()
+```
+
+```{r}
+test <- brm( ingChoiceN ~ WSR.Z * condition + desirability + racid + ( WSR.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(test) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(test, c("WSR.Z", "condition")) %>% plot()
 ```
 
 ### Do people use similarity-to-self for novel traits?
@@ -1033,8 +1039,15 @@ r2beta(m)
 ```
 
 ```{r}
-ISOS.SR.COND.3 <-brm( selfResp ~ inGsimS.Z * outgroup + outGsimS.Z * condition + (  inGsimS.Z + outGsimS.Z | subID) + ( condition | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
+ISOS.SR.COND.3 <-brm( selfResp ~ inGsimS.Z * condition + outGsimS.Z * condition + (  inGsimS.Z + outGsimS.Z | subID) + ( condition | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
 sexit(ISOS.SR.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
+```{r}
+library(marginaleffects)
+avg_comparisons(ISOS.SR.COND.3, variables = "outGsimS.Z", by = "condition")
+
+avg_comparisons(ISOS.SR.COND.3, variables = c("outGsimS.Z", "condition"))
 ```
 
 ## Correlates of Homophily in Group Classifications
@@ -1055,3 +1068,23 @@ TBD
 ### Parameter Correlations with Individual Differences
 
 # 
+
+# Testing
+
+```{r}
+test(emmeans(WSR.ING.COND.2, pairwise ~outgroup*WSR.Z, at = list(WSR.Z = -1)))
+test(emmeans(WSR.ING.COND.2, pairwise ~outgroup*WSR.Z, at = list(WSR.Z = 0)))
+test(emmeans(WSR.ING.COND.2, pairwise ~outgroup*WSR.Z, at = list(WSR.Z = 1)))
+```
+
+```{r}
+emmeans(WSR.ING.COND.2, specs = pairwise ~ WSR.Z*outgroup)
+```
+
+```{r}
+library(marginaleffects)
+test2 <- test
+test2$data$outgroup <- as.character(test2$data$outgroup)
+test3 <- avg_comparisons(test, variables = "WSR.Z", by = "outgroup")
+test4 <- avg_comparisons(test, variables = "WSR.Z", by = "outgroup", hypothesis = "pairwise")
+```

@@ -4,42 +4,156 @@ output: html_notebook
 ---
 
 ```{r}
-library(here)
-library(tidyverse)
+pacman::p_load(here, tidyverse)
 ```
 
+# Study 1
+
+```{r}
+demo1 <- read.csv("/Volumes/Research Project/Self-Anchoring/Study 1/Cleaning/Qualtrics Data/CleanSA1Qs.csv")
+
+fullDf <- arrow::read_parquet(here("Study 1//Cleaning/output/fullTest.parquet"))
+
+fullDf <- fullDf %>% select(subID) %>% distinct(subID)
+```
 
 
 ```{r}
-fullTest1 <- arrow::read_parquet(here("Study 1//Cleaning/output/fullTest.parquet"))
-fullTrain1 <- arrow::read_parquet(here("Study 1/Cleaning/output/fullTrain.parquet"))
-
-traitsFreqs1 <- read.csv(here("Study 1//Cleaning/output/traitFreqOverUnder.csv"))
-
-uSubs <- unique(fullTest1$subID)
-
-indDiffs1 <- fullTest1[!duplicated(fullTest1$subID),]
-indDiffs1 <- indDiffs1 %>% select(subID, groupHomoph, DS:SING.Inter)
-
-fullTest2 <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTest.parquet"))
-fullTrain2 <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet"))
-
-uSubs <- unique(fullTest2$subID)
-
-indDiffs2 <- fullTest2[!duplicated(fullTest2$subID),]
-
-fullTest3 <- arrow::read_parquet(here("Study 3//Cleaning/output/fullTest.parquet"))
-fullTrain3 <- arrow::read_parquet(here("Study 3/Cleaning/output/fullTrain.parquet"))
-
-uSubs <- unique(fullTest3$subID)
-
-indDiffs3 <- fullTest3[!duplicated(fullTest3$subID),]
+demo1 <- demo1 %>% select(subID, Age, Race, Gender) %>% right_join(fullDf, by = "subID")
+demo1$Age <- as.numeric(substr(demo1$Age, start = 1, stop = 2))
 ```
 
 ```{r}
-nrow(indDiffs1)
-nrow(indDiffs2)
-nrow(indDiffs3)
+demo1 <- demo1 %>% mutate(Race = case_when(
+  Race == 1 ~ "Black/African-American",
+  Race == 2 ~ "Hispanic/Latino",
+  Race == 3 ~ "White/Caucasian",
+  Race == 4 ~ "Asian",
+  Race == 5 ~ "Pacific Islander",
+  Race == 6 ~ "Native-American",
+  Race == 7 ~ "Indian/South Asian",
+  Race == 8 ~ "Middle Eastern/North African",
+  Race == 9 ~ "Mixed/Other",
+ grepl(",", Race) ~ "Mixed/Other",
+ .default = "Mixed/Other"
+)
+                 )
+
+demo1 <- demo1 %>% mutate(Gender = case_when(
+  Gender == 1 ~ "Cisgender Male",
+  Gender == 2 ~ "Cisgender Female",
+  Gender == 3 ~ "Gender Nonbinary",
+  Gender == 4 ~ "Transgender Male",
+  Gender == 5 ~ "Transgender Female",
+  .default = "Other"
+)
+                 )
+```
+
+```{r}
+psych::describe(demo1$Age)
+```
+
+```{r}
+prop.table(table(demo1$Gender))
+```
+
+```{r}
+as.matrix(sort(prop.table(table(demo1$Race)),decreasing=T))
+```
+
+# Study 2
+
+```{r}
+demo2 <- read.csv("/Volumes/Research Project/Self-Anchoring/Study 2/Cleaning/Qualtrics Data/CleanSA2Qs.csv")
+
+fullDf <- arrow::read_parquet(here("Study 2//Cleaning/output/fullTest.parquet"))
+
+fullDf <- fullDf %>% select(subID) %>% distinct(subID)
 ```
 
 
+```{r}
+demo2 <- demo2 %>% select(subID, Age, Race, Gender) %>% right_join(fullDf, by = "subID")
+demo2$Age <- as.numeric(substr(demo2$Age, start = 1, stop = 2))
+```
+
+```{r}
+demo2 <- demo2 %>% mutate(Race = case_when(
+  Race == 1 ~ "Black/African-American",
+  Race == 2 ~ "Hispanic/Latino",
+  Race == 3 ~ "White/Caucasian",
+  Race == 4 ~ "Asian",
+  Race == 5 ~ "Pacific Islander",
+  Race == 6 ~ "Native-American",
+  Race == 7 ~ "Indian/South Asian",
+  Race == 8 ~ "Middle Eastern/North African",
+  Race == 9 ~ "Mixed/Other",
+ grepl(",", Race) ~ "Mixed/Other"
+)
+                 )
+
+demo2 <- demo2 %>% mutate(Gender = case_when(
+  Gender == 1 ~ "Cisgender Male",
+  Gender == 2 ~ "Cisgender Female",
+  Gender == 3 ~ "Gender Nonbinary",
+  Gender == 4 ~ "Transgender Male",
+  Gender == 5 ~ "Transgender Female"
+)
+                 )
+```
+
+```{r}
+psych::describe(demo2$Age)
+```
+
+```{r}
+prop.table(table(demo2$Gender))
+```
+
+```{r}
+as.matrix(sort(prop.table(table(demo2$Race)),decreasing=T))
+```
+
+# Study 3
+
+```{r}
+demo3 <- read.csv("/Volumes/Research Project/Self-Anchoring/Study 3/Cleaning/Qualtrics Data/CleanSA3Qs.csv")
+
+fullDf <- arrow::read_parquet(here("Study 3/Cleaning/output/fullTest.parquet"))
+
+fullDf <- fullDf %>% select(subID) %>% distinct(subID)
+```
+
+
+```{r}
+demo3 <- demo3 %>% select(subID, Age, Race, Gender) %>% right_join(fullDf, by = "subID")
+demo3$Age <- as.numeric(substr(demo3$Age, start = 1, stop = 2))
+```
+
+```{r}
+demo3 <- demo3 %>% mutate(Race = case_when(
+  Race == 2 ~ "Asian",
+  Race == 8 ~ "Hispanic/Latino",
+)
+                 )
+
+demo3 <- demo3 %>% mutate(Gender = case_when(
+  Gender == 1 ~ "Cisgender Male",
+  Gender == 2 ~ "Cisgender Female",
+  Gender == 3 ~ "Other"
+)
+                 )
+```
+
+```{r}
+psych::describe(demo3$Age)
+```
+
+```{r}
+prop.table(table(demo3$Gender))
+```
+
+```{r}
+as.matrix(sort(prop.table(table(demo3$Race)),decreasing=T))
+```

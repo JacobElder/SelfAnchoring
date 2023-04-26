@@ -1,0 +1,182 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(pacman)
+pacman::p_load(pheatmap, igraph, heatmaply, RColorBrewer, tidyverse, ggpubr)
+```
+
+
+```{r}
+library(igraph)
+posTraits <- read.csv("~/Google Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
+negTraits <- read.csv("~/Google Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allNegCents.csv")
+
+posDf <- read.csv("~/Google Drive/Volumes//Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_p.csv")
+posMat <- as.matrix(posDf)
+posGraph <- graph.adjacency(posMat)
+
+negDf <- read.csv("~/Google Drive/Volumes//Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_n.csv")
+negMat <- as.matrix(negDf)
+negGraph <- graph.adjacency(negMat)
+
+simPos <- as.matrix(similarity.dice(posGraph))
+colnames(simPos) <- posTraits$trait
+rownames(simPos) <- posTraits$trait
+```
+
+```{r}
+V(posGraph)$Names <- posTraits$trait
+ 
+outgoingwords <-c("Witty","Fun","Sociable","Talkative","Extraverted","Charming")
+words <- c("Sociable","Fun","Witty","Smart","Knowledgeable","Talkative","Disciplined","Extraverted","Charming","Studious","Level-headed","Mature")
+disciplinewords <- setdiff(words,outgoingwords)
+```
+
+```{r}
+logFunc <- function(input, slope=1, shift=0){
+  input = input - 4
+  output = 1 / (1 + exp(-slope * (input - shift ) ))
+  return(output)
+}
+
+
+library(wesanderson)
+Minputs <- c(3.0, .75)
+df<-data.frame(Minputs=sort(rep(Minputs, 7)), eval=rep(1:7) )
+df$trans<-logFunc(df$eval, df$Minputs, shift = 0)
+FSplot<-ggplot(data=df, aes(x=eval, y=trans, group=as.factor(Minputs), color= as.factor(Minputs) )) +
+  geom_line() + geom_point() + xlab("Original Self-Evaluation on Trait") + ylab("Trait's Ingroup Typicality")  + theme_classic() +
+  theme(legend.position="top") + labs(color="Projection Rate")  + 
+  scale_color_manual(labels=c('Small','Large'), values = wes_palette("Darjeeling1"))
+FSplot
+ggsave(plot=FSplot, filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/CombinedPlot.png", width=6, height=4, dpi=400)
+
+```
+
+
+
+```{r}
+inds <- c(which(colnames(simPos)%in%outgoingwords), which(colnames(simPos)%in%disciplinewords))
+
+k2 <- kmeans(simPos[inds,inds], centers = 2, nstart = 25)
+
+mds.sim <- (1-simPos[inds,inds]) %>%
+  cmdscale() %>%
+  as_tibble()
+
+colnames(mds.sim) <- c("Dim.1", "Dim.2")
+origMDS <- ggscatter(mds.sim, x = "Dim.1", y = "Dim.2", 
+          size = 1,
+          label = colnames(simPos)[inds],
+          repel = TRUE) + xlab("Dimension #1") + ylab("Dimension #2") +
+# marking circles
+geom_mark_ellipse(aes(color= as.factor(k2$cluster) ))+
+# marking points on the plot
+geom_point(aes(color=  as.factor(k2$cluster) )) + scale_color_discrete(name = "Group Classification", 
+                       labels = c("Ingroup", "Outgroup")) #+ guides(color=guide_legend(title="Classifications"))
+
+origMDS
+```
+
+```{r}
+set.seed(52)
+
+oInds <- which(colnames(simPos)%in%outgoingwords)
+dInds <- which(colnames(simPos)%in%disciplinewords)
+
+outgoingSelf <- round(runif(length(oInds), min=6, max=7))
+disciplinedSelf <- round(runif(length(dInds), min=1, max=2))
+outgoingSelfT <- sapply(outgoingSelf, function(x) logFunc(x, slope=3.0, shift=0))
+disciplinedSelfT <- sapply(disciplinedSelf, function(x) logFunc(x, slope=3.0, shift=0))
+
+simPosT <- simPos
+for(i in 1:length(oInds) ){
+  simPosT[oInds[i], ] <- simPosT[oInds[i],] * outgoingSelfT[i]
+  simPosT[,oInds[i]] <- simPosT[oInds[i],] * outgoingSelfT[i]
+  simPosT[dInds[i], ] <- simPosT[dInds[i],] * disciplinedSelfT[i]
+  simPosT[,dInds[i]] <- simPosT[dInds[i],] * disciplinedSelfT[i]
+}
+
+k2 <- kmeans(simPosT[inds,inds], centers = 2, nstart = 25)
+
+inds <- c(which(colnames(simPos)%in%outgoingwords), which(colnames(simPos)%in%disciplinewords))
+
+simPosT[diag(simPosT)] <- 1
+
+mds.sim <- (1-simPosT[inds,inds]) %>%
+  cmdscale() %>%
+  as_tibble()
+
+inds <- c(which(colnames(simPos)%in%outgoingwords), which(colnames(simPos)%in%disciplinewords))
+self <- c(outgoingSelf,disciplinedSelf)
+nameSelf <- paste0(colnames(simPos)[inds],", ",self)
+
+colnames(mds.sim) <- c("Dim.1", "Dim.2")
+largePR.MDS <- ggscatter(mds.sim, x = "Dim.1", y = "Dim.2", 
+          size = 1,
+          label = nameSelf,
+          repel = TRUE) + xlab("Dimension #1") + ylab("Dimension #2") +
+# marking circles
+geom_mark_ellipse(aes(color= as.factor(k2$cluster) ))+
+# marking points on the plot
+geom_point(aes(color=  as.factor(k2$cluster) ))
+
+largePR.MDS
+```
+
+```{r}
+set.seed(52)
+
+oInds <- which(colnames(simPos)%in%outgoingwords)
+dInds <- which(colnames(simPos)%in%disciplinewords)
+
+outgoingSelf <- round(runif(length(oInds), min=6, max=7))
+disciplinedSelf <- round(runif(length(dInds), min=1, max=2))
+outgoingSelfT <- sapply(outgoingSelf, function(x) logFunc(x, slope=.75, shift=0))
+disciplinedSelfT <- sapply(disciplinedSelf, function(x) logFunc(x, slope=.75, shift=0))
+
+simPosT <- simPos
+for(i in 1:length(which(colnames(simPos)%in%outgoingwords))){
+  simPosT[oInds[i], ] <- simPosT[oInds[i],] * outgoingSelfT[i]
+  simPosT[,oInds[i]] <- simPosT[oInds[i],] * outgoingSelfT[i]
+  simPosT[dInds[i], ] <- simPosT[dInds[i],] * disciplinedSelfT[i]
+  simPosT[,dInds[i]] <- simPosT[dInds[i],] * disciplinedSelfT[i]
+}
+
+k2 <- kmeans(simPosT[inds,inds], centers = 2, nstart = 25)
+
+inds <- c(which(colnames(simPos)%in%outgoingwords), which(colnames(simPos)%in%disciplinewords))
+
+mds.sim <- (1-simPosT[inds,inds]) %>%
+  cmdscale() %>%
+  as_tibble()
+
+colnames(mds.sim) <- c("Dim.1", "Dim.2")
+smallPR.MDS <- ggscatter(mds.sim, x = "Dim.1", y = "Dim.2", 
+          size = 1,
+          label = nameSelf,
+          repel = TRUE) + xlab("Dimension #1") + ylab("Dimension #2") +
+ 
+# marking circles
+geom_mark_ellipse(aes(color= as.factor(k2$cluster) ))+
+ 
+# marking points on the plot
+geom_point(aes(color=  as.factor(k2$cluster) ))
+
+smallPR.MDS
+```
+
+```{r}
+library(ggpubr)
+
+library(patchwork)
+#(FSplot + origMDS) / (smallPR.MDS + largePR.MDS)
+ggarrange(FSplot, origMDS, smallPR.MDS, largePR.MDS, nrow=2,ncol=2, labels = c("A","B","C","D"))
+ggsave("/Volumes/Research Project/Self-Anchoring/Combined/Plots/modelDepict.png", units="in", width=13, height=10, dpi=300)
+ggarrange(FSplot, origMDS, nrow=2,ncol=1, labels = c("A","B"))
+ggsave("/Volumes/Research Project/Self-Anchoring/Combined/Plots/modelDepict.png", units="in", width=13, height=10, dpi=300)
+```
+
