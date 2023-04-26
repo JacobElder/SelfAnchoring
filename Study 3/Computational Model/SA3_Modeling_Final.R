@@ -271,10 +271,15 @@ any(S_Logistic_1m_Oppose_Bias_summary.Majority[,7]>1.01)
 any(S_Logistic_1m_Oppose_Bias_summary.Minority[,7]>1.01)
 S_Logistic_1m_Oppose_Bias_summary.Minority[which(S_Logistic_1m_Oppose_Bias_summary.Minority[,7]>1.01),]
 
-write.csv(S_Logistic_1m_Oppose_Biasparams.Majority, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.Majority, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.parquet"))
-write.csv(S_Logistic_1m_Oppose_Biasparams.Minority, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.Minority, here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.parquet"))
+conddf <- subset(fulldf, condition=="Majority")
+S_Logistic_1m_Oppose_Biasparams.Majority$subID<-sort(unique(conddf$subID))
+conddf <- subset(fulldf, condition=="Minority")
+S_Logistic_1m_Oppose_Biasparams.Minority$subID<-sort(unique(conddf$subID))
+
+write.csv(S_Logistic_1m_Oppose_Biasparams.Majority, here::here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.Majority, here::here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.parquet"))
+write.csv(S_Logistic_1m_Oppose_Biasparams.Minority, here::here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.Minority, here::here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.parquet"))
 
 ######
 

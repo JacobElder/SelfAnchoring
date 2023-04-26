@@ -111,7 +111,7 @@ groupDiffs.2
 ```{r}
 
 Id.ProjRate.Scatter.2 <- ggplot(indDiffs, aes(MGIS,m,color=outgroup)) + geom_point() + geom_smooth(method="lm") + jtools::theme_apa() + scale_color_manual(values = natparks.pals("Saguaro",3)) +
-    scale_fill_manual(values = natparks.pals("Saguaro", 3)) + xlab("Social Identification") + ylab("Projection Rate")
+    scale_fill_manual(values = natparks.pals("Saguaro", 3)) + xlab("Social Identification") + ylab("Projection Rate")  + theme(legend.position = c(.12,.35))  + theme(legend.position = c(.1,.85), legend.key.size = unit(.25, 'cm'))
 Id.ProjRate.Scatter.2
 ```
 

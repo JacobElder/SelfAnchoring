@@ -64,7 +64,7 @@ groupDiffs.3
 
 allParams2 <- indDiffs %>% select(subID, racid) %>% mutate(subID = as_factor(subID)) %>% right_join(allParams, by = "subID")
 
-m<-ezANOVA(allParams2, dv = m, wid = subID, between = .(outgroup,racid) )
+m<-ez::ezANOVA(allParams2, dv = m, wid = subID, between = .(outgroup,racid) )
 m
 
 ggplot(allParams2, aes(outgroup, m, color=racid, fill = racid)) + 
@@ -77,15 +77,22 @@ ggplot(allParams2, aes(outgroup, m, color=racid, fill = racid)) +
 
 ```{r}
 Id.ProjRate.Scatter.3 <- ggplot(indDiffs, aes(MGIS,m,color=outgroup)) + geom_point() + geom_smooth(method="lm") + jtools::theme_apa() + scale_color_manual(values = natparks.pals("Charmonix",2)) +
-    scale_fill_manual(values = natparks.pals("Charmonix", 2)) + xlab("Social Identification") + ylab("Projection Rate")
+    scale_fill_manual(values = natparks.pals("Charmonix", 2)) + xlab("Social Identification") + ylab("Projection Rate") + theme(legend.position = c(.1,.85))
 Id.ProjRate.Scatter.3
 ```
 
 ```{r}
 groupDiffs.23 <- groupDiffs.2 + groupDiffs.3
 groupDiffs.23
-ggsave(plot=groupDiffs.23,filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/CombinedPlot.png", width = 6, height = 4.25, units = "in")
+ggsave(plot=groupDiffs.23,filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/groupDiffsSelfProj.png", width = 6, height = 4.25, units = "in", dpi=300)
 ```
+
+```{r}
+Id.ProjRate.Scatter.123 <- Id.ProjRate.Scatter.1 + Id.ProjRate.Scatter.2 + Id.ProjRate.Scatter.3
+Id.ProjRate.Scatter.123
+ggsave(plot=Id.ProjRate.Scatter.123,filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/Id.SelfProj.png", width = 10, height = 6, units = "in", dpi=300)
+```
+
 
 
 #### MESSING AROUND BELOW

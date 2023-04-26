@@ -283,12 +283,21 @@ any(S_Logistic_1m_Oppose_Bias_summary.CSULA[,7]>1.05)
 any(S_Logistic_1m_Oppose_Bias_summary.UCLA[,7]>1.05)
 any(S_Logistic_1m_Oppose_Bias_summary.NotUCR[,7]>1.05)
 
-write.csv(S_Logistic_1m_Oppose_Biasparams.UCLA, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.UCLA, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
-write.csv(S_Logistic_1m_Oppose_Biasparams.CSULA, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.CSULA, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
-write.csv(S_Logistic_1m_Oppose_Biasparams.NotUCR, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.NotUCR, here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
+
+conddf <- subset(fulldf, outgroup=="Not UCR")
+S_Logistic_1m_Oppose_Biasparams.NotUCR$subID<-unique(conddf$subID)
+conddf <- subset(fulldf, outgroup=="UCLA")
+S_Logistic_1m_Oppose_Biasparams.UCLA$subID<-unique(conddf$subID)
+conddf <- subset(fulldf, outgroup=="CSU LA")
+S_Logistic_1m_Oppose_Biasparams.CSULA$subID<-unique(conddf$subID)
+
+
+write.csv(S_Logistic_1m_Oppose_Biasparams.UCLA, here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.UCLA, here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
+write.csv(S_Logistic_1m_Oppose_Biasparams.CSULA, here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.CSULA, here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
+write.csv(S_Logistic_1m_Oppose_Biasparams.NotUCR, here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1m_Oppose_Biasparams.NotUCR, here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
 
 CSULA_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.CSULA, pars = "mu_pr")$mu_pr[,2])*10)
 UCLA_group_m_posterior <- (pnorm(rstan::extract(S_Logistic_1m_Oppose_Biasfit.UCLA, pars = "mu_pr")$mu_pr[,2])*10)

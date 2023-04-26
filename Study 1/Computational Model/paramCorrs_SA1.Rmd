@@ -11,18 +11,20 @@ devtools::source_url("https://raw.githubusercontent.com/JacobElder/Miscellaneous
 
 
 ```{r}
-params <- S_Logistic_1mOppose_Biasparams
-params$subID <- uIds
-
-params <- read.csv("~/Documents/GitHub/SelfAnchoring/Study 1/Cleaning/output/S_Logistic_1mOppose_Biasparams.csv")
-fullTest <- read.csv("~/Documents/GitHub/SelfAnchoring/Study 1/Cleaning/output/fullTest.csv")
+params <- arrow::read_parquet(here::here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.parquet"))
+fullTest <- arrow::read_parquet(here::here("Study 1/Cleaning/output/fullTest.parquet"))
 
 indDiffs <- fullTest[!duplicated(fullTest$subID),]
 indDiffs <- indDiffs %>% select(subID, DS:SING.Inter)
-indDiffs <- indDiffs %>% full_join(params, by = "subID")
+indDiffs <- indDiffs %>% right_join(params, by = "subID")
 indDiffs %>% select(m, DS:SING.Inter) %>% corToOne(., "m")
 indDiffs %>% select(m, DS:SING.Inter) %>% plotCorToOne(., "m") + scale_x_discrete(labels=c("Self-Esteem","Dialectical Self","Interdependence","Need for Cog.","Independence","Need to Belong","Self-Prototypical", "Self-Concept Clarity", "Social Identification"))
-ggsave("/Volumes/Research Project/Self-Anchoring/Study 1/Plots/SA1_m_cors.png", width=8, height = 5, dpi = 400)
+ggsave("/Volumes/Research Project/Self-Anchoring/Combined/Plots/SA1_m_cors.png", width=8, height = 5, dpi = 400)
+```
+```{r}
+Id.ProjRate.Scatter.1 <- ggplot(indDiffs, aes(SI,m)) + geom_point() + geom_smooth(method="lm",color="black") + jtools::theme_apa() +
+    scale_fill_manual(values = natparks.pals("Charmonix", 2)) + xlab("Social Identification") + ylab("Projection Rate")
+Id.ProjRate.Scatter.1
 ```
 
 

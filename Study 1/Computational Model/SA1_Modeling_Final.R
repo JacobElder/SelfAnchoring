@@ -254,6 +254,7 @@ S_Logistic_1mOppose_Bias_summary[which(S_Logistic_1mOppose_Bias_summary[,7]>1.01
 
 any(S_Logistic_1mOppose_Bias_summary[,7]>1.05)
 
-write.csv(S_Logistic_1mOppose_Biasparams, here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.csv"), row.names=F)
-arrow::write_parquet(S_Logistic_1mOppose_Biasparams, here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.parquet"))
+S_Logistic_1mOppose_Biasparams$subID <- uIds
+write.csv(S_Logistic_1mOppose_Biasparams, here::here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1mOppose_Biasparams, here::here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.parquet"))
       
