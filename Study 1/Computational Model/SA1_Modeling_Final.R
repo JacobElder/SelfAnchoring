@@ -193,13 +193,12 @@ modelFile <- here("Computational Models/ProbBias.stan")
 cores<-detectCores()
 PBfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)
 traceplot(PBfit)
-PB_summary <- summary(PBfit, pars = c("bias", "tau"), probs = c(0.1, 0.9))$summary
+PB_summary <- summary(PBfit, pars = c("bias"), probs = c(0.1, 0.9))$summary
 print(PB_summary)
-get_posterior_mean(PBfit, pars=c('bias','tau'))[,5]
+get_posterior_mean(PBfit, pars=c('bias'))[,5]
 PBparams <- data.frame(bias=get_posterior_mean(PBfit, pars=c('bias'))[,5],
-                       Temp=get_posterior_mean(PBfit, pars=c('tau'))[,5],
                        LL=get_posterior_mean(PBfit, pars=c('log_lik'))[,5])
-k <- 2
+k <- 1
 PBparams$BIC <- log(lengthArray) * k - 2 * (PBparams$LL)
 PBparams$AIC <- 2 * k - 2 * (PBparams$LL)
 PB_LL <- extract_log_lik(PBfit)
@@ -212,52 +211,25 @@ PB_WAIC <- waic(PB_LL)
 
 #############################
 
-iter=2000
+iter=3000
 warmup=floor(iter/2)
 modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias.stan")
 cores<-detectCores()
-S_Logistic_1mOppose_Biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
+S_Logistic_1mOppose_Biasfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, control = list(max_treedepth = 12, adapt_delta = 0.95))
 traceplot(S_Logistic_1mOppose_Biasfit)
 S_Logistic_1mOppose_Bias_summary <- summary(S_Logistic_1mOppose_Biasfit, pars = c("tau", "m", "bias"), probs = c(0.1, 0.9))$summary
 print(S_Logistic_1mOppose_Bias_summary)
 get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('tau', 'm', 'bias'))[,5]
 S_Logistic_1mOppose_Biasparams <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('tau'))[,5],
-                                           m=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('m'))[,5],
-                                           bias=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('bias'))[,5],
-                                           LL=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('log_lik'))[,5])
+                                             m=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('m'))[,5],
+                                             bias=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('bias'))[,5],
+                                             LL=get_posterior_mean(S_Logistic_1mOppose_Biasfit, pars=c('log_lik'))[,5])
 k <- 3
-S_Logistic_1mOppose_Biasparams$BIC <- log(lengthArray) * k - 2 * (S_Logistic_1mOppose_Biasparams$LL)
+S_Logistic_1mOppose_Biasparams$BIC <- log(model_data$nTrials) * k - 2 * (S_Logistic_1mOppose_Biasparams$LL)
 S_Logistic_1mOppose_Biasparams$AIC <- 2 * k - 2 * (S_Logistic_1mOppose_Biasparams$LL)
 S_Logistic_1mOppose_Bias_LL <- extract_log_lik(S_Logistic_1mOppose_Biasfit)
 S_Logistic_1mOppose_Bias_LOO <- loo(S_Logistic_1mOppose_Bias_LL)
 S_Logistic_1mOppose_Bias_WAIC <- waic(S_Logistic_1mOppose_Bias_LL)
-
-#############################
-
-## SELF-TO-GROUP LOGISTIC MAPPING WITH PROBABILITY BIAS AND CONSTRAINT MODEL ##
-
-#############################
-
-iter=2000
-warmup=floor(iter/2)
-modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias_L.stan")
-cores<-detectCores()
-S_Logistic_1mOppose_Bias_Lfit <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52)#, control = list(max_treedepth = 12, adapt_delta = 0.95))
-traceplot(S_Logistic_1mOppose_Bias_Lfit)
-S_Logistic_1mOppose_Bias_L_summary <- summary(S_Logistic_1mOppose_Bias_Lfit, pars = c("tau", "m", "bias", "L"), probs = c(0.1, 0.9))$summary
-print(S_Logistic_1mOppose_Bias_L_summary)
-get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('tau', 'm', 'bias', 'L'))[,5]
-S_Logistic_1mOppose_Bias_Lparams <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('tau'))[,5],
-                                             m=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('m'))[,5],
-                                             bias=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('bias'))[,5],
-                                             L=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('L'))[,5],
-                                             LL=get_posterior_mean(S_Logistic_1mOppose_Bias_Lfit, pars=c('log_lik'))[,5])
-k <- 4
-S_Logistic_1mOppose_Bias_Lparams$BIC <- log(lengthArray) * k - 2 * (S_Logistic_1mOppose_Bias_Lparams$LL)
-S_Logistic_1mOppose_Bias_Lparams$AIC <- 2 * k - 2 * (S_Logistic_1mOppose_Bias_Lparams$LL)
-S_Logistic_1mOppose_Bias_L_LL <- extract_log_lik(S_Logistic_1mOppose_Bias_Lfit)
-S_Logistic_1mOppose_Bias_L_LOO <- loo(S_Logistic_1mOppose_Bias_L_LL)
-S_Logistic_1mOppose_Bias_L_WAIC <- waic(S_Logistic_1mOppose_Bias_L_LL)
 
 ############################
 
@@ -266,108 +238,23 @@ S_Logistic_1mOppose_Bias_L_WAIC <- waic(S_Logistic_1mOppose_Bias_L_LL)
 ############################
 
 print(loo_compare(list("Bias"=PB_LOO,
-                       "SLinS"=S_Linear_1mSumOne_LOO,
-                       "SLinS.Bias"=S_Linear_1mSumOne_Bias_LOO,
-                       "SLogO.Bias"=S_Logistic_1mOppose_Bias_LOO,
-                       "SLogO.Bias.L"=S_Logistic_1mOppose_Bias_L_LOO
+                       "SLogO.Bias"=S_Logistic_1mOppose_Bias_LOO
 )),simplify = F
 )
 
+save.image("/Volumes/Research Project/Self-Anchoring/Study 1/Analysis/ModelFittingSA1_Environment.RData")
+
+# Strict threshold
+
+any(S_Logistic_1mOppose_Bias_summary[,7]>1.01)
+
+S_Logistic_1mOppose_Bias_summary[which(S_Logistic_1mOppose_Bias_summary[,7]>1.01),]
+
+# Liberal threshold
+
+any(S_Logistic_1mOppose_Bias_summary[,7]>1.05)
+
 S_Logistic_1mOppose_Biasparams$subID <- uIds
-write.csv(S_Logistic_1mOppose_Biasparams, here("Study 1/Cleaning/output/S_Logistic_1mOppose_Biasparams.csv"))
-arrow::write_parquet(S_Logistic_1mOppose_Biasparams, here("Study 1/Cleaning/output/S_Logistic_1mOppose_Biasparams.parquet"))
-
-model <- S_Logistic_1mOppose_Biasfit
-y_pred <- rstan::extract(model, pars='y_pred')$y_pred
-dim(y_pred)
-
-# y_pred --> 6000 (MCMC samples) x 58 (subjects) x 148 (trials)
-
-y_pred=y_pred-1
-y_pred_mean = apply(y_pred, c(2,3), mean)  # average of 4000 MCMC samples
-
-dim(y_pred_mean)  # y_pred_mean --> 58 (subjects) x 148 (trials)
-
-numSubjs = dim(y_pred)[2]  # number of subjects
-
-subjList = uIds  # list of subject IDs
-maxT = maxTrials  # maximum number of trials
-true_y = array(NA, c(numSubjs, maxT)) # true data (`true_y`)
-
-## true data for each subject
-for (i in 1:numSubjs) {
-  tmpID = subjList[i]
-  tmpData = subset(fulldf, subID == tmpID)
-  true_y[i, ] = model_data$groupChoice[i, ]-1
-  #true_y[i, ] = c((tmpData$ingChoiceN+1),rep(NA,(maxT-length(tmpData$ingChoiceN))))  # only for data with a 'choice' column
-}
-
-y_pred_mean[y_pred_mean==-1] <- NA
-
-for(i in 1:nrow(true_y)){
-  print(i)
-  print( cor.test(true_y[i,1:model_data$nTrials[i] ],y_pred_mean[i,1:model_data$nTrials[i] ]) )
-}
-
-## Subject #1
-plot(true_y[24, 1:model_data$nTrials[24] ], type="l", xlab="Trial", ylab="Choice (0 or 1)", yaxt="n")
-lines(y_pred_mean[24, 1:model_data$nTrials[24] ], col="red", lty=2)
-axis(side=2, at = c(1,2) )
-legend("bottomleft", legend=c("True", "PPC"), col=c("black", "red"), lty=1:2)
-
-## Subject #1
-plot(true_y[39, 1:model_data$nTrials[39] ], type="l", xlab="Trial", ylab="Choice (0 or 1)", yaxt="n")
-lines(y_pred_mean[39, 1:model_data$nTrials[39] ], col="red", lty=2)
-axis(side=2, at = c(1,2) )
-legend("bottomleft", legend=c("True", "PPC"), col=c("black", "red"), lty=1:2)
-
-plot(true_y[33, 1:model_data$nTrials[33] ], type="l", xlab="Trial", ylab="Choice (0 or 1)", yaxt="n")
-lines(y_pred_mean[33, 1:model_data$nTrials[33] ], col="red", lty=2)
-axis(side=2, at = c(1,2) )
-legend("bottomleft", legend=c("True", "PPC"), col=c("black", "red"), lty=1:2)
-
-library(bayesplot)
-ppc_dens_overlay(true_y[39, 1:model_data$nTrials[39]], y_pred[,39, 1:model_data$nTrials[39]])
-
-ppc_ecdf_overlay(true_y[1,1:148], y_pred[,1,1:148], discrete=T)
-
-ppc_dens_overlay_grouped(true_y[1,1:100], y_pred[,1,1:100], group=as.factor(y_pred[1:58,,]))
-
-ppc_ecdf_overlay(true_y[1,1:100], y_pred[,1,1:100], discrete=T)
-
-ppc_stat_2d(true_y[1,1:148], y_pred[,1,1:148], stat = c("mean", "sd"))
-
-
-######
-
-y_correct <- y_pred
-
-for(i in 1:numSubjs){
-  y_correct[,i,]<-apply(y_pred[,i,], 1, function(x) x==true_y[i,])
-}
-
-y_correct_mean = apply(y_correct, c(2,3), mean)  # average of 4000 MCMC samples
-
-dim(y_correct_mean)  # y_pred_mean --> 58 (subjects) x 148 (trials)
-
-numSubjs = dim(y_correct_mean)[2]  # number of subjects
-
-subjList = uIds  # list of subject IDs
-maxT = maxTrials  # maximum number of trials
-true_y = array(NA, c(numSubjs, maxT)) # true data (`true_y`)
-
-## true data for each subject
-for (i in 1:numSubjs) {
-  tmpID = subjList[i]
-  tmpData = subset(fulldf, subID == tmpID)
-  true_y[i, ] = model_data$groupChoice[i, ]-1
-  #true_y[i, ] = c((tmpData$ingChoiceN+1),rep(NA,(maxT-length(tmpData$ingChoiceN))))  # only for data with a 'choice' column
-}
-
-min(model_data$nTrials)
-
-qplot(y_correct_mean[,1:min(model_data$nTrials)],bins=100)
-mean(y_correct>.50)
-
-qplot(y_correct[,,1:min(model_data$nTrials)],bins=100)
+write.csv(S_Logistic_1mOppose_Biasparams, here::here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.csv"), row.names=F)
+arrow::write_parquet(S_Logistic_1mOppose_Biasparams, here::here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.parquet"))
       

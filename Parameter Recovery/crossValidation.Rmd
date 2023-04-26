@@ -1,0 +1,106 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(here)
+here::i_am("./Parameter Recovery/parameterRecoveryScript.Rmd")
+testDf <- read.csv(here("Study 1/Cleaning/output/fullTest.csv"))
+testDf <- testDf[!is.na(testDf$ingChoiceN),]
+trainDf <- read.csv(here("Study 1/Cleaning/output/fullTrain.csv"))
+trainDf <- trainDf[!is.na(trainDf$selfResp),]
+
+setwd("~/Google Drive/Volumes/")
+posDf <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_p.csv")
+posMat <- as.matrix(posDf)
+posGraph <- graph.adjacency(posMat)
+simMat <- similarity.dice(posGraph)
+```
+
+```{r}
+uSubs <- unique(testDf$subID)
+trainSimMat <- matrix(ncol=7,nrow=0)
+testSimMat <- matrix(ncol=6,nrow=0)
+for(i in uSubs){
+  testSub <- subset(testDf, subID==i)
+  trainSub <- subset(trainDf, subID==i)
+  
+  curNovel <- setdiff(testSub$Idx, trainSub$Idx)
+  testDf$novel[which(testSub$Idx %in% curNovel)] <- 1
+  
+  allIdx <- trainSub$Idx
+  allSelf <- trainSub$selfResp
+  allIdxTest <- testSub %>% filter(novel==1) %>% select(Idx) %>% pull(Idx)
+  for(t in 1:nrow(trainSub)){
+    curIdx <- trainSub$Idx[t]
+    curSelf <- trainSub$selfResp[t]
+    allSim <- simMat[curIdx, allIdx]
+    
+    WeightAve <- sum(allSim*allSelf, na.rm = T)/sum(allSim, na.rm = T)
+    
+    curMat <- cbind(rep(i,length(allSelf)),
+                    rep(curSelf,length(allSelf)),
+                    rep(curIdx,length(allSelf)),
+                    allIdx,
+                    allSelf,
+                    allSim,
+                    WeightAve
+                    )
+    trainSimMat <- rbind(trainSimMat,curMat)
+  
+    allSimTest <- simMat[curIdx, allIdxTest]
+    curMatTest <- cbind(rep(i, length(allSimTest)),
+                        rep(curSelf,length(allSimTest)),
+                        rep(curIdx,length(allSimTest)),
+                        allIdxTest, 
+                        allSimTest,
+                        WeightAve
+                        )
+    testSimMat <- rbind(testSimMat,curMatTest)
+    
+    
+  trialNumT1 <- trainSub$trialTotalT1[t]
+    
+    
+  }
+  
+}
+colnames(trainSimMat) <- c("subID","self", "Idx", "targetIdx", "targetSelf", "similarity", "WA")
+colnames(testSimMat) <- c("subID","self", "Idx", "targetIdx", "similarity", "WA")
+trainSimDf <- as.data.frame(trainSimMat)
+testSimDf <- as.data.frame(testSimMat)
+```
+
+
+```{r}
+library(lmerTest)
+m <- lmer( scale(targetSelf) ~ scale(self) * scale(similarity) + ( scale(self) + scale(similarity) | subID) + ( 1 | Idx), data = trainSimDf)
+
+test<- rbind(data.frame(self=rep(7,90), similarity=simMat[1,1:90], subID=1, Idx=1:90),
+data.frame(self=rep(7,90), similarity=simMat[1,1:90], subID=2, Idx=1:90)
+)
+
+test<-data.frame(self=rep(7,90), similarity=simMat[1,1:90], subID=1, Idx=1:90)
+selfs <- round( scales::rescale(predict(m, test, allow.new.levels = TRUE)+rnorm(90,0,1),to=c(1,7)) )
+hist( selfs )
+apply(simMat[,1:90], 1, function(x) cor(x, selfs))
+```
+
+
+```{r}
+trainSimDf$predicted <- predict(m, trainSimDf)
+testSimDf$predicted <- predict(m, testSimDf)
+
+trainAvePredicted <- Rmisc::summarySE(data=trainSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"), na.rm=T)
+testAvePredicted <- Rmisc::summarySE(data=testSimDf, measurevar = "predicted", groupvars = c("subID","targetIdx"), na.rm=T)
+trainAvePredicted <- trainAvePredicted %>% rename(Idx = targetIdx)
+testAvePredicted <- testAvePredicted %>% rename(Idx = targetIdx)
+
+predictedEvals <- rbind(testAvePredicted, trainAvePredicted)
+allPosCents$Idx <- 1:148
+predictedEvals <- merge(predictedEvals, allPosCents, by = "Idx")
+```
+
+
+
