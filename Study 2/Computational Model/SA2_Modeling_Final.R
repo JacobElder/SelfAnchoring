@@ -342,4 +342,22 @@ ROPErange <- function(posterior){
 #   
 # }
 
+print(loo_compare(list("Bias"=PB_LOO.UCLA,
+                       "SLogO.Bias"=S_Logistic_1m_Oppose_Bias_LOO.UCLA
+                       #                       "SLogO.Bias.L"=S_Logistic_1mOppose_Bias_L_LOO
+)),simplify = F
+)
+
+print(loo_compare(list("Bias"=PB_LOO.CSULA,
+                       "SLogO.Bias"=S_Logistic_1m_Oppose_Bias_LOO.CSULA
+                       #                       "SLogO.Bias.L"=S_Logistic_1mOppose_Bias_L_LOO
+)),simplify = F
+)
+
+print(loo_compare(list("Bias"=PB_LOO.NotUCR,
+                       "SLogO.Bias"=S_Logistic_1m_Oppose_Bias_LOO.NotUCR
+                       #                       "SLogO.Bias.L"=S_Logistic_1mOppose_Bias_L_LOO
+)),simplify = F
+)
+
       

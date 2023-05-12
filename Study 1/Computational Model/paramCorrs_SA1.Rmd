@@ -22,7 +22,7 @@ indDiffs %>% select(m, DS:SING.Inter) %>% plotCorToOne(., "m") + scale_x_discret
 ggsave("/Volumes/Research Project/Self-Anchoring/Combined/Plots/SA1_m_cors.png", width=8, height = 5, dpi = 400)
 ```
 ```{r}
-Id.ProjRate.Scatter.1 <- ggplot(indDiffs, aes(SI,m)) + geom_point() + geom_smooth(method="lm",color="black") + jtools::theme_apa() +
+Id.ProjRate.Scatter.1 <- ggplot(indDiffs1, aes(SI,m)) + geom_point() + geom_smooth(method="lm",color="black") + jtools::theme_apa() +
     scale_fill_manual(values = natparks.pals("Charmonix", 2)) + xlab("Social Identification") + ylab("Projection Rate")
 Id.ProjRate.Scatter.1
 ```

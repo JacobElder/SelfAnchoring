@@ -6,17 +6,183 @@ output: html_notebook
 ```{r}
 load("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv.RData")
 ```
+
 ```{r}
 library(pacman)
-p_load(tidyverse, ggdist, wesanderson, patchwork, brms)
+p_load(tidyverse, ggdist, wesanderson, patchwork, brms, igraph, GGally, ggrepel, network, sna, here)
 ```
+
+```{r}
+params.UCLA <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
+params.CSULA <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
+params.NotUCR <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
+params2 <- rbind(
+  cbind(params.UCLA,condition="UCLA"),
+  cbind(params.CSULA,condition="CSU LA"),
+  cbind(params.NotUCR,condition="Not UCR")
+  )
+
+params.Majority <- arrow::read_parquet(here::here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.parquet"))
+params.Minority <- arrow::read_parquet(here::here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.parquet"))
+params3 <- rbind(
+  cbind(params.Majority,condition="Majority"),
+  cbind(params.Minority,condition="Minority")
+  )
+
+# params3 <- rbind(
+#   cbind(params.Majority),#,condition="Majority"),
+#   cbind(params.Minority)#,condition="Minority")
+#   )
+```
+
+
+load adjencency matrix for positive
+```{r}
+#pos_adj <- read.csv("input/pos_adj.csv")
+pos_adj <- read.csv(here("Combined/input/adjacencyMatrix_p.csv"))
+colnames(pos_adj) <- 1:148
+pos_adj <- as.matrix(pos_adj)
+#pos_att <- read.csv("input/traitLevelAttribute_p.csv")
+pos_att <- read.csv(here("Combined/input/allPosCents.csv"))
+# generate graph object from the matrix
+graph_pos <- graph_from_adjacency_matrix(pos_adj, mode = "directed", weighted=NULL)
+V(graph_pos)$tNames <- pos_att$trait
+pos_att$traitFriendly <- pos_att$trait
+pos_att$traitFriendly[pos_att$traitFriendly!="Friendly"] <- ""
+V(graph_pos)$FriendlyName <- pos_att$traitFriendly
+```
+
+
+# Focus on "Friendly" - High outdegree centrality trait
+
+```{r}
+FriendlyNet <- ego(graph_pos, order = 1, nodes = 46, mode = "all",
+  mindist = 0)
+FriendlyNet <- induced.subgraph(graph_pos, vids = unlist(FriendlyNet) )
+
+set.seed(2)
+
+egoNet <- ggnet2(FriendlyNet, size = "outdegree",  color = "dodgerblue",  palette = "Set2", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3, arrow.gap = 0.025, layout.exp = .35, alpha = .7, edge.alpha = .45) + 
+  guides(color = FALSE, size = FALSE) + geom_text_repel(aes(label = V(FriendlyNet)$tNames), size = 3.5, force = .025, fontface = "bold")
+egoNet
+
+ggsave(egoNet, file = "/Volumes/Research Project/Self-Anchoring/Plots/outdegreeNet.png", units = "in", dpi = 300, width= 6, height = 4)
+
+ggsave(egoNet, file = "/Volumes/Research Project/Self-Anchoring/Plots/outdegreeNet.tiff", units = "in", dpi = 300, width= 6, height = 4)
+```
+
+
+# Feedback Community Colored
+
+```{r}
+library(wesanderson)
+
+graph_pos2 <- intergraph::asNetwork(graph_pos)
+#graph_pos2 %v% "cluster" = as.character(V(graph_pos)$cluster)
+
+set.seed(5)
+
+p1 <- ggnet2(graph_pos2, size = "outdegree",  color = "dodgerblue", palette = "Dark2", mode = "kamadakawai", directed=TRUE, layout.exp = .65, alpha = .7, edge.alpha = .25) +
+  guides(color = FALSE, size = FALSE)
+p1
+
+ggsave(p1, file = "/Volumes/Research Project/Self-Anchoring/Plots/colorNet.png", units = "in", dpi = 300, width= 6, height = 4)
+
+ggsave(p1, file = "/Volumes/Research Project/Self-Anchoring/Plots/colorNet.tiff", units = "in", dpi = 300, width= 6, height = 4)
+```
+
+```{r}
+stack <- ggpubr::ggarrange(p1, egoNet, ncol=1, nrow=2)
+
+ggsave(stack, file = "/Volumes/Research Project/Self-Anchoring/Plots/stackNetwork.png", dpi = 300, units = "in", width= 8, height = 10)
+
+ggsave(stack, file = "/Volumes/Research Project/Self-Anchoring/Plots/stackNetwork.tiff", dpi = 300, units = "in", width= 8, height = 10)
+```
+
+# Probability of Significance
 
 ```{r}
 library(bayestestR)
 ps1 <- bayestestR::p_significance(WSRNOV.ING)
-plot(ps1) + jtools::theme_apa() + scale_y_discrete(labels = c("Similarity-to-Self\nX Novel","Novel","Similarity-to-Self")) + xlab(expression(beta)) + ylab("Fixed Effects")
+PS <- plot(ps1) + jtools::theme_apa() + scale_y_discrete(labels = c("Similarity-to-Self\nX Novel","Novel","Similarity-to-Self")) + xlab(expression(beta)) + ylab("Fixed Effects") + geom_vline(xintercept = .18) + geom_vline(xintercept = -.18) + jtools::theme_apa() + ggtitle(NULL)
+
+ggsave(PS, file = "/Volumes/Research Project/Self-Anchoring/Plots/PSplot.png", dpi = 300, units = "in", width= 7.5, height =4.5)
+
+ggsave(PS, file = "/Volumes/Research Project/Self-Anchoring/Plots/PSplot.tiff", dpi = 300, units = "in", width= 7.5, height =4.5)
 ```
 
+# Posterior Predictive Check
+
+```{r}
+ING1PPC <- posterior_predictive_check(WSR.ING) + jtools::theme_apa()
+ING2PPC <- posterior_predictive_check(WSR.ING.COND.2) + jtools::theme_apa()
+ING3PPC <- posterior_predictive_check(WSR.ING.COND.3) + jtools::theme_apa()
+
+SR1PPC <- posterior_predictive_check(MCS.SR) + jtools::theme_apa()
+SR2PPC <- posterior_predictive_check(MCS.SR.COND.2) + jtools::theme_apa()
+SR3PPC <- posterior_predictive_check(MCS.SR.COND.3) + jtools::theme_apa()
+
+COMBPPC <- ggpubr::ggarrange(ING1PPC, ING2PPC, ING3PPC, SR1PPC, SR2PPC, SR3PPC, labels = c("A", "B", "C", "D", "E", "F"), nrow = 2, ncol =3, common.legend = T)
+
+ggsave(COMBPPC, file = "/Volumes/Research Project/Self-Anchoring/Plots/PPCplot.png", dpi = 300, units = "in", width= 10, height = 9)
+
+ggsave(COMBPPC, file = "/Volumes/Research Project/Self-Anchoring/Plots/PPCplot.tiff", dpi = 300, units = "in", width= 10, height = 9)
+```
+# Study 1
+
+## Self-Evaluation Ingroup Classification
+
+```{r}
+DES.ING.1.p <- conditional_effects(DES.ING)#, method = "posterior_linpred")
+DES.ING.1.p_ <- DES.ING.1.p$`desirability.Z`
+DES.ING.1.plot <-ggplot(DES.ING.1.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) + 
+  theme(
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Desirability") + ylab("Ingroup Classification")
+DES.ING.1.plot
+```
+
+## Self-Evaluation Ingroup Classification
+
+```{r}
+SR.ING.1.p <- conditional_effects(SELF.ING)#, method = "posterior_linpred")
+SR.ING.1.p_ <- SR.ING.1.p$`selfResp.Z`
+SR.ING.1.plot <-ggplot(SR.ING.1.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) + 
+  theme(
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Self-Evaluation") + ylab("Ingroup Classification")
+SR.ING.1.plot
+```
+
+## Similarity-to-Self Ingroup Classification
+
+```{r}
+WSR.ING.1.p <- conditional_effects(WSR.ING)#, method = "posterior_linpred")
+WSR.ING.1.p_ <- WSR.ING.2.p$`WSR.Z`
+WSR.ING.1.plot <-ggplot(WSR.ING.2.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) + 
+  theme(
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Self") + ylab("Ingroup Classification")
+WSR.ING.1.plot
+```
+
+## Combine Plots
+
+```{r}
+COMB.ING.1.plot1 <- ggarrange(DES.ING.1.plot, SR.ING.1.plot, WSR.ING.1.plot, labels=c("A","B","C"), nrow=1)
+```
 
 # Study 2
 
@@ -57,10 +223,113 @@ wsPlot2 <- warmPlot2 + statusPlot2
 wsPlot2
 ```
 
+## Projection Rates
+
+```{r}
+mDiffPlot2 <- ggplot(params2, aes(condition, m)) + 
+  ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
+  geom_boxplot(width = .2, outlier.shape = NA) + scale_x_discrete(labels=c("Lower Status","Negation", "Higher Status")) +
+  geom_jitter(width = .05, alpha = .15) + labs(y="Projection Rate",x="University") + jtools::theme_apa()
+```
+
+## Bias Parameter
+
+```{r}
+bDiffPlot2 <- ggplot(params2, aes(condition, bias)) + 
+  ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
+  geom_boxplot(width = .2, outlier.shape = NA) + scale_x_discrete(labels=c("Lower Status","Negation", "Higher Status")) +
+  geom_jitter(width = .05, alpha = .15) + labs(y="Bias Parameter",x="University") + jtools::theme_apa()
+```
+
+## Combine Bias and Projection
+
+```{r}
+mbPlot2 <- mDiffPlot2 + bDiffPlot2 
+mbPlot2
+```
+
+## Desirability Ingroup Classifications
+
+```{r}
+DES.ING.COND.2.p <- conditional_effects(DES.ING.COND.2)#, method = "posterior_linpred")
+DES.ING.COND.2.p_ <- DES.ING.COND.2.p$`desirability.Z:outgroup`
+DES.ING.COND.2.plot <-ggplot(DES.ING.COND.2.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + 
+  scale_linetype_discrete(labels = c("Negation","Lower Status","Higher Status")) + 
+  scale_color_manual(labels = c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
+  scale_fill_manual( 
+                      labels=c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
+  theme(
+    legend.position = c(.08, .75),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Desirability") + ylab("Ingroup Classification")
+DES.ING.COND.2.plot
+```
+
+## Self-Evaluation Ingroup Classification
+
+```{r}
+SR.ING.COND.2.p <- conditional_effects(SR.ING.COND.2)#, method = "posterior_linpred")
+SR.ING.COND.2.p_ <- SR.ING.COND.2.p$`selfResp.Z:outgroup`
+SR.ING.COND.2.plot <-ggplot(SR.ING.COND.2.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + 
+  scale_linetype_discrete(labels = c("Negation","Lower Status","Higher Status")) + 
+  scale_color_manual(labels = c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
+  scale_fill_manual( 
+                      labels=c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
+  theme(
+    legend.position = c(.08, .75),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Self-Evaluation") + ylab("Ingroup Classification")
+SR.ING.COND.2.plot
+```
+
+
+## Similarity-to-Self Ingroup Classification
+
+```{r}
+WSR.ING.COND.2.p <- conditional_effects(WSR.ING.COND.2)#, method = "posterior_linpred")
+WSR.ING.COND.2.p_ <- WSR.ING.COND.2.p$`WSR.Z:outgroup`
+WSR.ING.COND.2.plot <-ggplot(WSR.ING.COND.2.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + 
+  scale_linetype_discrete(labels = c("Negation","Lower Status","Higher Status")) + 
+  scale_color_manual(labels = c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
+  scale_fill_manual( 
+                      labels=c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
+  theme(
+    legend.position = c(.08, .75),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Self") + ylab("Ingroup Classification")
+WSR.ING.COND.2.plot
+```
+
+## Combine Plots
+
+```{r}
+COMB.ING.COND.2.plot1 <- ggarrange(DES.ING.COND.2.plot, SR.ING.COND.2.plot, WSR.ING.COND.2.plot, labels=c("A","B","C"), nrow=1)
+COMB.ING.COND.2.plot2 <- ggarrange(DES.ING.COND.2.plot, SR.ING.COND.2.plot, WSR.ING.COND.2.plot, labels=c("D","E","F"), nrow=1)
+```
+
+
 ## Metacontrast Ratio
 
 ```{r}
-MCS.SR.COND.2.p <- conditional_effects(MCS.SR.COND.2, method = "posterior_linpred")
+MCS.SR.COND.2.p <- conditional_effects(MCS.SR.COND.2)#, method = "posterior_linpred")
 MCS.SR.COND.2.p_ <- MCS.SR.COND.2.p$`metaContrastS.Z:outgroup`
 MCS.SR.COND.2.MCRplot <-ggplot(MCS.SR.COND.2.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + 
   geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + 
@@ -69,7 +338,7 @@ MCS.SR.COND.2.MCRplot <-ggplot(MCS.SR.COND.2.p_, aes(effect1__, estimate__)) +  
   scale_fill_manual( 
                       labels=c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
   theme(
-    legend.position = c(.4, .7),
+    legend.position = c(.12, .7),
     legend.justification = c("left", "bottom"),
     legend.box.just = "left",
     legend.margin = margin(6, 6, 6, 6)
@@ -79,12 +348,33 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
   xlab("Metacontrast Ratio") + ylab("Self-Evaluation")
 MCS.SR.COND.2.MCRplot
 ```
+## Summed Similarity to Outgroup Compared Across Conditions
 
+```{r}
+ISOS.SR.COND.2.p <- conditional_effects(ISOS.SR.COND.2)#, method = "posterior_linpred")
+ISOS.SR.COND.2.p_ <- ISOS.SR.COND.2.p$`inGsimS.Z:outgroup`
+ISOS.SR.COND.2.InGplot <-ggplot(ISOS.SR.COND.2.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + 
+  scale_linetype_discrete(labels = c("Negation","Lower Status","Higher Status")) + 
+  scale_color_manual(labels = c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
+  scale_fill_manual( 
+                      labels=c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
+  theme(
+    legend.position = c(.12, .7),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Ingroup") + ylab("Self-Evaluation")
+ISOS.SR.COND.2.InGplot
+```
 
 ## Summed Similarity to Outgroup Compared Across Conditions
 
 ```{r}
-ISOS.SR.COND.2.p <- conditional_effects(ISOS.SR.COND.2, method = "posterior_linpred")
+ISOS.SR.COND.2.p <- conditional_effects(ISOS.SR.COND.2)#, method = "posterior_linpred")
 ISOS.SR.COND.2.p_ <- ISOS.SR.COND.2.p$`outGsimS.Z:outgroup`
 ISOS.SR.COND.2.OutGplot <-ggplot(ISOS.SR.COND.2.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + 
   geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + 
@@ -93,7 +383,7 @@ ISOS.SR.COND.2.OutGplot <-ggplot(ISOS.SR.COND.2.p_, aes(effect1__, estimate__)) 
   scale_fill_manual( 
                       labels=c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1")) + 
   theme(
-    legend.position = c(.4, .7),
+    legend.position = c(.12, .7),
     legend.justification = c("left", "bottom"),
     legend.box.just = "left",
     legend.margin = margin(6, 6, 6, 6)
@@ -146,6 +436,93 @@ wsPlot3 <- warmPlot3 + statusPlot3
 wsPlot3
 ```
 
+## Projection Rates
+
+```{r}
+mDiffPlot3 <- ggplot(params3, aes(condition, m)) + 
+  ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
+  geom_boxplot(width = .2, outlier.shape = NA) + scale_x_discrete(labels=c("Majority","Minority")) +
+  geom_jitter(width = .05, alpha = .15) + labs(y="Projection Rate",x="Racial Group") + jtools::theme_apa()
+```
+
+## Bias Parameter
+
+```{r}
+bDiffPlot3 <- ggplot(params3, aes(condition, bias)) + 
+  ggdist::stat_halfeye(adjust = .5, width = .7, .width = 0, justification = -.2, point_colour = NA) + 
+  geom_boxplot(width = .2, outlier.shape = NA) + scale_x_discrete(labels=c("Majority","Minority")) +
+  geom_jitter(width = .05, alpha = .15) + labs(y="Bias Parameter",x="Racial Group") + jtools::theme_apa()
+```
+
+## Combine Bias and Projection Plots
+
+```{r}
+mbPlot3 <- mDiffPlot3 + bDiffPlot3
+mbPlot3
+```
+
+## Desirability Ingroup Classification
+
+```{r}
+DES.ING.COND.3.p <- conditional_effects(DES.ING.COND.3)
+DES.ING.COND.3.p_ <- DES.ING.COND.3.p$`desirability.Z:condition`
+DES.ING.COND.3.plot <-ggplot(DES.ING.COND.3.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + scale_linetype_discrete(labels = c("Majority","Minority")) + scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
+                      labels=c("Majority","Minority"), values = c("#44AA99","#332288")) + theme(
+    legend.position = c(.12, .7),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Desirability") + ylab("Ingroup Classification")
+DES.ING.COND.3.plot
+```
+
+
+## Self-Evaluation Ingroup Classification
+
+```{r}
+SR.ING.COND.3.p <- conditional_effects(SR.ING.COND.3)
+SR.ING.COND.3.p_ <- SR.ING.COND.3.p$`selfResp.Z:condition`
+SR.ING.COND.3.plot <-ggplot(SR.ING.COND.3.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + scale_linetype_discrete(labels = c("Majority","Minority")) + scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
+                      labels=c("Majority","Minority"), values = c("#44AA99","#332288")) + theme(
+    legend.position = c(.12, .7),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Self-Evaluation") + ylab("Ingroup Classification")
+SR.ING.COND.3.plot
+```
+
+## Similarity-to-Self Ingroup Classification
+
+```{r}
+WSR.ING.COND.3.p <- conditional_effects(WSR.ING.COND.3)
+WSR.ING.COND.3.p_ <- WSR.ING.COND.3.p$`WSR.Z:condition`
+WSR.ING.COND.3.plot <-ggplot(WSR.ING.COND.3.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + scale_linetype_discrete(labels = c("Majority","Minority")) + scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
+                      labels=c("Majority","Minority"), values = c("#44AA99","#332288")) + theme(
+    legend.position = c(.12, .7),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Self") + ylab("Ingroup Classification")
+WSR.ING.COND.3.plot
+```
+
+## Combine Plots
+
+```{r}
+COMB.ING.COND.3.plot1 <- ggarrange(DES.ING.COND.3.plot, SR.ING.COND.3.plot, WSR.ING.COND.3.plot, labels=c("A","B","C"), nrow=1)
+COMB.ING.COND.3.plot3 <- ggarrange(DES.ING.COND.3.plot, SR.ING.COND.3.plot, WSR.ING.COND.3.plot, labels=c("G","H","I"), nrow=1)
+```
+
 ## Metacontrast Ratio
 
 ```{r}
@@ -153,7 +530,7 @@ MCS.SR.COND.3.p <- conditional_effects(MCS.SR.COND.3)
 MCS.SR.COND.3.p_ <- MCS.SR.COND.3.p$`metaContrastS.Z:condition`
 MCS.SR.COND.3.MCRplot <-ggplot(MCS.SR.COND.3.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + scale_linetype_discrete(labels = c("Majority","Minority")) + scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
                       labels=c("Majority","Minority"), values = c("#44AA99","#332288")) + theme(
-    legend.position = c(.4, .7),
+    legend.position = c(.12, .7),
     legend.justification = c("left", "bottom"),
     legend.box.just = "left",
     legend.margin = margin(6, 6, 6, 6)
@@ -164,15 +541,32 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 MCS.SR.COND.3.MCRplot
 ```
 
+## Summed Similarity to Ingroup Compared Across Conditions
+
+```{r}
+ISOS.SR.COND.3.p <- conditional_effects(ISOS.SR.COND.3)
+ISOS.SR.COND.3.p_ <- ISOS.SR.COND.3.p$`inGsimS.Z:condition`
+ISOS.SR.COND.3.InGplot <-ggplot(ISOS.SR.COND.3.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + scale_linetype_discrete(labels = c("Majority","Minority")) + scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
+                      labels=c("Majority","Minority"), values = c("#44AA99","#332288")) + theme(
+    legend.position = c(.12, .7),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Ingroup") + ylab("Self-Evaluation")
+ISOS.SR.COND.3.InGplot
+```
 
 ## Summed Similarity to Outgroup Compared Across Conditions
 
 ```{r}
 ISOS.SR.COND.3.p <- conditional_effects(ISOS.SR.COND.3)
 ISOS.SR.COND.3.p_ <- ISOS.SR.COND.3.p$`outGsimS.Z:condition`
-ISOS.SR.COND.3.OutGPlot <-ggplot(ISOS.SR.COND.3.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + scale_linetype_discrete(labels = c("Majority","Minority")) + scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
+ISOS.SR.COND.3.OutGplot <-ggplot(ISOS.SR.COND.3.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + scale_linetype_discrete(labels = c("Majority","Minority")) + scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
                       labels=c("Majority","Minority"), values = c("#44AA99","#332288")) + theme(
-    legend.position = c(.4, .7),
+    legend.position = c(.12, .7),
     legend.justification = c("left", "bottom"),
     legend.box.just = "left",
     legend.margin = margin(6, 6, 6, 6)
@@ -180,7 +574,7 @@ ISOS.SR.COND.3.OutGPlot <-ggplot(ISOS.SR.COND.3.p_, aes(effect1__, estimate__)) 
         axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   xlab("Similarity-to-Outgroup") + ylab("Self-Evaluation")
-ISOS.SR.COND.3.OutGPlot
+ISOS.SR.COND.3.OutGplot
 ```
 
 # Studies Combined
@@ -188,5 +582,35 @@ ISOS.SR.COND.3.OutGPlot
 ```{r}
 wsPlot23 <- wsPlot2 / wsPlot3
 wsPlot23
+ggsave(wsPlot23, file = "/Volumes/Research Project/Self-Anchoring/Plots/warmStatus23.png", dpi = 300, units = "in", width= 10, height = 12)
+ggsave(wsPlot23, file = "/Volumes/Research Project/Self-Anchoring/Plots/warmStatus23.tiff", dpi = 300, units = "in", width= 10, height = 12)
 ```
+
+```{r}
+mbPlot23 <- mbPlot2 / mbPlot3
+mbPlot23
+ggsave(mbPlot23, file = "/Volumes/Research Project/Self-Anchoring/Plots/projBias23.png", dpi = 300, units = "in", width= 12, height = 9)
+ggsave(mbPlot23, file = "/Volumes/Research Project/Self-Anchoring/Plots/projBias23.tiff", dpi = 300, units = "in", width= 12, height = 9)
+```
+
+```{r}
+COMB.ING.ALL <- ggarrange(COMB.ING.1.plot1, COMB.ING.COND.2.plot2, COMB.ING.COND.3.plot3, nrow =3)
+
+ggsave(COMB.ING.ALL, file = "/Volumes/Research Project/Self-Anchoring/Plots/testPlot.png", dpi = 300, units = "in", width= 11, height = 14)
+
+ggsave(COMB.ING.ALL, file = "/Volumes/Research Project/Self-Anchoring/Plots/testPlot.tiff", dpi = 300, units = "in", width= 11, height = 14)
+```
+
+
+```{r}
+trainingPlots <- ggpubr::ggarrange(MCS.SR.COND.2.MCRplot, ISOS.SR.COND.2.InGplot, ISOS.SR.COND.2.OutGplot,
+          MCS.SR.COND.3.MCRplot, ISOS.SR.COND.3.InGplot, ISOS.SR.COND.3.OutGplot,
+          labels = c("A", "B", "C", "D", "E", "F"),
+          nrow = 2, ncol = 3)
+
+ggsave(trainingPlots, file = "/Volumes/Research Project/Self-Anchoring/Plots/trainPlot.png", dpi = 300, units = "in", width= 10, height = 9)
+
+ggsave(trainingPlots, file = "/Volumes/Research Project/Self-Anchoring/Plots/trainPlot.tiff", dpi = 300, units = "in", width= 10, height = 9)
+```
+
 

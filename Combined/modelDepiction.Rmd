@@ -5,7 +5,7 @@ output: html_notebook
 
 ```{r}
 library(pacman)
-pacman::p_load(pheatmap, igraph, heatmaply, RColorBrewer, tidyverse, ggpubr)
+pacman::p_load(pheatmap, igraph, heatmaply, RColorBrewer, tidyverse, ggpubr, ggforce)
 ```
 
 
@@ -177,6 +177,6 @@ library(patchwork)
 ggarrange(FSplot, origMDS, smallPR.MDS, largePR.MDS, nrow=2,ncol=2, labels = c("A","B","C","D"))
 ggsave("/Volumes/Research Project/Self-Anchoring/Combined/Plots/modelDepict.png", units="in", width=13, height=10, dpi=300)
 ggarrange(FSplot, origMDS, nrow=2,ncol=1, labels = c("A","B"))
-ggsave("/Volumes/Research Project/Self-Anchoring/Combined/Plots/modelDepict.png", units="in", width=13, height=10, dpi=300)
+ggsave("/Volumes/Research Project/Self-Anchoring/Plots/modelDepict.png", units="in", width=8, height=10, dpi=300)
 ```
 

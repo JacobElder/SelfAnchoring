@@ -355,4 +355,15 @@ ROPErange <- function(posterior){
 #   
 # }
 
+print(loo_compare(list("Bias"=PB_LOO.Majority,
+                       "SLogO.Bias"=S_Logistic_1m_Oppose_Bias_LOO.Majority
+)),simplify = F
+)
+
+print(loo_compare(list("Bias"=PB_LOO.Minority,
+                       "SLogO.Bias"=S_Logistic_1m_Oppose_Bias_LOO.Minority
+)),simplify = F
+)
+
+
       

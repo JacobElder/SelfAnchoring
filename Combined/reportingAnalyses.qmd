@@ -16,13 +16,31 @@ library(pacman)
 # groundhog.day <- '2023-03-02'
 # groundhog.library(pkgs, groundhog.day)
 
-pacman::p_load("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist", "gtsummary","brms","kableExtra","bayestestR","ordbetareg")
+pacman::p_load("lmerTest", "ggeffects","r2glmm", "tidyverse","here", "sjPlot", "ggpubr", "wesanderson", "effectsize","broom.mixed","corrr","report", "ez", "ggdist", "gtsummary","brms","kableExtra","bayestestR","ordbetareg","correlation")
 
 here::i_am("Combined/reportingAnalyses.qmd")
 
 devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
 devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/plotCommAxes.R")
 devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/named.effects.ref.R")
+```
+
+```{r}
+bayesCorPlot <- function(df){
+df %>% 
+    mutate(Parameter = factor(Parameter2, levels = Parameter2[order(rho)]),
+           SE = (CI_high-CI_low)/3.92) %>%  # Order by correlation strength
+    ggplot(aes(x = Parameter, y = rho )) +
+    geom_bar(stat = "identity") +
+    ylab("Correlation Coefficient") +
+    xlab("Individual Differences") + theme_grey(base_size = 9)  + theme(axis.text.x = element_text(angle = 90,hjust = 1)) +
+    theme(axis.text.x = element_text( 
+        size = 9, angle = 45, vjust = 1)) + theme(axis.title.x = element_text(vjust=1.9)) + theme(axis.text=element_text(size=9),
+                                                                                                  axis.title=element_text(size=9,face="bold")) + theme(legend.text = element_text(size=9)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                                                                                                                                                                                                                                                                                                                      panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+    geom_errorbar(aes(ymin=rho-SE, ymax=rho+SE), width=.2,
+                  position=position_dodge(.9)) 
+}
 ```
 
 Workspace
@@ -32,11 +50,17 @@ load("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalys
 save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv.RData")
 ```
 
+```{r}
+load("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv_2023_05_07.RData")
+save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv_2023_05_07.RData")
+```
+
 # Study 1
 
 ```{r, include=F}
 fullTest1 <- arrow::read_parquet(here("Study 1//Cleaning/output/fullTest.parquet"))
 fullTrain1 <- arrow::read_parquet(here("Study 1/Cleaning/output/fullTrain.parquet"))
+params1 <- arrow::read_parquet(here::here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.parquet"))
 
 traitsFreqs1 <- read.csv(here("Study 1//Cleaning/output/traitFreqOverUnder.csv"))
 
@@ -44,6 +68,8 @@ uSubs <- unique(fullTest1$subID)
 
 indDiffs1 <- fullTest1[!duplicated(fullTest1$subID),]
 indDiffs1 <- indDiffs1 %>% select(subID, groupHomoph, DS:SING.Inter)
+
+fullTrain1 <- indDiffs1 %>% select(subID, groupHomoph) %>% full_join(fullTrain1, by = "subID")
 ```
 
 ```{r, include=F}
@@ -67,6 +93,7 @@ fullTest1$desirability.Z <- as.numeric(scale(fullTest1$desirability)[,1])
 fullTest1$er.Z <- as.numeric(scale(fullTest1$er)[,1])
 fullTest1$outDegree.Z <- as.numeric(scale(fullTest1$outDegree)[,1])
 fullTest1$inDegree.Z <- as.numeric(scale(fullTest1$inDegree)[,1])
+fullTest1$groupHomoph.Z <- as.numeric(scale(fullTest1$groupHomoph)[,1])
 
 fullTest1$novel <- as.factor(fullTest1$novel)
 levels(fullTest1$novel) <- list("Trained"  = "0", "Held Out" = "1")
@@ -78,6 +105,10 @@ fullTrain1$outGsimS.Z <- as.numeric(scale(fullTrain1$outGsimS)[,1])
 
 ncores = parallel::detectCores()
 options(mc.cores = parallel::detectCores())
+
+fullTest1$RT.Z <- log(fullTest1$RT)
+fullTest1[is.infinite(fullTest1$RT.Z),] <- NA
+fullTest1$RT.Z <- scale(fullTest1$RT.Z)
 ```
 
 ## **People Classify Desirable Traits as Ingroup Characteristic**
@@ -196,6 +227,13 @@ WSRIN.ING <-brm( ingChoiceN ~ WSR.Z * inDegree.Z + ( WSR.Z + inDegree.Z | subID)
 sexit(WSRIN.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
+## Uncertainty's Effect on Ingroup Classification
+
+```{r}
+UNC.ING <-brm( ingChoiceN ~ entropy.Z + ( entropy.Z | subID) + ( 1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
+sexit(UNC.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ## **Projection to the Ingroup, Rather than Rejection of the Outgroup**
 
 ### Metacontrast ratio (summed similarity to ingroup over summed similarity to outgroup) is strongly associated with self-descriptiveness
@@ -233,19 +271,64 @@ sexit(ISOS.SR) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction))
 ## Correlates of Homophily in Group Classifications
 
 ```{r}
-indDiffs1 %>% select(groupHomoph, DS:SING.Ind) %>% corToOne(., "groupHomoph")
-indDiffs1 %>% select(groupHomoph, DS:SING.Ind) %>% plotCorToOne(., "groupHomoph")
+ghforplot1 <- indDiffs1 %>% select(groupHomoph, DS:SING.Inter) %>% correlation(bayesian=T) %>% filter(Parameter1 == "groupHomoph" | Parameter2 == "groupHomoph") %>% arrange(rho)
+ghforplot1
+bayesCorPlot(ghforplot1)
 ```
 
 ## Computational Model
-
-TBD
 
 ### Model Performance
 
 ### Parameter Recovery
 
 ### Parameter Correlations with Individual Differences
+
+```{r}
+indDiffsp1 <- indDiffs1 %>% right_join(params1, by = "subID")
+```
+
+#### Projection Rate
+
+```{r}
+mforplot1 <- indDiffsp1 %>% select(m, groupHomoph, DS:SING.Inter) %>% correlation(bayesian=T) %>% filter(Parameter1 == "m" | Parameter2 == "m") %>% arrange(rho)
+mforplot1
+bayesCorPlot(mforplot1)
+
+mfortable1 <- as_tibble(mforplot1) %>% select(Parameter2, rho, CI_low, CI_high)
+mfortable1[2:4] <- apply(mfortable1[2:4], 2, function(x) round(x, 3))
+mfortable1 <- tibble("Measure"=mfortable1$Parameter2,
+                     "Correlation"=paste0(mfortable1$rho, " [",mfortable1$CI_low, " - ", mfortable1$CI_high, "]"))
+write.table(mfortable1, file = "/Volumes/Research Project/Self-Anchoring/Tables/mfortable1.txt", sep = ",", quote = FALSE, row.names = F)
+```
+
+#### Temperature
+
+```{r}
+tempforplot1 <- indDiffsp1 %>% select(Temp, groupHomoph, DS:SING.Inter) %>% correlation(bayesian=T) %>% filter(Parameter1 == "Temp" | Parameter2 == "Temp") %>% arrange(rho)
+tempforplot1
+bayesCorPlot(tempforplot1)
+
+tempfortable1 <- as_tibble(tempforplot1) %>% select(Parameter2, rho, CI_low, CI_high)
+tempfortable1[2:4] <- apply(tempfortable1[2:4], 2, function(x) round(x, 3))
+tempfortable1 <- tibble("Measure"=tempfortable1$Parameter2,
+                     "Correlation"=paste0(tempfortable1$rho, " [",tempfortable1$CI_low, " - ", tempfortable1$CI_high, "]"))
+write.table(tempfortable1, file = "/Volumes/Research Project/Self-Anchoring/Tables/tempfortable1.txt", sep = ",", quote = FALSE, row.names = F)
+```
+
+#### Bias
+
+```{r}
+biasforplot1 <- indDiffsp1 %>% select(bias, groupHomoph, DS:SING.Inter) %>% correlation(bayesian=T) %>% filter(Parameter1 == "bias" | Parameter2 == "bias") %>% arrange(rho)
+biasforplot1
+bayesCorPlot(biasforplot1)
+
+biasfortable1 <- as_tibble(biasforplot1) %>% select(Parameter2, rho, CI_low, CI_high)
+biasfortable1[2:4] <- apply(biasfortable1[2:4], 2, function(x) round(x, 3))
+biasfortable1 <- tibble("Measure"=biasfortable1$Parameter2,
+                     "Correlation"=paste0(biasfortable1$rho, " [",biasfortable1$CI_low, " - ", biasfortable1$CI_high, "]"))
+write.table(biasfortable1, file = "/Volumes/Research Project/Self-Anchoring/Tables/biasfortable1.txt", sep = ",", quote = FALSE, row.names = F)
+```
 
 # Study 2
 
@@ -255,9 +338,21 @@ fullTrain2 <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parque
 
 traitsFreqs1 <- read.csv(here("Study 2//Cleaning/output/traitFreqOverUnder.csv"))
 
+params.UCLA <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
+params.CSULA <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
+params.NotUCR <- arrow::read_parquet(here::here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
+params2 <- rbind(
+  cbind(params.UCLA,condition="UCLA"),
+  cbind(params.CSULA,condition="CSU LA"),
+  cbind(params.NotUCR,condition="Not UCR")
+  )
+
 uSubs <- unique(fullTest2$subID)
 
 indDiffs2 <- fullTest2[!duplicated(fullTest2$subID),]
+
+
+fullTrain2 <- indDiffs2 %>% select(subID, groupHomoph) %>% full_join(fullTrain2, by = "subID")
 ```
 
 ```{r, include = F}
@@ -297,6 +392,9 @@ fullTrain2$outgroup <- as.factor(fullTrain2$outgroup)
 fullTrain2$outgroup <- relevel(fullTrain2$outgroup,"Not UCR")
 
 fullTest2$outgroupE <- named.effects.ref(fullTest2$outgroup, "Not UCR")
+
+indDiffs2$outgroup <- as.factor(indDiffs2$outgroup)
+indDiffs2$outgroup <- relevel(indDiffs2$outgroup,"UCLA")
 ```
 
 ## **Differences Across Univerisities in Perceived Warmth and Status**
@@ -403,7 +501,7 @@ m %>%
 ```
 
 ```{r}
-DES.ING.COND.2 <-brm( ingChoiceN ~ desirability.Z * outgroup + ( desirability.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+DES.ING.COND.2 <-brm( ingChoiceN ~ desirability.Z * outgroup + ( desirability.Z | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
 sexit(DES.ING.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ggpredict(DES.ING.COND.2, c("desirability.Z", "outgroup")) %>% plot()
 ```
@@ -440,7 +538,7 @@ m %>%
 ```
 
 ```{r}
-SR.ING.COND.2 <-brm( ingChoiceN ~ selfResp.Z * outgroup + ( selfResp.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+SR.ING.COND.2 <-brm( ingChoiceN ~ selfResp.Z * outgroup + ( selfResp.Z | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
 sexit(SR.ING.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ggpredict(SR.ING.COND.2, c("selfResp.Z", "outgroup")) %>% plot()
 ```
@@ -474,6 +572,25 @@ m %>%
     exponentiate = TRUE,
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
+```
+
+```{r}
+m <- glmer( ingChoiceN ~ WSR.Z * outgroup * MGIS + ( WSR.Z | subID) + ( outgroup | trait), data = fullTest2, family = binomial, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 100000)),
+    nAGQ = 1)
+```
+
+```{r}
+fullTest2$RT <- log(fullTest2$RT)
+fullTest2$RT[is.infinite(fullTest2$RT)] <- NA
+m <- lmer( RT ~ fam * outgroup + ( fam | subID) + ( outgroup | trait), data = fullTest2)
+summary(m)
+```
+
+```{r}
+WSR.ING.COND.2test <- brm( ingChoiceN ~ WSR.Z * outgroup + desirability.Z + entropy.Z + fam + novel + ( WSR.Z | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.COND.2test) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(WSR.ING.COND.2test, c("WSR.Z", "outgroup")) %>% plot()
 ```
 
 ```{r}
@@ -562,6 +679,20 @@ WSRIN.ING.2 <-brm( ingChoiceN ~ WSR.Z * inDegree.Z + ( WSR.Z + inDegree.Z | subI
 sexit(WSRIN.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
+## Uncertainty's Effect on Ingroup Classification
+
+```{r}
+UNC.ING.2 <-brm( ingChoiceN ~ entropy.Z + ( entropy.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(UNC.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
+### Differing by Condition
+
+```{r}
+UNC.ING.COND.2 <-brm( ingChoiceN ~ entropy.Z * outgroup + ( entropy.Z | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(UNC.ING.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ## **Projection to the Ingroup, Rather than Rejection of the Outgroup**
 
 ### Metacontrast ratio (summed similarity to ingroup over summed similarity to outgroup) is strongly associated with self-descriptiveness
@@ -630,6 +761,14 @@ r2beta(m)
 ```
 
 ```{r}
+m <- lmer( scale(selfResp) ~ inGsimS.Z * outgroup * MGIS + outGsimS.Z * outgroup * MGIS + (  1 | subID) + ( 1 | trait), data = fullTrain2)
+m %>%
+  tbl_regression(
+    pvalue_fun = ~ style_pvalue(.x, digits = 2),
+  )
+```
+
+```{r}
 ISOS.SR.COND.2 <-brm( selfResp ~ inGsimS.Z * outgroup + outGsimS.Z * outgroup + (  inGsimS.Z + outGsimS.Z | subID) + ( outgroup | trait), data = fullTrain2, cores=ncores, family = cumulative(link = "logit") )
 sexit(ISOS.SR.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
@@ -637,8 +776,17 @@ sexit(ISOS.SR.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Dire
 ## Correlates of Homophily in Group Classifications
 
 ```{r}
-indDiffs2 %>% select(groupHomoph, seHomoph, SStatus:IdImp) %>% corToOne(., "groupHomoph")
-indDiffs2 %>% select(groupHomoph, seHomoph, SStatus:IdImp) %>% plotCorToOne(., "groupHomoph")
+ghforplot2 <- indDiffs2 %>% select(groupHomoph, seHomoph, SStatus:IdImp) %>% correlation(bayesian=T) %>% filter(Parameter1 == "groupHomoph" | Parameter2 == "groupHomoph") %>% arrange(rho)
+ghforplot2
+bayesCorPlot(ghforplot2)
+```
+
+## Differences in Homophily
+
+```{r}
+GH.COND.2 <- brm( scale(groupHomoph) ~ outgroup, data=indDiffs2)
+sexit(GH.COND.2) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describe.by(indDiffs2$groupHomoph, indDiffs2$outgroup)
 ```
 
 ## Computational Model
@@ -652,7 +800,65 @@ TBD
 ### Parameter Correlations with Individual Differences
 
 ```{r}
-save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv.RData")
+indDiffsp2 <- indDiffs2 %>% right_join(params2, by = "subID")
+```
+
+#### Projection Rate
+
+```{r}
+mforplot2 <- indDiffsp2 %>% select(m, groupHomoph, SStatus:IdImp) %>% correlation(bayesian=T) %>% filter(Parameter1 == "m" | Parameter2 == "m") %>% arrange(rho)
+mforplot2
+bayesCorPlot(mforplot2)
+```
+
+##### By Condition
+
+```{r}
+mforplot2c <- indDiffsp2 %>% group_by(condition) %>% select(m, groupHomoph, SStatus:IdImp) %>% correlation(bayesian=T) %>% filter(Parameter1 == "m" | Parameter2 == "m") %>% arrange(rho)
+mforplot2c <- c("UCLA","CSU LA","Not UCR") %>% map(\(x) filter(mforplot2c, Group==x))
+lapply(mforplot2c, bayesCorPlot)
+```
+
+#### Temperature
+
+```{r}
+tempforplot2 <- indDiffsp2 %>% select(Temp, groupHomoph, SStatus:IdImp) %>% correlation(bayesian=T) %>% filter(Parameter1 == "Temp" | Parameter2 == "Temp") %>% arrange(rho)
+tempforplot2
+bayesCorPlot(tempforplot2)
+```
+
+##### By Condition
+
+```{r}
+tempforplot2 <- indDiffsp2 %>% group_by(condition) %>% select(Temp, groupHomoph, SStatus:IdImp) %>% correlation(bayesian=T) %>% filter(Parameter1 == "Temp" | Parameter2 == "Temp") %>% arrange(rho)
+tempforplot2c <- c("UCLA","CSU LA","Not UCR") %>% map(\(x) filter(tempforplot2, Group==x))
+lapply(tempforplot2c, bayesCorPlot)
+```
+
+#### Bias
+
+```{r}
+biasforplot2 <- indDiffsp2 %>% select(bias, groupHomoph, SStatus:IdImp) %>% correlation(bayesian=T) %>% filter(Parameter1 == "bias" | Parameter2 == "bias") %>% arrange(rho)
+biasforplot2
+bayesCorPlot(biasforplot2)
+```
+
+### Parameter Differences
+
+#### Projection Rate
+
+```{r}
+PR.COND.2 <- brm( scale(m) ~ outgroup, data=indDiffsp2)
+sexit(PR.COND.2) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describe.by(indDiffsp2$m, indDiffsp2$outgroup)
+```
+
+#### Bias
+
+```{r}
+BIAS.COND.2 <- brm( scale(bias) ~ outgroup, data=indDiffsp2)
+sexit(BIAS.COND.2) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describe.by(indDiffsp2$bias, indDiffsp2$outgroup)
 ```
 
 # Study 3
@@ -661,9 +867,25 @@ save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reporting
 fullTest3 <- arrow::read_parquet(here("Study 3//Cleaning/output/fullTest.parquet"))
 fullTrain3 <- arrow::read_parquet(here("Study 3/Cleaning/output/fullTrain.parquet"))
 
+params.Majority <- arrow::read_parquet(here::here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.parquet"))
+params.Minority <- arrow::read_parquet(here::here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.parquet"))
+params3 <- rbind(
+  cbind(params.Majority,condition="Majority"),
+  cbind(params.Minority,condition="Minority")
+  )
+
+params3 <- rbind(
+  cbind(params.Majority),#,condition="Majority"),
+  cbind(params.Minority)#,condition="Minority")
+  )
+
 uSubs <- unique(fullTest3$subID)
 
 indDiffs3 <- fullTest3[!duplicated(fullTest3$subID),]
+
+fullTrain3 <- indDiffs3 %>% select(subID, groupHomoph) %>% full_join(fullTrain3, by = "subID")
+fullTrain3 <- params3 %>% select(subID, m, Temp, bias) %>% full_join(fullTrain3, by = "subID")
+fullTrain3 <- fullTest3 %>% select(subID, trait, entropy, entropy.Z) %>% right_join(fullTrain3, by = c("subID","trait"))
 ```
 
 ```{r, include = F}
@@ -701,6 +923,12 @@ fullTest3$condition <- relevel(fullTest3$condition,"Majority")
 
 fullTrain3$condition <- as.factor(fullTrain3$condition)
 fullTrain3$condition <- relevel(fullTrain3$condition,"Majority")
+
+fullTest3 <- fullTest3 %>% mutate(inOutTherm = case_when(
+  condition == "Minority" ~ inMinorityTherm,
+  condition == "Majority" ~ inMajorityTherm
+)
+                     )
 ```
 
 ## **Differences Across Univerisities in Perceived Warmth and Status**
@@ -865,7 +1093,7 @@ sexit(WSR.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction
 ### Compared across conditions
 
 ```{r}
-m <- glmer( ingChoiceN ~ WSR.Z * condition * MGIS + racid + ( 1 | subID) + ( 1 | trait), data = fullTest3, family = binomial, control = glmerControl(optimizer = "bobyqa"),
+m <- glmer( ingChoiceN ~ WSR.Z * condition * inOutTherm + ( WSR.Z | subID) + ( condition + inOutTherm | trait), data = fullTest3, family = binomial, control = glmerControl(optimizer = "bobyqa"),
     nAGQ = 1)
 m %>%
   tbl_regression(
@@ -881,7 +1109,7 @@ ggpredict(WSR.ING.COND.3, c("WSR.Z", "condition")) %>% plot()
 ```
 
 ```{r}
-test <- brm( ingChoiceN ~ WSR.Z * condition + desirability + racid + ( WSR.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+test <- brm( ingChoiceN ~ WSR.Z * condition + desirability + racid + desirability.Z + selfResp.Z + novel + RT + entropy.Z + ( WSR.Z + desirability.Z + selfResp.Z + novel + entropy.Z | subID) + ( condition + racid | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
 sexit(test) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ggpredict(test, c("WSR.Z", "condition")) %>% plot()
 ```
@@ -966,6 +1194,26 @@ WSRIN.ING.3 <-brm( ingChoiceN ~ WSR.Z * inDegree.Z + ( WSR.Z + inDegree.Z | subI
 sexit(WSRIN.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
+## 
+
+## Uncertainty's Effect on Ingroup Classification
+
+```{r}
+test <-glmer( ingChoiceN ~ entropy.Z + WSR.Z + desirability.Z + ( entropy.Z | subID) + ( 1 | trait), data=fullTest3, family = binomial )
+```
+
+```{r}
+UNC.ING.3 <-brm( ingChoiceN ~ entropy.Z + ( entropy.Z | subID) + ( 1 | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(UNC.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
+### Differing by Condition
+
+```{r}
+UNC.ING.COND.3 <-brm( ingChoiceN ~ entropy.Z * condition + ( entropy.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(UNC.ING.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
 ## **Projection to the Ingroup, Rather than Rejection of the Outgroup**
 
 ### Metacontrast ratio (summed similarity to ingroup over summed similarity to outgroup) is strongly associated with self-descriptiveness
@@ -981,7 +1229,7 @@ r2beta(m)
 
 ```{r}
 MCS.SR.3 <-brm( selfResp ~ metaContrastS.Z + (  metaContrastS.Z | subID) + (1 | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
-sexit(MCS.SR.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+sexit(MCS.SR.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()1
 ```
 
 ### Metacontrast ratio compared across condition
@@ -1053,8 +1301,17 @@ avg_comparisons(ISOS.SR.COND.3, variables = c("outGsimS.Z", "condition"))
 ## Correlates of Homophily in Group Classifications
 
 ```{r}
-indDiffs3 %>% select(groupHomoph, seHomoph, SStatus, SocClass, SCC:IdImp) %>% corToOne(., "groupHomoph")
-indDiffs3 %>% select(groupHomoph, seHomoph, SStatus, SocClass, SCC:IdImp) %>% plotCorToOne(., "groupHomoph")
+ghforplot3 <- indDiffs3 %>% select(groupHomoph, SStatus:IdImp, -Condition, -mixed, -racid2) %>% correlation(bayesian=T) %>% filter(Parameter1 == "groupHomoph" | Parameter2 == "groupHomoph") %>% arrange(rho)
+ghforplot3
+bayesCorPlot(ghforplot3)
+```
+
+## Differences in Homophily
+
+```{r}
+GH.COND.3 <- brm( scale(groupHomoph) ~ condition + racid, data=indDiffsp3)
+sexit(GH.COND.3) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describe.by(indDiffsp3$groupHomoph, indDiffsp3$condition)
 ```
 
 ## Computational Model
@@ -1067,7 +1324,111 @@ TBD
 
 ### Parameter Correlations with Individual Differences
 
-# 
+```{r}
+indDiffsp3 <- indDiffs3 %>% right_join(params3, by = "subID")
+
+# cur<-indDiffsp3[, c("m", "Temp","bias","groupHomoph")]
+# PCAall<- prcomp(na.omit(cur),
+#              center = TRUE,
+#             scale. = TRUE)
+```
+
+#### Projection Rate
+
+```{r}
+indDiffsp3$inOutTherm <- ifelse(indDiffsp3$condition == "Majority", indDiffsp3$inMajorityTherm, indDiffsp3$inMinorityTherm)
+indDiffsp3 <- indDiffsp3 %>% mutate(inWarm = case_when(
+  racid == "Asian" ~ Therm_2,
+  racid == "Latino" ~ Therm_4
+),
+outWarm = case_when(
+  condition == "Majority" ~ Therm_1,
+  condition == "Minority" & racid == "Asian" ~ Therm_4,
+  condition == "Minority" & racid == "Latino" ~ Therm_2
+),
+otherWarm = case_when(
+  racid == "Asian" ~ (Therm_1 + Therm_4)/2,
+  racid == "Latino" ~ (Therm_1 + Therm_2)/2
+)
+)
+
+mforplot3 <- indDiffsp3 %>% select(m, groupHomoph, SStatus:IdImp, inOutTherm, inWarm, outWarm, otherWarm, -Condition, -mixed, -racid2) %>% correlation(bayesian=T) %>% filter(Parameter1 == "m" | Parameter2 == "m") %>% arrange(rho)
+mforplot3
+bayesCorPlot(mforplot3)
+```
+
+##### By Condition
+
+```{r}
+mforplot3c <- indDiffsp3  %>% group_by(condition) %>% select(m, groupHomoph, SStatus:IdImp, inOutTherm, inWarm, outWarm, otherWarm, -mixed, -racid2)  %>% correlation(bayesian=T) %>% filter(Parameter1 == "m" | Parameter2 == "m") %>% arrange(rho)
+mforplot3c <- c("Majority","Minority") %>% map(\(x) filter(mforplot3c, Group==x))
+mforplot3c
+lapply(mforplot3c, bayesCorPlot)
+```
+
+#### Temperature
+
+```{r}
+tempforplot3 <- indDiffsp3 %>% select(Temp, groupHomoph, SStatus:IdImp, -Condition, -mixed, -racid2) %>% correlation(bayesian=T) %>% filter(Parameter1 == "Temp" | Parameter2 == "Temp") %>% arrange(rho)
+tempforplot3
+bayesCorPlot(tempforplot3)
+```
+
+##### By Condition
+
+```{r}
+tempforplot3c <- indDiffsp3 %>% group_by(condition) %>% select(Temp, groupHomoph, SStatus:IdImp, -mixed, -racid2) %>% correlation(bayesian=T) %>% filter(Parameter1 == "Temp" | Parameter2 == "Temp") %>% arrange(rho)
+tempforplot3c <- c("Majority", "Minority") %>% map(\(x) filter(tempforplot3c, Group==x))
+lapply(tempforplot3c, bayesCorPlot)
+```
+
+#### Bias
+
+```{r}
+biasforplot3 <- indDiffsp3 %>% select(bias, groupHomoph, SStatus:IdImp, -Condition, -mixed, -racid2) %>% correlation(bayesian=T) %>% filter(Parameter1 == "bias" | Parameter2 == "bias") %>% arrange(rho)
+biasforplot3
+bayesCorPlot(biasforplot3)
+```
+
+##### By Condition
+
+```{r}
+biasforplot3c <- indDiffsp3 %>% group_by(condition) %>% select(bias, groupHomoph, SStatus:IdImp, -mixed, -racid2) %>% correlation(bayesian=T) %>% filter(Parameter1 == "bias" | Parameter2 == "bias") %>% arrange(rho)
+biasforplot3c <- c("Majority", "Minority") %>% map(\(x) filter(biasforplot3c, Group==x))
+lapply(biasforplot3c, bayesCorPlot)
+```
+
+### Parameter Differences
+
+#### Projection Rate
+
+```{r}
+PR.COND.3 <- brm( scale(m) ~ condition, data=indDiffsp3)
+sexit(PR.COND.3) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describe.by(indDiffsp3$m, indDiffsp3$condition)
+```
+
+```{r}
+PR.COND.3 <- brm( scale(m) ~ condition + racid, data=indDiffsp3)
+sexit(PR.COND.3) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describe.by(indDiffsp3$m, indDiffsp3$condition)
+psych::describe.by(indDiffsp3$m, indDiffsp3$racid)
+```
+
+```{r}
+test <- brm( scale(MGIS) ~ condition * racid, data=indDiffsp3)
+sexit(test) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describe.by(indDiffsp3$m, indDiffsp3$condition)
+psych::describe.by(indDiffsp3$m, indDiffsp3$racid)
+```
+
+#### Bias
+
+```{r}
+BIAS.COND.3 <- brm( scale(bias) ~ outgroup, data=indDiffsp3)
+sexit(BIAS.COND.3) %>% as_tibble %>% mutate(p = 2 * (1-Direction)) %>% kable()
+psych::describe.by(indDiffsp3$bias, indDiffsp2$outgroup)
+```
 
 # Testing
 
