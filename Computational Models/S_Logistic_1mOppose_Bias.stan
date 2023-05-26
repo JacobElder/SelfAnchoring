@@ -46,12 +46,12 @@ model {
   // Hyperparameters
   mu_pr  ~ normal(0, 1);
   // sigma ~ normal(0, 0.2);
-  sigma ~ normal(0, .8);
+  sigma ~ normal(0, .3);
 
   // individual parameters
   tau_pr ~ normal(0, 1);
   // m_pr ~ normal(0, 1);
-  m_pr ~ normal(0, 3); // making more diffuse
+  m_pr ~ normal(0, 2); // making more diffuse
   bias_pr ~ normal(0, 1);
 
   for (s in 1:nSubjects) {

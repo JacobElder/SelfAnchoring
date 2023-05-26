@@ -51,8 +51,8 @@ save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reporting
 ```
 
 ```{r}
-load("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv_2023_05_07.RData")
-save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv_2023_05_07.RData")
+load("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv_2023_05_19.RData")
+save.image("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv_2023_05_19.RData")
 ```
 
 # Study 1
@@ -163,6 +163,11 @@ m %>%
 ```{r}
 WSR.ING <-brm( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + ( 1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
 sexit(WSR.ING) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+```
+
+```{r}
+WSR.ING.COV <- brm(ingChoiceN ~ WSR.Z + propCorrLOO.Z + desirability.Z + ( WSR.Z + propCorrLOO.Z | subID) + ( 1 | trait), data=fullTest1, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.COV) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% select(-CI) %>% mutate_if(is.numeric, round, 3) %>% kbl(caption = "Study 1: Similarity-to-Self Main Effect") %>% kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 ### Do people use similarity-to-self for novel traits?
@@ -370,6 +375,7 @@ fullTest2$neighAveOutSE.Z <- as.numeric(scale(fullTest2$neighAveOutSE)[,1])
 fullTest2$neighAveAllSE.Z <- as.numeric(scale(fullTest2$neighAveAllSE)[,1])
 fullTest2$neighAveInSE.Z <- as.numeric(scale(fullTest2$neighAveInSE)[,1])
 fullTest2$evalLOO.Z <- as.numeric(scale(fullTest2$evalLOO)[,1])
+fullTest2$propCorrInLOO.Z <- as.numeric(scale(fullTest2$propCorrInLOO)[,1])
 fullTest2$desirability.Z <- as.numeric(scale(fullTest2$desirability)[,1])
 fullTest2$er.Z <- as.numeric(scale(fullTest2$er)[,1])
 fullTest2$outDegree.Z <- as.numeric(scale(fullTest2$outDegree)[,1])
@@ -561,6 +567,13 @@ WSR.ING.2 <-brm( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + ( 1 | trait), data=full
 sexit(WSR.ING.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
+### With Covariates
+
+```{r}
+WSR.ING.2.COV <- brm(ingChoiceN ~ WSR.Z + propCorrInLOO.Z + desirability.Z + ( WSR.Z + propCorrInLOO.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.2.COV) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% select(-CI) %>% mutate_if(is.numeric, round, 3) %>% kbl(caption = "Study 2: Similarity-to-Self Main Effect") %>% kable_classic(full_width = F, html_font = "Cambria")
+```
+
 ### Compared across conditions
 
 ```{r}
@@ -588,7 +601,13 @@ summary(m)
 ```
 
 ```{r}
-WSR.ING.COND.2test <- brm( ingChoiceN ~ WSR.Z * outgroup + desirability.Z + entropy.Z + fam + novel + ( WSR.Z | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+WSR.ING.COND.2test <- brm( ingChoiceN ~ WSR.Z * outgroup + desirability.Z + evalLOO.Z + (  WSR.Z + desirability.Z + evalLOO.Z | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.COND.2test) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(WSR.ING.COND.2test, c("WSR.Z", "outgroup")) %>% plot()
+```
+
+```{r}
+WSR.ING.COND.2test <- brm( ingChoiceN ~ WSR.Z * outgroup + desirability.Z + scale(RT) + novel + ( WSR.Z + desirability.Z + scale(RT) + novel | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
 sexit(WSR.ING.COND.2test) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ggpredict(WSR.ING.COND.2test, c("WSR.Z", "outgroup")) %>% plot()
 ```
@@ -597,6 +616,14 @@ ggpredict(WSR.ING.COND.2test, c("WSR.Z", "outgroup")) %>% plot()
 WSR.ING.COND.2 <- brm( ingChoiceN ~ WSR.Z * outgroup + ( WSR.Z | subID) + ( outgroup | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
 sexit(WSR.ING.COND.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ggpredict(WSR.ING.COND.2, c("WSR.Z", "outgroup")) %>% plot()
+```
+
+#### With Covariates
+
+```{r}
+WSR.ING.COND.2.COV <- brm(ingChoiceN ~ WSR.Z * outgroup + propCorrInLOO.Z + desirability.Z + ( WSR.Z + propCorrInLOO.Z | subID) + ( 1 | trait), data=fullTest2, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.COND.2.COV) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% select(-CI) %>% mutate_if(is.numeric, round, 3) %>% kbl(caption = "Study 2: Similarity-to-Self Interaction") %>% kable_classic(full_width = F, html_font = "Cambria")
+ggpredict(WSR.ING.COND.2.COV, c("WSR.Z", "outgroup")) %>% plot()
 ```
 
 ### Do people use similarity-to-self for novel traits?
@@ -745,6 +772,10 @@ r2beta(m)
 ```
 
 ```{r}
+m <- lmer( scale(selfResp) ~ outGsimS.Z * IdImp + inGsimS.Z * IdImp  + (  metaContrastS.Z | subID) + (1 | trait), data = fullTrain2)
+```
+
+```{r}
 ISOS.SR.2 <-brm( selfResp ~ inGsimS.Z + outGsimS.Z + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain2, cores=ncores, family = cumulative(link = "logit") )
 sexit(ISOS.SR.2) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
@@ -883,9 +914,33 @@ uSubs <- unique(fullTest3$subID)
 
 indDiffs3 <- fullTest3[!duplicated(fullTest3$subID),]
 
-fullTrain3 <- indDiffs3 %>% select(subID, groupHomoph) %>% full_join(fullTrain3, by = "subID")
+indDiffs3 <- indDiffs3 %>% mutate(inWarm = case_when(
+  racid == "Asian" ~ Therm_2,
+  racid == "Latino" ~ Therm_4
+),
+outWarm = case_when(
+  condition == "Majority" ~ Therm_1,
+  condition == "Minority" & racid == "Asian" ~ Therm_4,
+  condition == "Minority" & racid == "Latino" ~ Therm_2
+),
+otherWarm = case_when(
+  racid == "Asian" ~ (Therm_1 + Therm_4)/2,
+  racid == "Latino" ~ (Therm_1 + Therm_2)/2
+),
+) %>% 
+  mutate(inOutTherm = inWarm - outWarm,
+             inOtherTherm = inWarm - otherWarm) %>%
+  mutate(inOutStatus = case_when(
+      condition == "Majority" ~ inMajorityStatus,
+      condition == "Minority" ~ inMinorityStatus,
+  )
+         )
+
+fullTrain3 <- indDiffs3 %>% select(subID, inWarm, outWarm, otherWarm, inOutTherm, inOtherTherm, inOutStatus, groupHomoph) %>% full_join(fullTrain3, by = "subID")
 fullTrain3 <- params3 %>% select(subID, m, Temp, bias) %>% full_join(fullTrain3, by = "subID")
-fullTrain3 <- fullTest3 %>% select(subID, trait, entropy, entropy.Z) %>% right_join(fullTrain3, by = c("subID","trait"))
+#fullTrain3 <- fullTest3 %>% select(subID, trait, entropy, entropy.Z) %>% right_join(fullTrain3, by = c("subID","trait"))
+
+fullTrain3 <- fullTest3 %>% select(subID, trait, propCorrInLOO) %>% right_join(fullTrain3, by = c("subID","trait"))
 ```
 
 ```{r, include = F}
@@ -903,6 +958,7 @@ fullTest3$neighAveOutSE.Z <- as.numeric(scale(fullTest3$neighAveOutSE)[,1])
 fullTest3$neighAveAllSE.Z <- as.numeric(scale(fullTest3$neighAveAllSE)[,1])
 fullTest3$neighAveInSE.Z <- as.numeric(scale(fullTest3$neighAveInSE)[,1])
 fullTest3$evalLOO.Z <- as.numeric(scale(fullTest3$evalLOO)[,1])
+fullTest3$propCorrInLOO.Z <- as.numeric(scale(fullTest3$propCorrInLOO)[,1])
 fullTest3$desirability.Z <- as.numeric(scale(fullTest3$desirability)[,1])
 fullTest3$er.Z <- as.numeric(scale(fullTest3$er)[,1])
 fullTest3$outDegree.Z <- as.numeric(scale(fullTest3$outDegree)[,1])
@@ -1090,6 +1146,13 @@ WSR.ING.3 <-brm( ingChoiceN ~ WSR.Z + ( WSR.Z | subID) + ( 1 | trait), data=full
 sexit(WSR.ING.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
+#### With Covariates
+
+```{r}
+WSR.ING.3.COV <- brm(ingChoiceN ~ WSR.Z + propCorrInLOO.Z + desirability.Z + ( WSR.Z + propCorrInLOO.Z | subID) + ( 1 | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.3.COV) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% select(-CI) %>% mutate_if(is.numeric, round, 3) %>% kbl(caption = "Study 3: Similarity-to-Self Main Effect") %>% kable_classic(full_width = F, html_font = "Cambria")
+```
+
 ### Compared across conditions
 
 ```{r}
@@ -1103,15 +1166,23 @@ m %>%
 ```
 
 ```{r}
+test <- brm( ingChoiceN ~ WSR.Z * condition + desirability + racid + desirability.Z + selfResp.Z + novel + RT + entropy.Z + ( WSR.Z + desirability.Z + selfResp.Z + novel + entropy.Z | subID) + ( condition + racid | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(test) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
+ggpredict(test, c("WSR.Z", "condition")) %>% plot()
+```
+
+```{r}
 WSR.ING.COND.3 <- brm( ingChoiceN ~ WSR.Z * condition + ( WSR.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
 sexit(WSR.ING.COND.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ggpredict(WSR.ING.COND.3, c("WSR.Z", "condition")) %>% plot()
 ```
 
+#### With Covariates
+
 ```{r}
-test <- brm( ingChoiceN ~ WSR.Z * condition + desirability + racid + desirability.Z + selfResp.Z + novel + RT + entropy.Z + ( WSR.Z + desirability.Z + selfResp.Z + novel + entropy.Z | subID) + ( condition + racid | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
-sexit(test) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
-ggpredict(test, c("WSR.Z", "condition")) %>% plot()
+WSR.ING.COND.3.COV <- brm(ingChoiceN ~ WSR.Z * condition + propCorrInLOO.Z + desirability.Z + ( WSR.Z + propCorrInLOO.Z | subID) + ( condition | trait), data=fullTest3, cores=ncores, family = bernoulli(link = "logit") )
+sexit(WSR.ING.COND.3.COV) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% select(-CI) %>% mutate_if(is.numeric, round, 3) %>% kbl(caption = "Study 3: Similarity-to-Self Main Effect") %>% kable_classic(full_width = F, html_font = "Cambria")
+ggpredict(WSR.ING.COND.3.COV, c("WSR.Z", "condition")) %>% plot()
 ```
 
 ### Do people use similarity-to-self for novel traits?
@@ -1229,7 +1300,7 @@ r2beta(m)
 
 ```{r}
 MCS.SR.3 <-brm( selfResp ~ metaContrastS.Z + (  metaContrastS.Z | subID) + (1 | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
-sexit(MCS.SR.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()1
+sexit(MCS.SR.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
 
 ### Metacontrast ratio compared across condition
@@ -1271,6 +1342,10 @@ r2beta(m)
 ```
 
 ```{r}
+m <- lmer( scale(selfResp) ~ outGsimS.Z * IdImp + inGsimS.Z * IdImp  + (  metaContrastS.Z | subID) + (1 | trait), data = fullTrain3)
+```
+
+```{r}
 ISOS.SR.3 <-brm( selfResp ~ inGsimS.Z + outGsimS.Z + (  inGsimS.Z + outGsimS.Z | subID) + (1 | trait), data = fullTrain3, cores=ncores, family = cumulative(link = "logit") )
 sexit(ISOS.SR.3) %>% as_tibble %>% mutate(OR = exp(Median), p = 2 * (1-Direction)) %>% kable()
 ```
@@ -1284,6 +1359,11 @@ m %>%
     pvalue_fun = ~ style_pvalue(.x, digits = 2),
   )
 r2beta(m)
+```
+
+```{r}
+m <- lmer( scale(selfResp) ~ inGsimS.Z * condition + outGsimS.Z * condition + scale(propCorrInLOO) + (  1 | subID) + ( 1 | trait), data = fullTrain3)
+summary(m)
 ```
 
 ```{r}

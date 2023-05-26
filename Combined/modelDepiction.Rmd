@@ -82,6 +82,25 @@ origMDS
 ```
 
 ```{r}
+inds <- c(which(colnames(simPos)%in%outgoingwords), which(colnames(simPos)%in%disciplinewords))
+
+k2 <- kmeans(simPos[inds,inds], centers = 2, nstart = 25)
+
+mds.sim <- (1-simPos[inds,inds]) %>%
+  cmdscale() %>%
+  as_tibble()
+
+colnames(mds.sim) <- c("Dim.1", "Dim.2")
+origMDSnocol <- ggscatter(mds.sim, x = "Dim.1", y = "Dim.2", 
+          size = 1,
+          label = colnames(simPos)[inds],
+          repel = TRUE) + xlab("Dimension #1") + ylab("Dimension #2")
+
+origMDSnocol
+```
+
+
+```{r}
 set.seed(52)
 
 oInds <- which(colnames(simPos)%in%outgoingwords)

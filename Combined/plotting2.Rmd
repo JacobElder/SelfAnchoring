@@ -4,12 +4,30 @@ output: html_notebook
 ---
 
 ```{r}
-load("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv.RData")
+# load("/Volumes/Research Project/Self-Anchoring/Combined/Combined/reportingAnalysesEnv.RData")
 ```
 
 ```{r}
 library(pacman)
-p_load(tidyverse, ggdist, wesanderson, patchwork, brms, igraph, GGally, ggrepel, network, sna, here)
+p_load(tidyverse, ggdist, wesanderson, patchwork, brms, igraph, GGally, ggrepel, network, sna, here, performance, ggpubr)
+```
+
+```{r}
+bayesCorPlot <- function(df){
+df %>% 
+    mutate(Parameter = factor(Parameter2, levels = Parameter2[order(rho)]),
+           SE = (CI_high-CI_low)/3.92) %>%  # Order by correlation strength
+    ggplot(aes(x = Parameter, y = rho )) +
+    geom_bar(stat = "identity") +
+    ylab("Correlation Coefficient") +
+    xlab("Individual Differences") + theme_grey(base_size = 9)  + theme(axis.text.x = element_text(angle = 90,hjust = 1)) +
+    theme(axis.text.x = element_text( 
+        size = 9, angle = 45, vjust = 1)) + theme(axis.title.x = element_text(vjust=1.9)) + theme(axis.text=element_text(size=9),
+                                                                                                  axis.title=element_text(size=9,face="bold")) + theme(legend.text = element_text(size=9)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                                                                                                                                                                                                                                                                                                                      panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+    geom_errorbar(aes(ymin=rho-SE, ymax=rho+SE), width=.2,
+                  position=position_dodge(.9)) 
+}
 ```
 
 ```{r}
@@ -92,6 +110,28 @@ ggsave(p1, file = "/Volumes/Research Project/Self-Anchoring/Plots/colorNet.tiff"
 ```
 
 ```{r}
+library(sna)
+library(network)
+
+# Max homophily
+i <- indDiffs3$subID[which(indDiffs3$groupHomop==max(indDiffs3$groupHomoph,na.rm=T))]
+i <- indDiffs$subID[which(indDiffs3$groupHomoph==-sort(-indDiffs3$groupHomoph)[2])]
+V(posGraph)$C <- testSub$ingChoice[order(testSub$Idx)]
+cleanTest$groupHomoph[cleanTest$subID==i] <- netseg::assort(posGraph, "C")
+
+V(posGraph)$C <- as.numeric(V(posGraph)$C)
+graph_pos2 <- intergraph::asNetwork(posGraph)
+graph_pos2 %v% "C" = as.character(V(posGraph)$C)
+
+set.seed(5)
+
+p1 <- ggnet2(graph_pos2, size = "outdegree",  color = "C", palette = "Dark2", mode = "kamadakawai", directed=TRUE, layout.exp = .65, alpha = .7, edge.alpha = .25) +
+  guides(color = FALSE, size = FALSE)
+p1
+```
+
+
+```{r}
 stack <- ggpubr::ggarrange(p1, egoNet, ncol=1, nrow=2)
 
 ggsave(stack, file = "/Volumes/Research Project/Self-Anchoring/Plots/stackNetwork.png", dpi = 300, units = "in", width= 8, height = 10)
@@ -104,11 +144,25 @@ ggsave(stack, file = "/Volumes/Research Project/Self-Anchoring/Plots/stackNetwor
 ```{r}
 library(bayestestR)
 ps1 <- bayestestR::p_significance(WSRNOV.ING)
-PS <- plot(ps1) + jtools::theme_apa() + scale_y_discrete(labels = c("Similarity-to-Self\nX Novel","Novel","Similarity-to-Self")) + xlab(expression(beta)) + ylab("Fixed Effects") + geom_vline(xintercept = .18) + geom_vline(xintercept = -.18) + jtools::theme_apa() + ggtitle(NULL)
+PS1.WSRNOV.ING <- plot(ps1) + jtools::theme_apa() + scale_y_discrete(labels = c("Similarity-to-Self\nX Novel","Novel","Similarity-to-Self")) + xlab(expression(beta)) + ylab("Fixed Effects") + geom_vline(xintercept = .18) + geom_vline(xintercept = -.18) + jtools::theme_apa() + ggtitle(NULL)
 
-ggsave(PS, file = "/Volumes/Research Project/Self-Anchoring/Plots/PSplot.png", dpi = 300, units = "in", width= 7.5, height =4.5)
+ggsave(PS1.WSRNOV.ING, file = "/Volumes/Research Project/Self-Anchoring/Plots/PSplot.png", dpi = 300, units = "in", width= 7.5, height =4.5)
 
-ggsave(PS, file = "/Volumes/Research Project/Self-Anchoring/Plots/PSplot.tiff", dpi = 300, units = "in", width= 7.5, height =4.5)
+ggsave(PS1.WSRNOV.ING, file = "/Volumes/Research Project/Self-Anchoring/Plots/PSplot.tiff", dpi = 300, units = "in", width= 7.5, height =4.5)
+
+ps1 <- bayestestR::p_significance(WSRNOV.ING)
+PS1.WSRNOV.ING <- plot(ps1) + jtools::theme_apa() + scale_y_discrete(labels = c("Similarity-to-Self\nX Novel","Novel","Similarity-to-Self")) + xlab(expression(beta)) + ylab("Fixed Effects") + geom_vline(xintercept = .18) + geom_vline(xintercept = -.18) + jtools::theme_apa() + ggtitle(NULL) + scale_fill_manual(values = c("red","red","blue"))
+
+ps2 <- bayestestR::p_significance(WSRNOV.ING.2)
+PS2.WSRNOV.ING <- plot(ps2) + jtools::theme_apa() + scale_y_discrete(labels = c("Similarity-to-Self\nX Novel","Novel","Similarity-to-Self")) + xlab(expression(beta)) + ylab("Fixed Effects") + geom_vline(xintercept = .18) + geom_vline(xintercept = -.18) + jtools::theme_apa() + ggtitle(NULL) + scale_fill_manual(values = c("red","blue","blue"))
+
+ps3 <- bayestestR::p_significance(WSRNOV.ING.3)
+PS3.WSRNOV.ING <- plot(ps3) + jtools::theme_apa() + scale_y_discrete(labels = c("Similarity-to-Self\nX Novel","Novel","Similarity-to-Self")) + xlab(expression(beta)) + ylab("Fixed Effects") + geom_vline(xintercept = .18) + geom_vline(xintercept = -.18) + jtools::theme_apa() + ggtitle(NULL) + scale_fill_manual(values = c("red","blue","blue"))
+
+ggpubr::ggarrange(PS1.WSRNOV.ING, PS2.WSRNOV.ING, PS3.WSRNOV.ING, nrow=3, ncol=1)
+
+ggsave("/Volumes/Research Project/Self-Anchoring/Plots/PS_Stack.png", height = 8, width = 9, units = "in")
+ggsave("/Volumes/Research Project/Self-Anchoring/Plots/PS_Stack.tiff", height = 8, width = 9, units = "in")
 ```
 
 # Posterior Predictive Check
@@ -128,13 +182,90 @@ ggsave(COMBPPC, file = "/Volumes/Research Project/Self-Anchoring/Plots/PPCplot.p
 
 ggsave(COMBPPC, file = "/Volumes/Research Project/Self-Anchoring/Plots/PPCplot.tiff", dpi = 300, units = "in", width= 10, height = 9)
 ```
+
+```{r}
+ghforplot1 <- indDiffs1 %>% select(groupHomoph, DS:SING.Inter) %>% correlation(bayesian=T) %>% filter(Parameter1 == "groupHomoph" | Parameter2 == "groupHomoph") %>% arrange(rho)
+ghforplot1
+bayesCorPlot(ghforplot1)
+
+ghforplot2 <- indDiffs2 %>% select(groupHomoph, seHomoph, SStatus:IdImp, Therm_1, Therm_2) %>% correlation(bayesian=T) %>% filter(Parameter1 == "groupHomoph" | Parameter2 == "groupHomoph") %>% arrange(rho)
+ghforplot2
+bayesCorPlot(ghforplot2)
+
+ghforplot3 <- indDiffs3 %>% select(groupHomoph, SStatus:IdImp, -Condition, -mixed, -racid2, Therm_1, Therm_2) %>% correlation(bayesian=T) %>% filter(Parameter1 == "groupHomoph" | Parameter2 == "groupHomoph") %>% arrange(rho)
+ghforplot3
+bayesCorPlot(ghforplot3)
+
+
+NTB.GH.Scatter1 <- ggplot(indDiffs1, aes(x=NTB,y=groupHomoph)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Need to Belong") + ylab("Trait Segregation")
+
+NTB.GH.Scatter2 <- ggplot(indDiffs2, aes(x=NTB,y=groupHomoph)) + geom_point() + geom_smooth(method="lm",color="black") + jtools::theme_apa() + xlab("Need to Belong") + ylab("Trait Segregation") #+ 
+#  scale_color_manual( 
+#                      labels=c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1"))
+
+NTB.GH.Scatter3 <- ggplot(indDiffs3, aes(x=NTB,y=groupHomoph)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Need to Belong") + ylab("Trait Segregation") #+ scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
+#                      labels=c("Majority","Minority"), values = c("#44AA99","#332288"))
+
+NTB.GH.Scatter <- NTB.GH.Scatter1 + NTB.GH.Scatter2 + NTB.GH.Scatter3
+NTB.GH.Scatter
+ggsave(file = "~/Desktop/NTB.GH.scatter.png", dpi = 300, units = "in", width= 16, height = 5)
+
+RSE.GH.Scatter1 <- ggplot(indDiffs1, aes(x=RSE,y=groupHomoph)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Self-Esteem") + ylab("Trait Segregation")
+
+RSE.GH.Scatter2 <- ggplot(indDiffs2, aes(x=RSE,y=groupHomoph)) + geom_point() + geom_smooth(method="lm",color="black") + jtools::theme_apa() + xlab("Self-Esteem") + ylab("Trait Segregation") #+ 
+#  scale_color_manual( 
+#                      labels=c("Negation","Lower Status","Higher Status"), values = wes_palette("Darjeeling1"))
+
+RSE.GH.Scatter3 <- ggplot(indDiffs3, aes(x=RSE,y=groupHomoph)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Self-Esteem") + ylab("Trait Segregation") #+ scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual( 
+#                      labels=c("Majority","Minority"), values = c("#44AA99","#332288"))
+
+RSE.GH.Scatter <- RSE.GH.Scatter1 + RSE.GH.Scatter2 + RSE.GH.Scatter3
+RSE.GH.Scatter
+ggsave(file = "~/Desktop/RSE.GH.scatter.png", dpi = 300, units = "in", width= 16, height = 5)
+
+NTB.GH.Scatter / RSE.GH.Scatter
+ggsave(file = "~/Desktop/RSE.NTB.GH.scatter.png", dpi = 300, units = "in", width= 16, height = 10)
+
+Cent.GH.Scatter2 <- ggplot(indDiffs2, aes(x=MGIS_Cent,y=groupHomoph)) + geom_point() + geom_smooth(method="lm",color="black") + jtools::theme_apa() + xlab("Identity Centrality") + ylab("Trait Segregation")
+
+Cent.GH.Scatter3 <- ggplot(indDiffs3, aes(x=MGIS_Cent,y=groupHomoph)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Identity Centrality") + ylab("Trait Segregation")
+
+Cent.GH.Scatter2 + Cent.GH.Scatter3
+ggsave(file = "~/Desktop/Cent.GH.scatter.png", dpi = 300, units = "in", width= 9, height = 5)
+```
+
+```{r}
+indDiffsp1 <- indDiffs1 %>% right_join(params1, by = "subID")
+indDiffsp2 <- indDiffs2 %>% right_join(params2, by = "subID")
+indDiffsp3 <- indDiffs3 %>% right_join(params3, by = "subID")
+
+SI.PR.Scatter1 <- ggplot(indDiffsp1, aes(x=SI,y=m)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Social Identification") + ylab("Projection Rate")
+
+SI.PR.Scatter2 <- ggplot(indDiffsp2, aes(x=MGIS,y=m, color=outgroup)) + geom_point() + geom_smooth(method="lm") + jtools::theme_apa() + xlab("Social Identification") + ylab("Projection Rate") + scale_color_manual(labels=c("Higher Status","Lower Status","Negation"), values = wes_palette("Darjeeling1"))
+
+SI.PR.Scatter3 <- ggplot(indDiffsp3, aes(x=MGIS, y=m, color=condition)) + geom_point() + geom_smooth(method="lm") + jtools::theme_apa() + xlab("Social Identification") + ylab("Projection Rate") + scale_color_manual(labels = c("Majority","Minority"), values = c("#44AA99","#332288")) + scale_fill_manual(labels=c("Majority","Minority"), values = c("#44AA99","#332288"))
+
+###
+
+SI.PR.Scatter1 <- ggplot(indDiffsp1, aes(x=SI,y=m)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Social Identification") + ylab("Projection Rate")
+
+SI.PR.Scatter2 <- ggplot(indDiffsp2, aes(x=MGIS,y=m)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Social Identification") + ylab("Projection Rate") + scale_color_manual(labels=c("Higher Status","Lower Status","Negation"), values = c('black','black','black'))
+
+SI.PR.Scatter3 <- ggplot(indDiffsp3, aes(x=MGIS, y=m, color=condition)) + geom_point() + geom_smooth(method="lm", color="black") + jtools::theme_apa() + xlab("Social Identification") + ylab("Projection Rate") + scale_color_manual(labels = c("Majority","Minority"), values=c("black",'black','black'))
+
+SI.PR.Scatter <- SI.PR.Scatter1 + SI.PR.Scatter2 + SI.PR.Scatter3
+SI.PR.Scatter
+ggsave(file = "~/Desktop/SI.PR.scatter.png", dpi = 300, units = "in", width= 16, height = 5)
+```
+
+
 # Study 1
 
 ## Self-Evaluation Ingroup Classification
 
 ```{r}
 DES.ING.1.p <- conditional_effects(DES.ING)#, method = "posterior_linpred")
-DES.ING.1.p_ <- DES.ING.1.p$`desirability.Z`
+DES.ING.1.p_ <- DES.ING.1.p$desirability.Z
 DES.ING.1.plot <-ggplot(DES.ING.1.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
   geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) + 
   theme(
@@ -150,7 +281,7 @@ DES.ING.1.plot
 
 ```{r}
 SR.ING.1.p <- conditional_effects(SELF.ING)#, method = "posterior_linpred")
-SR.ING.1.p_ <- SR.ING.1.p$`selfResp.Z`
+SR.ING.1.p_ <- SR.ING.1.p$selfResp.Z
 SR.ING.1.plot <-ggplot(SR.ING.1.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
   geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) + 
   theme(
@@ -166,8 +297,8 @@ SR.ING.1.plot
 
 ```{r}
 WSR.ING.1.p <- conditional_effects(WSR.ING)#, method = "posterior_linpred")
-WSR.ING.1.p_ <- WSR.ING.2.p$`WSR.Z`
-WSR.ING.1.plot <-ggplot(WSR.ING.2.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
+WSR.ING.1.p_ <- WSR.ING.1.p$WSR.Z
+WSR.ING.1.plot <-ggplot(WSR.ING.1.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
   geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) + 
   theme(
     legend.margin = margin(6, 6, 6, 6)
@@ -182,6 +313,48 @@ WSR.ING.1.plot
 
 ```{r}
 COMB.ING.1.plot1 <- ggarrange(DES.ING.1.plot, SR.ING.1.plot, WSR.ING.1.plot, labels=c("A","B","C"), nrow=1)
+```
+
+## Metacontrast Ratio
+
+```{r}
+MCS.SR.1.p <- conditional_effects(MCS.SR)#, method = "posterior_linpred")
+MCS.SR.1.p_ <- MCS.SR.1.p$metaContrastS.Z
+MCS.SR.1.MCRplot <-ggplot(MCS.SR.1.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Metacontrast Ratio") + ylab("Self-Evaluation")
+MCS.SR.1.MCRplot
+```
+
+## Similarity-to-Ingroup
+
+```{r}
+ISOS.SR.1.p <- conditional_effects(ISOS.SR)#, method = "posterior_linpred")
+ISOS.SR.1.p_ <- ISOS.SR.1.p$inGsimS.Z
+ISOS.SR.1.InGplot <-ggplot(ISOS.SR.1.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Ingroup") + ylab("Self-Evaluation")
+ISOS.SR.1.InGplot
+```
+
+## Similarity-to-Outgroup
+
+```{r}
+ISOS.SR.1.p <- conditional_effects(ISOS.SR)#, method = "posterior_linpred")
+ISOS.SR.1.p_ <- ISOS.SR.1.p$`outGsimS.Z`
+ISOS.SR.1.OutGplot <-ggplot(ISOS.SR.1.p_, aes(effect1__, estimate__)) +  geom_line(aes()) + 
+  geom_ribbon(aes(ymin=lower__, ymax=upper__), alpha=0.15) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Similarity-to-Outgroup") + ylab("Self-Evaluation")
+ISOS.SR.1.OutGplot
 ```
 
 # Study 2
@@ -252,7 +425,7 @@ mbPlot2
 
 ```{r}
 DES.ING.COND.2.p <- conditional_effects(DES.ING.COND.2)#, method = "posterior_linpred")
-DES.ING.COND.2.p_ <- DES.ING.COND.2.p$`desirability.Z:outgroup`
+DES.ING.COND.2.p_ <- DES.ING.COND.2.p$desirability.Z:outgroup
 DES.ING.COND.2.plot <-ggplot(DES.ING.COND.2.p_, aes(effect1__, estimate__)) +  geom_line(aes(linetype=effect2__, color=effect2__)) + 
   geom_ribbon(aes(ymin=lower__, ymax=upper__, fill=effect2__), alpha=0.15) + 
   scale_linetype_discrete(labels = c("Negation","Lower Status","Higher Status")) + 
@@ -348,6 +521,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
   xlab("Metacontrast Ratio") + ylab("Self-Evaluation")
 MCS.SR.COND.2.MCRplot
 ```
+
 ## Summed Similarity to Outgroup Compared Across Conditions
 
 ```{r}
@@ -459,6 +633,8 @@ bDiffPlot3 <- ggplot(params3, aes(condition, bias)) +
 ```{r}
 mbPlot3 <- mDiffPlot3 + bDiffPlot3
 mbPlot3
+
+mDiffPlot3
 ```
 
 ## Desirability Ingroup Classification
@@ -612,5 +788,42 @@ ggsave(trainingPlots, file = "/Volumes/Research Project/Self-Anchoring/Plots/tra
 
 ggsave(trainingPlots, file = "/Volumes/Research Project/Self-Anchoring/Plots/trainPlot.tiff", dpi = 300, units = "in", width= 10, height = 9)
 ```
+
+# For Talk
+
+## Study-Specific Generalization Phase Plots
+
+```{r}
+SR.ING.1.plot + SR.ING.COND.2.plot + SR.ING.COND.3.plot
+ggsave(file = "~/Desktop/SR.ING.png", dpi = 300, units = "in", width= 16, height = 5)
+
+DES.ING.1.plot + DES.ING.COND.2.plot + DES.ING.COND.3.plot
+ggsave(file = "~/Desktop/DES.ING.png", dpi = 300, units = "in", width= 16, height = 5)
+
+WSR.ING.1.plot + WSR.ING.COND.2.plot + WSR.ING.COND.3.plot
+ggsave(file = "~/Desktop/WSR.ING.png", dpi = 300, units = "in", width= 16, height = 5)
+```
+
+## Study-Specific Training Phase Plots
+
+```{r}
+MCS.SR.1.MCRplot + MCS.SR.COND.2.MCRplot + MCS.SR.COND.3.MCRplot
+ggsave(file = "~/Desktop/MCS.SR.png", dpi = 300, units = "in", width= 16, height = 5)
+
+ISOS.SR.1.InGplot + ISOS.SR.COND.2.InGplot + ISOS.SR.COND.3.InGplot
+ggsave(file = "~/Desktop/InG.SR.png", dpi = 300, units = "in", width= 16, height = 5)
+
+ISOS.SR.1.OutGplot + ISOS.SR.COND.2.OutGplot + ISOS.SR.COND.3.OutGplot
+ggsave(file = "~/Desktop/OutG.SR.png", dpi = 300, units = "in", width= 16, height = 5)
+```
+
+```{r}
+wsPlot2
+ggsave(file = "~/Desktop/wsPlot2.png", dpi = 300, units = "in", width= 10, height = 5)
+
+wsPlot3
+ggsave(file = "~/Desktop/wsPlot3.png", dpi = 300, units = "in", width= 10, height = 5)
+```
+
 
 
