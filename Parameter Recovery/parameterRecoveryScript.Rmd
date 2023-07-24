@@ -3,6 +3,12 @@ title: "R Notebook"
 output: html_notebook
 ---
 
+```{r}
+load("/Volumes/Research Project/Self-Anchoring/Combined/Parameter Recovery/recoveryEnvironment.RData")
+save.image("/Volumes/Research Project/Self-Anchoring/Combined/Parameter Recovery/recoveryEnvironment.RData")
+```
+
+
 
 ```{r}
 library(here)
@@ -298,7 +304,7 @@ subList <- list()
 params1 <- arrow::read_parquet(here("Study 1/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.parquet"))
 params1 <- params1[c("Temp","m","bias")]
 here::i_am("./Study 1/Computational Model/SA1_Modeling_Final.R")
-traindf <- read.csv(here("Study 1/Cleaning/output/fullTrain.csv"))
+traindf <- arrow::read_parquet(here("Study 1/Cleaning/output/fullTrain.parquet"))
 traindf <- traindf[!is.na(traindf$selfResp),]
 
 maxSubjs <- nrow(params)
@@ -437,7 +443,7 @@ ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
 
 greekLab <- c(expression(beta), expression(alpha), expression(gamma) )
 
-FitSimHeatMap <- ggheatmap + 
+FitSimHeatMap.S1 <- ggheatmap + 
 geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
 theme(
   axis.title.x = element_text(size=18, face="bold"),
@@ -455,7 +461,7 @@ theme(
         labels=greekLab)  +
   scale_y_discrete(
         labels=greekLab)
-FitSimHeatMap
+FitSimHeatMap.S1
 ```
 # Study 2: UCLA/Higher Status
  
@@ -469,9 +475,9 @@ subList <- list()
 params2ucla <- arrow::read_parquet(here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.UCLA.parquet"))
 params2ucla <- params2ucla[c("Temp","m","bias")]
 here::i_am("./Study 2/Computational Model/SA2_Modeling_Final.R")
-traindf <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.csv"))
+traindf <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet"))
 traindf <- traindf[!is.na(traindf$selfResp),]
-trainDf <- subset(traindf, outgroup=="UCLA")
+traindf <- subset(traindf, outgroup=="UCLA")
 
 maxSubjs <- nrow(params2ucla)
 subs <- sample(unique(traindf$subID))
@@ -642,9 +648,9 @@ subList <- list()
 params2csula <- arrow::read_parquet(here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.CSULA.parquet"))
 params2csula <- params2csula[c("Temp","m","bias")]
 here::i_am("./Study 2/Computational Model/SA2_Modeling_Final.R")
-traindf <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.csv"))
+traindf <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet"))
 traindf <- traindf[!is.na(traindf$selfResp),]
-trainDf <- subset(traindf, outgroup=="CSU LA")
+traindf <- subset(traindf, outgroup=="CSU LA")
 
 maxSubjs <- nrow(params2csula)
 subs <- sample(unique(traindf$subID))
@@ -815,9 +821,9 @@ subList <- list()
 params2notucr <- arrow::read_parquet(here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
 params2notucr <- params2notucr[c("Temp","m","bias")]
 here::i_am("./Study 2/Computational Model/SA2_Modeling_Final.R")
-traindf <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.csv"))
+traindf <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.parquet"))
 traindf <- traindf[!is.na(traindf$selfResp),]
-trainDf <- subset(traindf, outgroup=="Not UCR")
+traindf <- subset(traindf, outgroup=="Not UCR")
 
 maxSubjs <- nrow(params2notucr)
 subs <- sample(unique(traindf$subID))
@@ -976,28 +982,24 @@ theme(
 FitSimHeatMap.2notucr
 ```
 
-```{r}
-save.image("/Volumes/Research Project/Self-Anchoring/Combined/Parameter Recovery/recoveryEnvironment.RData")
-```
 
-
-# Study 2: Not UCR/Negation
+# Study 3: Majority
  
 ```{r}
 
-set.seed(300)
+set.seed(150)
 maxTrials=148
 maxTrain=91
 
 subList <- list()
-params2notucr <- arrow::read_parquet(here("Study 2/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.NotUCR.parquet"))
-params2notucr <- params2notucr[c("Temp","m","bias")]
-here::i_am("./Study 2/Computational Model/SA2_Modeling_Final.R")
-traindf <- arrow::read_parquet(here("Study 2/Cleaning/output/fullTrain.csv"))
+params3majority <- arrow::read_parquet(here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Majority.parquet"))
+params3majority <- params3majority[c("Temp","m","bias")]
+here::i_am("./Study 3/Computational Model/SA3_Modeling_Final.R")
+traindf <- arrow::read_parquet(here("Study 3/Cleaning/output/fullTrain.parquet"))
 traindf <- traindf[!is.na(traindf$selfResp),]
-trainDf <- subset(traindf, outgroup=="Not UCR")
+traindf <- subset(traindf, condition=="Majority")
 
-maxSubjs <- nrow(params2notucr)
+maxSubjs <- nrow(params3majority)
 subs <- sample(unique(traindf$subID))
 
 for(n in 1:maxSubjs){
@@ -1012,7 +1014,7 @@ for(n in 1:maxSubjs){
   
   #trainIdx=sample(1:148,91)
   testIdx=sample(1:148)
-  choices <- PR_S_Logistic_1mOppose_Bias(evals, trainIdx, testIdx, simMat, as.numeric(params2notucr[n,]))
+  choices <- PR_S_Logistic_1mOppose_Bias(evals, trainIdx, testIdx, simMat, as.numeric(params3majority[n,]))
   
   curSubList <- list(evals, trainIdx, testIdx, choices)
   
@@ -1072,30 +1074,30 @@ iter=3000
 warmup=floor(iter/2)
 modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias.stan")
 cores<-detectCores()
-S_Logistic_1mOppose_Biasfit2notucr <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, chains = 3, control = list(max_treedepth = 12, adapt_delta = 0.95))
-traceplot(S_Logistic_1mOppose_Biasfit2notucr)
-S_Logistic_1mOppose_Bias_summary <- summary(S_Logistic_1mOppose_Biasfit2notucr, pars = c("tau", "m", "bias"), probs = c(0.1, 0.9))$summary
+S_Logistic_1mOppose_Biasfit3majority <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, chains = 3, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Logistic_1mOppose_Biasfit3majority)
+S_Logistic_1mOppose_Bias_summary <- summary(S_Logistic_1mOppose_Biasfit3majority, pars = c("tau", "m", "bias"), probs = c(0.1, 0.9))$summary
 print(S_Logistic_1mOppose_Bias_summary)
-get_posterior_mean(S_Logistic_1mOppose_Biasfit2notucr, pars=c('tau', 'm', 'bias'))[,4]
-S_Logistic_1mOppose_Biasparams2notucr <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Biasfit2notucr, pars=c('tau'))[,4],
-                                           m=get_posterior_mean(S_Logistic_1mOppose_Biasfit2notucr, pars=c('m'))[,4],
-                                           bias=get_posterior_mean(S_Logistic_1mOppose_Biasfit2notucr, pars=c('bias'))[,4],
-                                           LL=get_posterior_mean(S_Logistic_1mOppose_Biasfit2notucr, pars=c('log_lik'))[,4])
+get_posterior_mean(S_Logistic_1mOppose_Biasfit3majority, pars=c('tau', 'm', 'bias'))[,4]
+S_Logistic_1mOppose_Biasparams3majority <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Biasfit3majority, pars=c('tau'))[,4],
+                                           m=get_posterior_mean(S_Logistic_1mOppose_Biasfit3majority, pars=c('m'))[,4],
+                                           bias=get_posterior_mean(S_Logistic_1mOppose_Biasfit3majority, pars=c('bias'))[,4],
+                                           LL=get_posterior_mean(S_Logistic_1mOppose_Biasfit3majority, pars=c('log_lik'))[,4])
 ```
 
 ```{r}
-RecovSimparams2notucr <- S_Logistic_1mOppose_Biasparams2notucr
+RecovSimparams3majority <- S_Logistic_1mOppose_Biasparams3majority
 
-simDf2notucr<-data.frame(origTemp = params2notucr$Temp, 
-                  origM = params2notucr$m, 
-                  origBias = params2notucr$bias, 
-                  fitTemp = RecovSimparams2notucr$Temp, 
-                  fitM = RecovSimparams2notucr$m, 
-                  fitBias = RecovSimparams2notucr$bias)
+simDf3majority<-data.frame(origTemp = params3majority$Temp, 
+                  origM = params3majority$m, 
+                  origBias = params3majority$bias, 
+                  fitTemp = RecovSimparams3majority$Temp, 
+                  fitM = RecovSimparams3majority$m, 
+                  fitBias = RecovSimparams3majority$bias)
 
-CorMat_GraphMixRecov2notucr <- rcorr(as.matrix(simDf2notucr))
+CorMat_GraphMixRecov3majority <- rcorr(as.matrix(simDf3majority))
 
-cormat <- round(CorMat_GraphMixRecov2notucr$r,2)
+cormat <- round(CorMat_GraphMixRecov3majority$r,2)
 cormat <- cormat[1:3,4:6]
 library(reshape2)
 melted_cormat <- melt(cormat)
@@ -1133,7 +1135,7 @@ ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
 
 greekLab <- c(expression(beta), expression(alpha), expression(gamma) )
 
-FitSimHeatMap.2notucr <- ggheatmap + 
+FitSimHeatMap.3majority <- ggheatmap + 
 geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
 theme(
   axis.title.x = element_text(size=18, face="bold"),
@@ -1151,5 +1153,271 @@ theme(
         labels=greekLab)  +
   scale_y_discrete(
         labels=greekLab)
-FitSimHeatMap.2notucr
+FitSimHeatMap.3majority
 ```
+
+# Study 3: Minority
+
+```{r}
+
+set.seed(150)
+maxTrials=148
+maxTrain=91
+
+subList <- list()
+params3minority <- arrow::read_parquet(here("Study 3/Cleaning/output/S_Logistic_1m_Oppose_Biasparams.Minority.parquet"))
+params3minority <- params3minority[c("Temp","m","bias")]
+here::i_am("./Study 3/Computational Model/SA3_Modeling_Final.R")
+traindf <- arrow::read_parquet(here("Study 3/Cleaning/output/fullTrain.parquet"))
+traindf <- traindf[!is.na(traindf$selfResp),]
+traindf <- subset(traindf, condition=="Minority")
+
+maxSubjs <- nrow(params3minority)
+subs <- sample(unique(traindf$subID))
+
+for(n in 1:maxSubjs){
+  
+  #self=round(runif(maxTrain,min=1,max=7))
+  
+  #self = selfSimGen2(trainIdx,simMat)
+  
+  subDf <- subset(traindf, subID==subs[n])
+  evals <- subDf$selfResp
+  trainIdx <- subDf$Idx
+  
+  #trainIdx=sample(1:148,91)
+  testIdx=sample(1:148)
+  choices <- PR_S_Logistic_1mOppose_Bias(evals, trainIdx, testIdx, simMat, as.numeric(params3minority[n,]))
+  
+  curSubList <- list(evals, trainIdx, testIdx, choices)
+  
+  subList[[n]] <- curSubList
+  
+}
+```
+
+```{r}
+uIds<-1:maxSubjs
+
+
+groupChoice=array(0,c(maxSubjs, maxTrials))
+lengthArray <- matrix(nrow=maxSubjs)
+lenTrain <- matrix(nrow=maxSubjs)
+prevSim=array(0,c(maxSubjs,maxTrials,maxTrain))
+prevSelf=array(0,c(maxSubjs,maxTrain))
+
+for(i in 1:maxSubjs ){
+  t <- maxTrials
+  lengthArray[i] <- maxTrials
+  groupChoice[i,1:t]<- subList[[i]][[4]]
+  
+  #lenTrain[i] <- maxTrain
+  lenTrain[i] <- length(subList[[i]][[1]])
+  
+  prevSelf[i,1:lenTrain[i]] <- subList[[i]][[1]]
+  trainIdx <- subList[[i]][[2]]
+  testIdx <- subList[[i]][[3]]
+  
+  for(trial in 1:t){
+    
+    curIdx <- testIdx[trial]
+    curSims <- simMat[trainIdx, curIdx]
+    prevSim[i,trial,1:lenTrain[i]]=curSims
+    
+
+    
+  }
+  
+}
+
+model_data <- list( nSubjects=maxSubjs,
+                    maxTrials = maxTrials,
+                    nTrials = as.numeric(lengthArray),
+                    groupChoice = groupChoice,
+                    prevSelf=prevSelf,
+                    prevSim=prevSim,
+                    maxTrain=91,
+                    nTrain=as.numeric(lenTrain))
+
+
+```
+
+```{r}
+iter=3000
+warmup=floor(iter/2)
+modelFile <- here("Computational Models/S_Logistic_1mOppose_Bias.stan")
+cores<-detectCores()
+S_Logistic_1mOppose_Biasfit3minority <- stan(modelFile, data = model_data, iter = iter, warmup = warmup, cores = cores-1, seed = 52, chains = 3, control = list(max_treedepth = 12, adapt_delta = 0.95))
+traceplot(S_Logistic_1mOppose_Biasfit3minority)
+S_Logistic_1mOppose_Bias_summary <- summary(S_Logistic_1mOppose_Biasfit3minority, pars = c("tau", "m", "bias"), probs = c(0.1, 0.9))$summary
+print(S_Logistic_1mOppose_Bias_summary)
+get_posterior_mean(S_Logistic_1mOppose_Biasfit3minority, pars=c('tau', 'm', 'bias'))[,4]
+S_Logistic_1mOppose_Biasparams3minority <- data.frame(Temp=get_posterior_mean(S_Logistic_1mOppose_Biasfit3minority, pars=c('tau'))[,4],
+                                           m=get_posterior_mean(S_Logistic_1mOppose_Biasfit3minority, pars=c('m'))[,4],
+                                           bias=get_posterior_mean(S_Logistic_1mOppose_Biasfit3minority, pars=c('bias'))[,4],
+                                           LL=get_posterior_mean(S_Logistic_1mOppose_Biasfit3minority, pars=c('log_lik'))[,4])
+```
+
+```{r}
+RecovSimparams3minority <- S_Logistic_1mOppose_Biasparams3minority
+
+simDf3minority<-data.frame(origTemp = params3minority$Temp, 
+                  origM = params3minority$m, 
+                  origBias = params3minority$bias, 
+                  fitTemp = RecovSimparams3minority$Temp, 
+                  fitM = RecovSimparams3minority$m, 
+                  fitBias = RecovSimparams3minority$bias)
+
+CorMat_GraphMixRecov3minority <- rcorr(as.matrix(simDf3minority))
+
+cormat <- round(CorMat_GraphMixRecov3minority$r,2)
+cormat <- cormat[1:3,4:6]
+library(reshape2)
+melted_cormat <- melt(cormat)
+  get_lower_tri<-function(cormat){
+    cormat[upper.tri(cormat)] <- NA
+    return(cormat)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+reorder_cormat <- function(cormat){
+# Use correlation between variables as distance
+dd <- as.dist((1-cormat)/2)
+hc <- hclust(dd)
+cormat <-cormat[hc$order, hc$order]
+}
+
+upper_tri <- get_upper_tri(cormat)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 25, hjust = 1), axis.text.y = element_text( 
+    size = 25) )+
+ coord_fixed()
+
+greekLab <- c(expression(beta), expression(alpha), expression(gamma) )
+
+FitSimHeatMap.3minority <- ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_text(size=18, face="bold"),
+  axis.title.y = element_text(size=18, face="bold"),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.48, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5)) + xlab("Fitted") + ylab("Simulated") +
+  scale_x_discrete(
+        labels=greekLab)  +
+  scale_y_discrete(
+        labels=greekLab)
+FitSimHeatMap.3minority
+```
+
+# Original Correlations
+
+```{r}
+
+
+corTriangleFig <- function(parameters){
+  CorMat_GraphMixRecov1minorityO <- rcorr(as.matrix(parameters))
+
+cormat <- round(CorMat_GraphMixRecov1minorityO$r,2)
+melted_cormat <- melt(cormat)
+  get_lower_tri<-function(cormat){
+    cormat[upper.tri(cormat)] <- NA
+    return(cormat)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+reorder_cormat <- function(cormat){
+# Use correlation between variables as distance
+dd <- as.dist((1-cormat)/2)
+hc <- hclust(dd)
+cormat <-cormat[hc$order, hc$order]
+}
+
+upper_tri <- get_upper_tri(cormat)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 25, hjust = 1), axis.text.y = element_text( 
+    size = 25) )+
+ coord_fixed()
+
+greekLab <- c(expression(beta), expression(alpha), expression(gamma) )
+
+FitSimHeatMap.3minorityO <- ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_text(size=18, face="bold"),
+  axis.title.y = element_text(size=18, face="bold"),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.48, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5)) + xlab("Fitted") + ylab("Fitted") +
+  scale_x_discrete(
+        labels=greekLab)  +
+  scale_y_discrete(
+        labels=greekLab)
+FitSimHeatMap.3minorityO
+}
+
+FitSimHeatMap1.O <- corTriangleFig(params1)
+FitSimHeatMap2csula.O <- corTriangleFig(params2csula)
+FitSimHeatMap2ucla.O <- corTriangleFig(params2ucla)
+FitSimHeatMap2notucr.O <- corTriangleFig(params2notucr)
+FitSimHeatMap3majority.O <- corTriangleFig(params3majority)
+FitSimHeatMap3minority.O <- corTriangleFig(params3minority)
+```
+
+```{r}
+library(ggpubr)
+
+originalCorrelations <- ggarrange(FitSimHeatMap1.O, FitSimHeatMap2ucla.O, FitSimHeatMap2csula.O, FitSimHeatMap2notucr.O, FitSimHeatMap3majority.O, FitSimHeatMap3minority.O, ncol=3, nrow=2, labels = c("A","B","C","D","E","F"), common.legend = T)
+
+recoveredCorrelations <- ggarrange(FitSimHeatMap, FitSimHeatMap.S1, FitSimHeatMap.2csula, FitSimHeatMap.2csula, FitSimHeatMap.2notucr, FitSimHeatMap.3majority, FitSimHeatMap.3minority, ncol=4, nrow=2, labels = c("A","B","C","D","E","F","G"), common.legend = T)
+
+originalCorrelations
+recoveredCorrelations
+```
+
+```{r}
+ggsave(plot=originalCorrelations, filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/originalCorrelations.png", dpi=300, width=9, height=6.5, units = "in")
+
+ggsave(plot=recoveredCorrelations, filename="/Volumes/Research Project/Self-Anchoring/Combined/Plots/recoveredCorrelations.png", dpi=300, width=9, height=6.5, units = "in")
+```
+
+
+
