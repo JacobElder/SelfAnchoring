@@ -155,6 +155,8 @@ indDiff$id[which(duplicated(indDiff$id))]
 indDiff <- indDiff[!duplicated(indDiff$id),]
 
 indDiff <- indDiff %>% rename(subID = id)
+
+write.csv(indDiff, "/Volumes/Research Project/Self-Anchoring/Study 1/Cleaning/Qualtrics Data/CleanSA1Qs.csv")
 ```
 
 ```{r}
@@ -716,17 +718,20 @@ fullTest$propCorr <- ifelse(fullTest$Estimator=="Underestimator", 1-fullTest$pro
 
 ```{r}
 for(i in uSubs){
+  r <- unique(fullTest$Estimator[fullTest$subID==i])
   for(j in unique(fullTest$Idx)){
     
     if(fullTest$Estimator[fullTest$subID==i & fullTest$Idx==j]=="Underestimator"){
-      
+
       fullTest$propCorrLOO[fullTest$subID==i & fullTest$Idx==j] <- 1 - mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j], na.rm=T)
-      
+
     }else if(fullTest$Estimator[fullTest$subID==i & fullTest$Idx==j]=="Overestimator"){
-      
+
       fullTest$propCorrLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j], na.rm=T)
-      
+
     }
+    
+    # fullTest$propCorrLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j & fullTest$Estimator==r], na.rm=T)
     
     fullTest$evalLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(cleanTrain$selfResp[cleanTrain$subID!=i & cleanTrain$Idx==j], na.rm=T)
     

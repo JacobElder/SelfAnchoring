@@ -177,6 +177,8 @@ indDiff$id[which(duplicated(indDiff$id))]
 indDiff <- indDiff[!duplicated(indDiff$id),]
 
 indDiff <- indDiff %>% rename(subID = id)
+
+write.csv(indDiff, "/Volumes/Research Project/Self-Anchoring/Study 3/Cleaning/Qualtrics Data/CleanSA3Qs.csv")
 ```
 
 ```{r}
@@ -727,6 +729,7 @@ for(i in uSubs){
 trainSimMat <- matrix(ncol=7,nrow=0)
 testSimMat <- matrix(ncol=6,nrow=0)
 for(i in uSubs){
+  # i<-61915 # max group homoph
   testSub <- subset(cleanTest, subID==i)
   trainSub <- subset(cleanTrain, subID==i)
   
@@ -843,7 +846,7 @@ fullTrain <- cleanTrain %>% inner_join(indDiffsclean, by = "subID")
 ```
 
 ```{r}
-fullTest$optionChoiceN <- ifelse(fullTest$ingChoice=="Ingrup", 1, 0)
+fullTest$optionChoiceN <- ifelse(fullTest$ingChoice=="Ingroup", 1, 0)
 traitFreqOverUnder <- Rmisc::summarySE(fullTest, measurevar="optionChoiceN", groupvars = c("condition","trait"), na.rm = T)
 ```
 
@@ -852,6 +855,7 @@ traitFreqOverUnder <- Rmisc::summarySE(fullTest, measurevar="optionChoiceN", gro
 ```{r}
 for(i in uSubs){
   og <- unique(fullTest$condition[fullTest$subID==i])
+  r <- unique(fullTest$racid[fullTest$subID==i])
   for(j in unique(fullTest$Idx)){
     
     if(fullTest$condition[fullTest$subID==i & fullTest$Idx==j & fullTest$condition == og]=="Majority"){
@@ -864,12 +868,21 @@ for(i in uSubs){
       
     }
     
-    fullTest$propCorrInLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j], na.rm=T)
+    fullTest$propCorrInLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(fullTest$optionChoiceN[fullTest$subID!=i & fullTest$Idx==j & fullTest$racid == r], na.rm=T)
     
     fullTest$evalLOO[fullTest$subID==i & fullTest$Idx==j] <- mean(cleanTrain$selfResp[cleanTrain$subID!=i & cleanTrain$Idx==j], na.rm=T)
     
   }
 }
+```
+
+```{r}
+stereo <- read.csv("./output/stereoData.csv")
+stereo <- stereo %>% select(trait, asianStereo, latinoStereo)
+fullTrain <- merge(fullTrain, stereo, by = "trait", all.x=T)
+fullTest <- merge(fullTest, stereo, by = "trait", all.x=T)
+fullTrain$stereo <- ifelse(fullTrain$racid=="Latino", fullTrain$latinoStereo, fullTrain$asianStereo)
+fullTest$stereo <- ifelse(fullTest$racid=="Latino", fullTest$latinoStereo, fullTest$asianStereo)
 ```
 
 
