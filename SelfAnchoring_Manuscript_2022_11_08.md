@@ -58,17 +58,20 @@ where Sim<sub>ti</sub> is the similarity of trait *t* to an ingroup-classified t
 
 ![][image3]  
 ***Generalization Model***  
-To further elucidate the cognitive mechanisms underlying self-to-group generalization, we implemented a computational model. This model emulates classic concept learning and generalization models (Maddox & Ashby, 1993; Nosofsky, 1984, 1988, 2011) to assess how trait similarity to self-evaluations predicts ingroup classification.  
-	**Bias Model.** Our first model, serving as a baseline, captured individual differences in the overall tendency to classify traits as either ingroup-typical (approaching 1) or outgroup-typical (approaching 0). This was represented by a single bias parameter, γ (ranging from 0 to 1), which did not account for self-belief projection or outgroup rejection mechanisms.
-, \[XX\]  
-	**Self-Projection Model.** Our second model directly tested self-anchoring as the projection of self-evaluations onto the ingroup, relative to the outgroup. This model uses a logistic function to transform participants' self-evaluations (Self<sub>j</sub>) from training trial *j* into ingroup-beliefs (InGB<sub>j</sub>):  
-, \[XX\]  
-Here, *α* represents the *projection rate* (0 to 10), indicating the extremity with which self-beliefs are converted to ingroup-beliefs, with self-evaluations centered at 4. A higher *α* signifies a more sigmoidal (extreme) projection (e.g., a self-rating of 5 becomes highly ingroup-characteristic), while a lower *α* indicates a more linear (proportional) association.
-Outgroup beliefs (OutGB<sub>j</sub>) are assumed to be the inverse, with *α* becoming negative for the outgroup:  
-, \[XX\]  
-Thus, increased ingroup projection inherently implies corresponding outgroup rejection. The probability of ingroup classification during generalization trial *g* is then:  
-XX, \[XX\]  
-where Sim<sub>tg</sub> denotes the similarity between trait *g* (generalization) and trait *t* (training). The *temperature* parameter (β, 0 to 10) controls the stochasticity (lower values) or determinism (higher values) of classifications, while γ (bias) amplifies or attenuates ingroup classification likelihood. Ingroup and outgroup beliefs for each training trial *t* (up to *J*) are weighted by their similarity to the current generalization trait *g* and summed to yield measures of ingroup- and outgroup-typicality (Nosofsky et al., 1988, 1991). Greater ingroup-typicality (resulting from ingroup projection and outgroup rejection) increases the likelihood of ingroup classification. Figure XX illustrates how the projection rate varies with *α*.  
+To further elucidate the cognitive mechanisms underlying self-to-group generalization, we implemented an advanced computational model that formalizes several core tenets of social identity and category learning theories. This model extends classic exemplar-based architectures (Nosofsky, 1986; Nosofsky, 2011) to assess how individuals convert self-evaluations into group beliefs and generalize them across a semantic network.
+
+**Asymmetric Self-Projection and Repulsion.** Unlike standard models that assume a symmetric relationship between ingroup and outgroup beliefs, our model decouples the rate of ingroup projection ($\alpha_{in}$) and outgroup repulsion ($\alpha_{out}$). This allowed us to test whether the generalization from self to group is driven primarily by "ingroup love" (assimilating the self to the ingroup) or "outgroup hate" (contrasting the self against the outgroup). Self-evaluations ($Self_j$) from training trials are transformed into ingroup beliefs ($InGB_j$) and outgroup beliefs ($OutGB_j$) via separate logistic functions:
+$$InGB_j = \frac{1}{1 + \exp(-\alpha_{in}(Self_j - 4))}$$
+$$OutGB_j = \frac{1}{1 + \exp(\alpha_{out}(Self_j - 4))}$$
+where $\alpha_{in}$ and $\alpha_{out}$ represent the *projection/repulsion rates*. Higher values indicate a more extreme conversion of self-beliefs into group-typicality estimates.
+
+**Generalization Sensitivity and Semantic Decay.** To model the rate at which these beliefs propagate through the semantic network, we introduced a generalization sensitivity parameter, $\lambda$. Consistent with Shepard's (1987) universal law of generalization, the influence of a self-evaluation on a novel trait decays as a function of their semantic similarity ($Sim_{tg}$), scaled by $\lambda$:
+$$Evidence_{g, group} = \sum_{j=1}^{J} (GroupGB_j \cdot Sim_{jg}^\lambda)$$
+This parameter captures individual differences in the *gradient of generalization*: higher $\lambda$ values reflect a more "selective" generalization where only highly similar traits are influenced, while lower values reflect "broad" generalization across the semantic space.
+
+**Evidence Integration and Choice.** Finally, the probability of classifying a generalization trait $g$ as characteristic of the ingroup is determined by a choice rule that integrates similarity-weighted evidence, a global classification bias ($\gamma$), and an evidence-weighting parameter ($w$) that balances self-anchoring against the baseline bias:
+$$P(Ingroup_g) = \frac{\gamma \cdot (Evidence_{g, in} \cdot w + (1-w))^\tau}{\gamma \cdot (Evidence_{g, in} \cdot w + (1-w))^\tau + (1-\gamma) \cdot (Evidence_{g, out} \cdot w + (1-w))^\tau}$$
+where $\tau$ is a temperature parameter representing choice stochasticity. This formulation allows us to determine not only *how* people project themselves onto groups, but also the *relative weight* they place on their self-concept compared to baseline group stereotypes or biases.
 Figure XX. (A) Visualization of how *projection/rejection rate* from self-to-group varies across different values of *α* (Small \= .75, Large \= 3.0). (B) The network similarity relations among 12 traits, depicted using multidimensional scaling. K-means clustering is performed to classify traits into clusters. As an example, the k-means clusters are labeled “ingroup” and “outgroup” to denote how an example participant may infer that different types of traits are more characteristic of the ingroup or the outgroup.
 
 ![][image4]   

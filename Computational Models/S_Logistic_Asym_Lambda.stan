@@ -12,8 +12,8 @@ data {
 
 parameters {
   // Hyper(group)-parameters
-  vector[5] mu_pr;
-  vector<lower=0>[5] sigma;
+  vector[6] mu_pr;
+  vector<lower=0>[6] sigma;
 
   // Subject-level raw parameters (Matt trick)
   vector[nSubjects] tau_pr;     // temperature
@@ -21,6 +21,7 @@ parameters {
   vector[nSubjects] m_out_pr;   // repulsion rate (outgroup)
   vector[nSubjects] bias_pr;    // classification bias
   vector[nSubjects] lambda_pr;  // generalization sensitivity
+  vector[nSubjects] w_pr;       // weight of self-evidence vs. global bias
 }
 
 transformed parameters {
@@ -29,6 +30,7 @@ transformed parameters {
   vector<lower=0, upper=10>[nSubjects] m_out;
   vector<lower=0, upper=1>[nSubjects] bias;
   vector<lower=0, upper=5>[nSubjects] lambda;
+  vector<lower=0, upper=1>[nSubjects] w; // weight parameter
 
   for (i in 1:nSubjects) {
     tau[i]    = Phi_approx(mu_pr[1] + sigma[1] * tau_pr[i]) * 10; 
@@ -36,6 +38,7 @@ transformed parameters {
     m_out[i]  = Phi_approx(mu_pr[3] + sigma[3] * m_out_pr[i]) * 10; 
     bias[i]   = Phi_approx(mu_pr[4] + sigma[4] * bias_pr[i]); 
     lambda[i] = Phi_approx(mu_pr[5] + sigma[5] * lambda_pr[i]) * 5;
+    w[i]      = Phi_approx(mu_pr[6] + sigma[6] * w_pr[i]);
   }
 }
 
@@ -50,6 +53,7 @@ model {
   m_out_pr  ~ normal(0, 1);
   bias_pr   ~ normal(0, 1);
   lambda_pr ~ normal(0, 1);
+  w_pr      ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
     vector[2] simW;
@@ -71,9 +75,12 @@ model {
       simW[1] = dot_product(GPout[1:nTrain[s]], PS); // Evidence for outgroup
       simW[2] = dot_product(GPin[1:nTrain[s]], PS);  // Evidence for ingroup
       
-      // Categorical choice using evidence weighted by bias and temperature
-      prob[1] = ((1 - bias[s]) * pow(simW[1], tau[s])) / (((1 - bias[s]) * pow(simW[1], tau[s])) + (bias[s] * pow(simW[2], tau[s])));
-      prob[2] = (bias[s] * pow(simW[2], tau[s])) / (((1 - bias[s]) * pow(simW[1], tau[s])) + (bias[s] * pow(simW[2], tau[s])));
+      // Categorical choice using evidence weighted by bias, temperature, and self-evidence weight (w)
+      // w balances the similarity-weighted evidence against the baseline bias
+      prob[1] = ( (1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s]) ) / 
+                ( ((1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s])) + (bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s])) );
+      prob[2] = ( bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s]) ) / 
+                ( ((1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s])) + (bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s])) );
       
       groupChoice[s, t] ~ categorical(prob);
     }
@@ -86,6 +93,7 @@ generated quantities {
   real<lower=0, upper=10> mu_m_out;
   real<lower=0, upper=1>  mu_bias;
   real<lower=0, upper=5>  mu_lambda;
+  real<lower=0, upper=1>  mu_w;
 
   real log_lik[nSubjects];
   real y_pred[nSubjects, maxTrials];
@@ -101,6 +109,7 @@ generated quantities {
   mu_m_out  = Phi_approx(mu_pr[3]) * 10;
   mu_bias   = Phi_approx(mu_pr[4]);
   mu_lambda = Phi_approx(mu_pr[5]) * 5;
+  mu_w      = Phi_approx(mu_pr[6]);
 
   {
     for (s in 1:nSubjects) {
@@ -123,8 +132,10 @@ generated quantities {
         simW[1] = dot_product(GPout[1:nTrain[s]], PS);
         simW[2] = dot_product(GPin[1:nTrain[s]], PS);
         
-        prob[1] = ((1 - bias[s]) * pow(simW[1], tau[s])) / (((1 - bias[s]) * pow(simW[1], tau[s])) + (bias[s] * pow(simW[2], tau[s])));
-        prob[2] = (bias[s] * pow(simW[2], tau[s])) / (((1 - bias[s]) * pow(simW[1], tau[s])) + (bias[s] * pow(simW[2], tau[s])));
+        prob[1] = ( (1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s]) ) / 
+                  ( ((1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s])) + (bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s])) );
+        prob[2] = ( bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s]) ) / 
+                  ( ((1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s])) + (bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s])) );
           
         log_lik[s] += categorical_lpmf(groupChoice[s, t] | prob);
         y_pred[s, t] = categorical_rng(prob);
