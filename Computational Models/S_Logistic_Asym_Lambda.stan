@@ -1,27 +1,24 @@
 data {
-  int<lower=1> nSubjects; // number of subjects total
-  int<lower = 1> maxTrials; //number of testing/generalization trials
-  int<lower = 1> maxTrain; // max number of training trials
-  int<lower = 1> nTrain[nSubjects]; // per participant number of training trials
-  int<lower = 1> nTrials[nSubjects]; //per participant number of testing/generalization trials
-  int<lower = 0, upper = 2> groupChoice[nSubjects,maxTrials]; // which group chosen
+  int<lower=1> nSubjects; 
+  int<lower = 1> maxTrials; 
+  int<lower = 1> maxTrain; 
+  array[nSubjects] int<lower = 1> nTrain; 
+  array[nSubjects] int<lower = 1> nTrials; 
+  array[nSubjects, maxTrials] int<lower = 0, upper = 2> groupChoice; 
   
-  vector[maxTrain] prevSim[nSubjects, maxTrials]; // similarities from training to testing traits
-  vector[maxTrain] prevSelf[nSubjects]; // matrix of training self-evaluations
+  array[nSubjects] matrix[maxTrials, maxTrain] prevSim; 
+  array[nSubjects] vector[maxTrain] prevSelf; 
 }
 
 parameters {
-  // Hyper(group)-parameters
   vector[6] mu_pr;
   vector<lower=0>[6] sigma;
-
-  // Subject-level raw parameters (Matt trick)
-  vector[nSubjects] tau_pr;     // temperature
-  vector[nSubjects] m_in_pr;    // projection rate (ingroup)
-  vector[nSubjects] m_out_pr;   // repulsion rate (outgroup)
-  vector[nSubjects] bias_pr;    // classification bias
-  vector[nSubjects] lambda_pr;  // generalization sensitivity
-  vector[nSubjects] w_pr;       // weight of self-evidence vs. global bias
+  vector[nSubjects] tau_pr;     
+  vector[nSubjects] m_in_pr;    
+  vector[nSubjects] m_out_pr;   
+  vector[nSubjects] bias_pr;    
+  vector[nSubjects] lambda_pr;  
+  vector[nSubjects] w_pr;       
 }
 
 transformed parameters {
@@ -30,7 +27,7 @@ transformed parameters {
   vector<lower=0, upper=10>[nSubjects] m_out;
   vector<lower=0, upper=1>[nSubjects] bias;
   vector<lower=0, upper=5>[nSubjects] lambda;
-  vector<lower=0, upper=1>[nSubjects] w; // weight parameter
+  vector<lower=0, upper=1>[nSubjects] w; 
 
   for (i in 1:nSubjects) {
     tau[i]    = Phi_approx(mu_pr[1] + sigma[1] * tau_pr[i]) * 10; 
@@ -43,11 +40,8 @@ transformed parameters {
 }
 
 model {
-  // Hyperparameters
   mu_pr  ~ normal(0, 1);
   sigma  ~ normal(0, 0.3);
-
-  // Individual-level priors
   tau_pr    ~ normal(0, 1);
   m_in_pr   ~ normal(0, 1);
   m_out_pr  ~ normal(0, 1);
@@ -56,90 +50,60 @@ model {
   w_pr      ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
-    vector[2] simW;
-    vector[2] prob;
     vector[nTrain[s]] GPin;
     vector[nTrain[s]] GPout;
-    vector[nTrain[s]] PS;
+    matrix[nTrials[s], nTrain[s]] PS;
+    vector[nTrials[s]] simW_in;
+    vector[nTrials[s]] simW_out;
+    vector[nTrials[s]] logit_p;
 
-    // Decoupled projection and repulsion rates
-    GPin[1:nTrain[s]]  = rep_vector(1, nTrain[s]) ./ (1 + exp((-m_in[s])  * (prevSelf[s, 1:nTrain[s]] - 4)));
-    GPout[1:nTrain[s]] = rep_vector(1, nTrain[s]) ./ (1 + exp((m_out[s]) * (prevSelf[s, 1:nTrain[s]] - 4)));
+    GPin[1:nTrain[s]]  = inv_logit(m_in[s] * (prevSelf[s, 1:nTrain[s]] - 4));
+    GPout[1:nTrain[s]] = inv_logit(-m_out[s] * (prevSelf[s, 1:nTrain[s]] - 4));
     
     for (t in 1:nTrials[s]) {
-      // Generalization sensitivity applied to semantic similarity
-      for (i in 1:nTrain[s]) {
-        PS[i] = pow(prevSim[s, t, i], lambda[s]);
+      PS[t] = pow(prevSim[s, t, 1:nTrain[s]], lambda[s]);
+    }
+    
+    simW_in = PS * GPin[1:nTrain[s]] * w[s] + (1-w[s]) + 1e-9;
+    simW_out = PS * GPout[1:nTrain[s]] * w[s] + (1-w[s]) + 1e-9;
+    
+    logit_p = log(bias[s]) - log(1-bias[s]) + tau[s] * (log(simW_in) - log(simW_out));
+
+    for (t in 1:nTrials[s]) {
+      if (groupChoice[s, t] > 0) {
+        (groupChoice[s, t] - 1) ~ bernoulli_logit(logit_p[t]);
       }
-      
-      simW[1] = dot_product(GPout[1:nTrain[s]], PS); // Evidence for outgroup
-      simW[2] = dot_product(GPin[1:nTrain[s]], PS);  // Evidence for ingroup
-      
-      // Categorical choice using evidence weighted by bias, temperature, and self-evidence weight (w)
-      // w balances the similarity-weighted evidence against the baseline bias
-      prob[1] = ( (1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s]) ) / 
-                ( ((1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s])) + (bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s])) );
-      prob[2] = ( bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s]) ) / 
-                ( ((1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s])) + (bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s])) );
-      
-      groupChoice[s, t] ~ categorical(prob);
     }
   }    
 }
 
 generated quantities {
-  real<lower=0, upper=10> mu_tau;
-  real<lower=0, upper=10> mu_m_in;
-  real<lower=0, upper=10> mu_m_out;
-  real<lower=0, upper=1>  mu_bias;
-  real<lower=0, upper=5>  mu_lambda;
-  real<lower=0, upper=1>  mu_w;
-
-  real log_lik[nSubjects];
-  real y_pred[nSubjects, maxTrials];
-
-  for (i in 1:nSubjects) {
-    for (t in 1:maxTrials) {
-      y_pred[i, t] = -1;
+  vector[nSubjects] log_lik;
+  for (s in 1:nSubjects) {
+    vector[nTrain[s]] GPin;
+    vector[nTrain[s]] GPout;
+    matrix[nTrials[s], nTrain[s]] PS;
+    vector[nTrials[s]] simW_in;
+    vector[nTrials[s]] simW_out;
+    vector[nTrials[s]] logit_p;
+    
+    log_lik[s] = 0;
+    
+    GPin[1:nTrain[s]]  = inv_logit(m_in[s] * (prevSelf[s, 1:nTrain[s]] - 4));
+    GPout[1:nTrain[s]] = inv_logit(-m_out[s] * (prevSelf[s, 1:nTrain[s]] - 4));
+    
+    for (t in 1:nTrials[s]) {
+      PS[t] = pow(prevSim[s, t, 1:nTrain[s]], lambda[s]);
     }
-  }
-
-  mu_tau    = Phi_approx(mu_pr[1]) * 10;
-  mu_m_in   = Phi_approx(mu_pr[2]) * 10;
-  mu_m_out  = Phi_approx(mu_pr[3]) * 10;
-  mu_bias   = Phi_approx(mu_pr[4]);
-  mu_lambda = Phi_approx(mu_pr[5]) * 5;
-  mu_w      = Phi_approx(mu_pr[6]);
-
-  {
-    for (s in 1:nSubjects) {
-      vector[2] simW;
-      vector[2] prob;
-      vector[nTrain[s]] GPin;
-      vector[nTrain[s]] GPout;
-      vector[nTrain[s]] PS;
-      
-      log_lik[s] = 0;
-      
-      GPin[1:nTrain[s]]  = rep_vector(1, nTrain[s]) ./ (1 + exp((-m_in[s])  * (prevSelf[s, 1:nTrain[s]] - 4)));
-      GPout[1:nTrain[s]] = rep_vector(1, nTrain[s]) ./ (1 + exp((m_out[s]) * (prevSelf[s, 1:nTrain[s]] - 4)));
-      
-      for (t in 1:nTrials[s]) {
-        for (i in 1:nTrain[s]) {
-          PS[i] = pow(prevSim[s, t, i], lambda[s]);
-        }
-        
-        simW[1] = dot_product(GPout[1:nTrain[s]], PS);
-        simW[2] = dot_product(GPin[1:nTrain[s]], PS);
-        
-        prob[1] = ( (1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s]) ) / 
-                  ( ((1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s])) + (bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s])) );
-        prob[2] = ( bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s]) ) / 
-                  ( ((1 - bias[s]) * pow(simW[1] * w[s] + (1-w[s]), tau[s])) + (bias[s] * pow(simW[2] * w[s] + (1-w[s]), tau[s])) );
-          
-        log_lik[s] += categorical_lpmf(groupChoice[s, t] | prob);
-        y_pred[s, t] = categorical_rng(prob);
+    
+    simW_in = PS * GPin[1:nTrain[s]] * w[s] + (1-w[s]) + 1e-9;
+    simW_out = PS * GPout[1:nTrain[s]] * w[s] + (1-w[s]) + 1e-9;
+    logit_p = log(bias[s]) - log(1-bias[s]) + tau[s] * (log(simW_in) - log(simW_out));
+    
+    for (t in 1:nTrials[s]) {
+      if (groupChoice[s, t] > 0) {
+        log_lik[s] += bernoulli_logit_lpmf(groupChoice[s, t] - 1 | logit_p[t]);
       }
-    }   
+    }
   }
 }
