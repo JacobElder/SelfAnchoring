@@ -2,9 +2,28 @@
 .Rhistory
 .RData
 .Ruserdata
+.RDataTmp
+.Rapp.history
 .DS_Store
-.DS_Store
-Study 1/.DS_Store
-Study 2/.DS_Store
-Study 3/.DS_Store
-.DS_Store
+*.rds
+*.pdf
+*.docx
+*.log
+*.nb.html
+*.tex
+*.qmd
+!*.md
+!*.qmd
+!*.tex
+!*.R
+!*.stan
+!*.Rproj
+
+# Compiled Stan Binaries
+Computational Models/S_Logistic_1mOppose_Bias
+Computational Models/S_Logistic_Asym
+Computational Models/S_Logistic_Asym_Lambda
+Computational Models/S_Logistic_Asym_Lambda_NoW
+Computational Models/S_Logistic_Bias
+Computational Models/S_Logistic_Sym_Lambda
+Computational Models/S_Pooled_Asym_Lambda
