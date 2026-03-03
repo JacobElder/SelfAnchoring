@@ -1,0 +1,5 @@
+"","model","max_rhat","num_divergent","converged"
+"symmetric","symmetric",1.0412512605728,0,FALSE
+"asymmetric","asymmetric",1.03053924118711,0,FALSE
+"asym_lambda","asym_lambda",1.04101990362437,0,FALSE
+"asym_lambda_w","asym_lambda_w",1.0392164827799,0,FALSE

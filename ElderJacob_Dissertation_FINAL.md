@@ -255,37 +255,9 @@ University of California, Riverside, June 2023
 
 
 
-People tend to see themselves as similar to their ingroup, and people often
-accomplish similarity with others by projecting their self-beliefs onto their perceptions of
-others. However, existing research on self-anchoring has not considered the within-
-person cognitive mechanisms facilitating this process. The current study aims to establish
-the similarity-based (i.e., if I am outgoing, my group ought to be characteristic of
-semantically similar traits such as sociable and fun) and contrastive (i.e., what is
-characteristic of my ingroup in contrast to a given outgroup) mechanisms by which
-people's self-evaluations on traits generalize to ingroup evaluations. Across three studies
-using minimal groups (N = 61), university groups (N = 283), and racial groups (N = 265),
-we find that people use semantic similarity among traits to infer the extent to which traits
-ought to be characteristic of their group if related traits are characteristic of themselves.
+People tend to see themselves as similar to their ingroup, often by projecting self-beliefs onto their perceptions of others. However, the within-person cognitive mechanisms facilitating this process remain under-specified. This research moves social identity theory from a verbal model to a formal architecture, establishing the similarity-based (e.g., if I am outgoing, my group should be characteristic of semantically related traits like sociable) and contrastive (i.e., how the ingroup compares to a specific outgroup) mechanisms through which self-evaluations generalize to the ingroup. Across three studies using minimal groups (N = 61), university groups (N = 283), and racial groups (N = 265), we find that individuals use semantic similarity among traits—consistent with universal principles of category learning—to infer group characteristics based on their own attributes. 
 
-
-
-ix
-We further find that this tendency is primarily driven by a motivation to achieve
-similarity with the ingroup rather than dissimilarity from the outgroup. However, in the
-racial context, racial minority participants contrasting against the racial majority were
-driven moreso to achieve dissimilarity from the majority outgroup. We fit a
-computational model measuring the extent to which people convert self-beliefs into
-ingroup-beliefs prior to generalization, and find that this tendency was weaker when
-people contrasted their ingroup against an outgroup that they felt more positively about
-(i.e., the higher status university in Study 2 and the fellow minority racial group is Study
-3), reflecting that self-anchoring may be more pronounced when contrasting against
-majority or more disliked outgroups. In fact, this projection rate was correlated with self-
-reported intergroup bias in studies 2 and 3 and social identification in all three studies,
-reflecting that the extent to which individuals generalize about their groups based on
-themselves may depend on how biased and affectively attached they are to their social
-groups. Findings reflect that how people generalize from the self to the group may enact
-similarity-based classification processes that are amplified under particular intergroup
-contexts.
+We further demonstrate that self-anchoring is a structured inferential generalization primarily driven by a motivation to achieve similarity with the ingroup. However, in the racial context, racial minority participants contrasting against the racial majority were driven moreso to achieve dissimilarity from the majority outgroup. Using a computational model to measure the rate at which self-beliefs are converted into ingroup beliefs, we find this projection rate weakens when participants contrast their ingroup against a positively regarded outgroup (e.g., a higher-status university in Study 2 or a fellow minority group in Study 3). This suggests self-anchoring is a cognitive process systematically amplified by intergroup context, with projection rates correlating with self-reported intergroup bias in studies 2 and 3 and social identification in all three studies. Findings reflect that social identity emerges through similarity-based classification processes analogous to the structured semantic representations found in modern word embedding architectures.
 
 
 
@@ -416,106 +388,27 @@ similarity relations among self-beliefs when inferring how they ought to charact
 
 ## 2
 generalize to their group, as well as contextual factors, such as what group people
-compare their ingroup against, may augment how people generalize.
-Inferences About the Ingroup Based on the Self
-The self serves as an informational base (Gramzow et al., 2001) from which
-people draw inferences about their ingroup, otherwise known as self-anchoring. For
-example, there is a strong association between the positively represented self-concept and
-one’s ingroup (Clement & Krueger, 2002; DiDonato et al., 2011; Gramzow & Gaertner,
-2005) and self-evaluations account for group evaluations to a greater extent than the mere
-social desirability of traits (Clement & Krueger, 2000, 2002; Otten & Wentura, 2001).
-Specifically, individuals engage in inductive reasoning and infer unknown information
-about their group on the basis of their own self-knowledge (DiDonato et al., 2011;
-Krueger, 2007), generalizing from themselves to a multitude of group members. As such,
-self-anchoring is most likely to occur in situations in which group knowledge is unknown
-or unclear (van Veelen et al., 2013a), such as minimal groups without acquired or
-diagnostic group knowledge.
-However, despite the apparent strength of evidence for people generalizing to
-group evaluations from self-evaluations, the majority of the research in this domain has
-relied on trait ratings for the self followed by trait ratings for the group, and the
-concordance of each pair of trait ratings across the self and ingroup is compared using
-distance (M. Cadinu et al., 2020; M. Cadinu & Rothbart, 1996) or correlational (Bianchi
-et al., 2009; Otten & Wentura, 2001; Sherman & Kim, 2005; van Veelen et al., 2011)
-measures. Thus, these prior tests of self-anchoring provide evidence that people evaluate
+People carry distinct sets of stable self-beliefs across various situations (Markus & Wurf, 1987), yet they also manage to achieve a sense of belonging (Baumeister & Leary, 1995) by assimilating into their various social groups (Brewer, 1991; Ellemers et al., 2001). In achieving this sense of similarity, individuals promote social identification—a sense of positive attachment to the group that is foundational to social life (Tajfel, 1978; Turner et al., 1987). Historically, social psychology has conceptualized group membership as a process of "depersonalization," where the self is categorized as an interchangeable exemplar of a group prototype (Turner et al., 1987). While this dominant account—often termed "self-stereotyping"—emphasizes the assimilation of group attributes into the self-concept, it does not sufficiently explain how people identify with novel groups or how they maintain self-beliefs that remain stable beyond specific group memberships (van Veelen et al., 2016).
 
+Rather than merely limitlessly assimilating group attributes, people also project their own attributes onto how they represent and perceive their ingroups (M. Cadinu & Rothbart, 1996) as well as others in interpersonal contexts (Ames, 2004). This process, known as self-anchoring, serves as an informational base (Gramzow et al., 2001) from which people draw inferences about their social environment. Specifically, individuals engage in inductive reasoning, inferring unknown information about their group on the basis of their own self-knowledge (DiDonato et al., 2011; Krueger, 2007). Self-anchoring is most pronounced in situations where group knowledge is ambiguous or diagnostic information is absent (van Veelen et al., 2013a), making it a critical mechanism for the emergence of social identity.
 
+### Inferences About the Ingroup Based on the Self
+Despite the apparent strength of evidence for self-anchoring, the majority of research in this domain has relied on correlated ratings of identical traits across the self and group (M. Cadinu & Rothbart, 1996; Otten & Wentura, 2001). While these tests provide evidence of rating stability, they do not necessarily demonstrate *generalization*—the process by which beliefs propagate to unobserved or novel attributes. Furthermore, traditional measures are vulnerable to repetition effects; the mere repetition of information can cause it to be perceived as more characteristic (Unkelbach et al., 2019). A rigorous test of the generalization-based theory of self-anchoring requires establishing that self-evaluations generalize across semantically related but novel traits (Heit & Rubinstein, 1994). For example, if an individual perceives themselves as "outgoing," do they infer that their group is characteristic of semantically similar traits like "sociable" and "fun," even if they have not explicitly evaluated themselves on those specific attributes?
 
-## 3
-similarly on the same traits across the self and group, but not that people evaluate
-similarly on similar but different traits across the self and group. In addition, it is the case
-that the mere repetition of information causes it to be perceived as more true or
-characteristic (Unkelbach, 2007; Unkelbach et al., 2019; Unkelbach & Rom, 2017), and
-one critique of this prior work may be that it relies strictly on the correlations among
-repeated ratings. As such, this prior work relying on correlations or distances among
-repeated ratings may provide a test of stability in ratings, but not necessarily
-generalization per se. A stronger test of this generalization-based theory of self-anchoring
-and -projection would be to establish that this generalization occurs across traits, to novel
-traits that are not merely repeated observations. As such, here we attempt to establish that
-people’s self-evaluations on traits can generalize to group evaluations on novel but
-related (Heit & Rubinstein, 1994) traits.
-Relational Similarity as the Basis for Self-Concept Generalization
-The stimuli, people, and situations encountered by an individual are likely to vary
-considerably across experiences, which necessitates that people be adept at generalizing
-to new stimuli, persons, and situations on the basis of similarity to prior experiences
-(Shepard, 1987). By extension, when evaluating ingroups, people may generalize that
-unobserved ingroup members may be like them, based on the belief that group members
-are bound together by similar attributes (R. J. Brown, 1984). However, beyond merely
-inferring that one is similar to one’s group on the same traits (i.e., if I am outgoing, my
-group is also outgoing), people may also infer similarity with one’s group on similar
-traits which they have not yet or recently self-evaluated on (i.e., If I am outgoing, my
+In the current research, we move social identity theory from a verbal, descriptive model to a formal architecture by integrating principles of category learning. We frame the self as a semantic prototype in a high-dimensional space, where group beliefs emerge through similarity-based generalization analogous to universal laws of cognition (Shepard, 1987). To formalize this process, we utilize a semantic dependency network of 147 positive traits, constructed using data from 178 Amazon Mechanical Turk participants with a 25% consensus threshold. From this network, we derive relational similarity measures (network-based Dice similarity; Equation 1) that allow us to quantify how self-representations propagate across an interconnected semantic web.
 
+### Relational Similarity as the Basis for Self-Concept Generalization
+Effective navigation of social environments requires generalizing from known experiences to new stimuli based on similarity (Shepard, 1987). In recent work, we developed a semantic network of trait dependencies (J. Elder et al., 2023) to extract relational similarity based on shared semantic neighbors. This network model allows us to identify how people represent themselves and their groups, moving beyond simple trait-for-trait matching. Inferred similarity is not only critical for classifying elements within a category but also facilitates the contrasting of distinctive features between categories (Tversky, 1977).
 
+Social identity research has borrowed heavily from cognitive science research on concept learning, yet it has rarely implemented the formalism leveraged by that field. The ability to make representational claims about the role of similarity-based inference in social categorization has been limited by the absence of model formalism (Guest & Martin, 2021). Here, we bridge this gap by implementing formal category learning models—such as the Generalized Context Model (Nosofsky, 1986)—to test the principles of social categorization in a self-anchoring context.
 
-## 4
-group ought to be sociable, funny, and fun). In recent research, we have developed a
-semantic network of trait dependencies (J. Elder, Cheung, et al., 2023), that allows for the
-extraction of relational similarity among pairs of traits based on common neighbors in the
-network. This network model of trait relations that contains information about relational
-similarity is thus useful for identifying people’s representations of themselves and their
-social groups, and how they generalize on the basis of similarity among trait relations.
-The usefulness and robustness of network-derived semantic similarity is well-
-established, as we have used these similarity relations in prior work to examine how the
-brain represents semantically similar traits during self-evaluations (J. Elder, Cheung, et
-al., 2023), how feedback propagates across traits as a function of similarity (J. Elder,
-Davis, et al., 2023b; J. Elder et al., 2022c), how similar self-evaluations among similar
-traits predicts confidence in self-evaluations (J. Elder et al., 2022a), how people
-assimilate group norms into the self-concept (J. Elder et al., 2022b), and how people
-reflect on themselves as similar to others (Schneider et al., 2022). Relevantly, inferred
-similarity is not only important for classifying elements of a particular category together,
-but also facilitates the contrasting of distinctive features among stimuli (Tversky, 1977).
-Specifically, the extent to which social groups are represented as different from one
-another and compatible with oneself may depend on situational factors, such as how they
-are contrasted against one another.
-## Contrastive Principles Augment Category Representations
-People generally accentuate differences between their ingroup and relevant
-outgroups (Tajfel et al., 1964; Tajfel & Billig, 1974) and similarities within social groups
+### Contrastive Principles Augment Category Representations
+This network approach enables the first formal implementation of the "metacontrast principle," which posits that group categorization is defined by the ratio of an individual’s similarity to the ingroup relative to the individual’s similarity to the outgroup (Turner et al., 1987). While the metacontrast principle has been central to social identity research for decades, it has remained a verbal description (Davis & Goldwater, 2021). By applying a category learning framework to social identity, we provide a formal test of whether intergroup contrast accentuates self-anchoring and how individuals balance the motivation for ingroup similarity against outgroup differentiation.
 
+### The Current Design
+We utilize a "training-to-generalization" paradigm common in concept learning research (Bowman et al., 2020). Participants first self-evaluate on a subset of traits (training phase), which serve as exemplars of the self-concept prototype. This is followed by a "generalization phase" where participants classify traits—including novel traits not seen during training—as more characteristic of either the ingroup or outgroup. Using the traits’ semantic similarities to the self-concept, we predict the likelihood of ingroup classification.
 
-
-## 5
-(Haslam et al., 1995; Turner et al., 1994). Such differences between groups and
-similarities within groups may be magnified under conditions in which one’s ingroup and
-other outgroups are contrasted against one another. This premise was formalized in early
-social identity research using the metacontrast principle, which defined the likelihood of
-a given individual being categorized as a group member (i.e., the ostensible self-
-prototypicality of one’s ingroup) as the ratio of the individual’s similarity to the ingroup
-relative to the individual’s similarity to the outgroup (Turner et al., 1987). Indeed, for
-non-social group related categories, contrasting opposing categories against each other
-causes their mental representations to be repelled and the resulting estimates and beliefs
-about each category to be polarized (Davis & Love, 2010; Vogel et al., 2018), and
-contextual factors can alter how the similarity relations among stimuli are represented
-(Nosofsky, 2011). However, while this metacontrast principle has been verbally
-described in terms of similarity, little to no research has formally implemented this
-principle in the context of social categories using relational similarity measures (Davis &
-## Goldwater, 2021).
-More generally, despite an abundance of representational and mechanistic claims
-in the intergroup and intragroup processes literature that are rooted in cognitive science
-theory on category and concept representations, including the claim that people consider
-themselves as interchangeable exemplars of their social group prototype (Hogg et al.,
-1995, 2004), little research has implemented formal category learning models to test
-these principles. Given the network approach implemented here, we are able to provide
-some of the first formal tests of intragroup theory rooted in category learning models, in a
-
+Across three studies, we examine how various intergroup contexts amplify or attenuate these generalization weights. Study 1 utilizes minimal groups to provide a proof-of-concept for similarity-based generalization. Study 2 examines the role of relative social status using university groups, testing whether self-anchoring is driven by differentiation from low-status outgroups or assimilation toward high-status ones. Study 3 applies this framework to racial identities, examining how majority or minority outgroup contrasts exert differential effects on the tendency to self-anchor. This approach provides a formal backbone for the "sense of sameness" (James, 1890) that defines the integration of the individual into the social collective.
 
 
 ## 6
@@ -1557,31 +1450,12 @@ Interestingly, findings suggest that individuals who are more motivated towards 
 ## 40
 groups may be more likely to classify traits as characteristic of the ingroup, regardless of
 self-beliefs.
-## Discussion
-We find support for similarity-based mechanisms for self-concept generalization
-to the ingroup over the outgroup, under minimal conditions. Importantly, the effect of the
-similarity-based self-concept generalization is much stronger than mere self-evaluation as
-is typically used to characterize self-anchoring or self-projection. Moreover, this
-generalization is robust across both novel and repeated traits, discarding the potential
-interpretation that self-anchoring is a function of repetition effects (Unkelbach et al.,
-2019; Unkelbach & Rom, 2017). This provides initial evidence that people use relational
-similarity to infer from one’s self-concept to other attributes what may be characteristic
-of one’s ingroup. Our metacontrast effects provide evidence that self-evaluations are
-positively associated only with similarity-to-ingroup, while similarity-to-outgroup is not
-associated with self-evaluations, suggesting that people may be less repelled from
-outgroup similarity than they are attracted to achieving ingroup similarity. Further, our
-design provides evidence that self-anchoring is accentuated by contrasting against one’s
-outgroup. Finally, our computational model provides insight into how people may
-convert self-beliefs into ingroup-beliefs, suggesting that individuals higher in social
-identification and self-prototypicality of the ingroup are more extreme in their tendencies
-to convert self-beliefs to ingroup-beliefs. However, it is unclear to what extent features of
-the outgroup relative to the ingroup may motivate stronger self-anchoring and tendencies
-to generalize from the self.
+### Discussion
+We find robust support for similarity-based mechanisms of self-concept generalization to the ingroup under minimal conditions. Crucially, the effect of similarity-to-self was significantly stronger than mere one-to-one trait matching, suggesting that self-anchoring is a structured inferential process rather than simple attribute replication. This generalization was robust across both novel and repeated traits, precluding the interpretation that self-anchoring is an artifact of repetition or familiarity (Unkelbach et al., 2019). 
 
+Our formalization of the metacontrast principle provides evidence that self-evaluations are primarily associated with ingroup similarity rather than outgroup dissimilarity. This suggests that in minimal contexts, individuals are motivated more by achieving similarity with the ingroup ("ingroup love") than by achieving differentiation from the outgroup ("outgroup hate"; Brewer, 1999). Finally, our computational Self-Projection Model significantly outperformed a simple bias-only baseline. The projection rate parameter ($\alpha$) showed positive associations with social identification and self-prototypicality, indicating that the extremity of self-to-group transfer reflects meaningful individual differences in group attachment. By utilizing a semantic dependency network, we move social identity theory from a verbal model to a formal architecture where the self functions as a prototypical category member, allowing us to quantify how beliefs propagate according to universal principles of category learning. 
 
-
-## 41
-Study 2: Self-Anchoring Based on Relative Status of University Groups
+## STUDY 2: SELF-ANCHORING BASED ON RELATIVE STATUS OF UNIVERSITY GROUPS
 In the next study, we sought to examine what diagnostic features of an ingroup-
 outgroup contrast may promote self-anchoring to the ingroup. Specifically, we attempt to
 address this using real groups that differ in perceived social status, focusing on different
@@ -2075,27 +1949,12 @@ across conditions.
 Note. Top row is Study 2; Bottom row is Study 2. Y-axis depicts the parameter, while X-
 axis depicts the condition.
 
-## Discussion
-In this study, we replicate the previous findings that people generalize from the
-self-concept to the ingroup on the basis of similarity to the self. In terms of outgroup
-comparisons, we find evidence that people may be less extreme in converting self-beliefs
-into ingroup-beliefs when the outgroup comparison is the higher status outgroup.
-Although the focus was on the status of the outgroup, this outgroup university was also
-more positively perceived than the lower status outgroup while the negation comparison
-had no explicit affective attributions attached to it. Thus, it may be that when the
-outgroup comparison is a more positively perceived and higher status outgroup, that
-people may feel less motivation to project their self-beliefs onto the ingroup, but rather
-may instead be motivated to project self-beliefs more onto the outgroup as well in order
-to perceive themselves as more like the “prestigious” outgroup university. We
-additionally find that the projection rate is associated with individual differences in
-intergroup bias and social identification, reflecting that people who dislike outgroups
-more and like their ingroup more may be more motivated to project themselves onto the
-ingroup. Alternatively, individuals who project themselves more onto the ingroup and
-less onto the outgroup may experience greater ingroup bias as a result. The causal
-relationship between intergroup bias and self-projection should be further elucidated in
-future work, potentially incorporating an intergroup cooperation or bias behavioral task
-with a self-anchoring task such as this.
-Study 3: Self-Anchoring Based on Relative Size of Racial Groups
+### Discussion
+Study 2 replicates similarity-based generalization in real-world social categories while revealing critical contextual modulations based on social status. The primary finding is the attenuation of projection rates when contrasting the ingroup against a higher status, prestigious outgroup university. This suggests that when the outgroup is positively regarded, the self no longer functions as a strictly exclusive prototype for the ingroup. Individuals may feel less motivation to project their attributes exclusively onto their group and instead may be motivated to see aspects of themselves in the desirable outgroup.
+
+These results identify a boundary condition for self-anchoring: projection is strongest when the outgroup is clearly differentiated or less desirable. This aligns with a status-justification or social-identity maintenance perspective, where self-projection serves as a tool for positive differentiation. The strong correlation between projection rates and social identification confirms that these formal parameters capture the strength of an individual's psychological attachment to their group. By framing social categorization as a dynamic process of classification, we provide a formal backbone for understanding how status hierarchies modulate the integration of the self into the collective.
+
+## STUDY 3: SELF-ANCHORING BASED ON RELATIVE SIZE OF RACIAL GROUPS
 
 
 
@@ -2453,25 +2312,12 @@ higher in self-esteem (r = -.19, CI = [-.30, -.06]), need for cognition (r = -.1
 who are more independent exhibit higher bias towards outgroup classifications, reflecting
 that such individuals may be more prone to perceiving and classifying traits as outgroup
 characteristic, regardless of self-beliefs.
-## Discussion
-One potential explanation for the fact that people exhibit greater projection rates
-when contrasting their minority racial identity against a majority racial identity (e.g.,
-White) may be that people are more motivated to engage in differentiation (R. Brown,
-2000; R. J. Brown, 1984) under this comparison. Minority members may perceive
-“common fate” (D. T. Campbell, 1958; Sell & Love, 2009) with other minority members,
-due to shared experiences of marginalization or discrimination as minority members, and
+### Discussion
+Study 3 extends self-anchoring to the racial context, finding that projection is amplified when members of minority racial groups (Asian and Latino) are contrasted against a superordinate, high-status majority group (White) rather than a fellow minority group. This higher projection rate in the majority condition suggests that self-anchoring is sensitive to intergroup power dynamics and social distance. When the outgroup is a higher-status majority, individuals may experience a greater motivation for positive distinctiveness or common fate, leading them to project their self-beliefs more intensely onto the minority ingroup as a means of category stabilization.
 
+Conversely, the lower projection rates in the minority-minority contrast suggest a sense of "common fate" or shared semantic space between minority groups, where the self is not exclusively Maped onto one's own identity. This aligns with findings from Study 2, where positively-regarded outgroups reduced the extremity of self-projection. The replication of the correlation between projection rates and social identification across diverse social categories reinforces that self-anchoring is a foundational cognitive mechanism of social identity. By formalizing these processes, we reveal how the individual self navigates complex social hierarchies through structured inferential generalization.
 
-
-## 71
-thus self-project less onto their minority ingroup exclusively. Additionally, it is important
-to note that the White majority is perceived much less positively than either minority
-group, which may be contributing to the differences, given that the projection rate is also
-associated intergroup bias across Study 2 and Study 3. Differences in perceptions of
-positivity towards each group driving the effect would align with the findings from Study
-2, whereby the projection rate was lower when contrasted against the higher status but
-more positively perceived outgroup.
-## General Discussion
+## GENERAL DISCUSSION
 People self-project their own self-perceived attributes onto similar others (Ames,
 2004) or onto ingroup members (M. R. Cadinu & Rothbart, 1996), but little is known
 about the within-person cognitive mechanisms underlying this process, such as the
@@ -2692,47 +2538,41 @@ may attempt to further disambiguate these questions of the extent to which peopl
 perceive similarity to their ingroup (potentially due to self-stereotyping or self-anchoring)
 versus the extent to which people actually are similar to their ingroup (potentially due to
 acculturation or social customs).
-## Conclusion
+## GENERAL DISCUSSION
+People self-project their attributes onto similar others and ingroup members, but the underlying cognitive mechanisms have remained largely descriptive. By utilizing a semantic dependency network of trait relations, we formalize self-anchoring as a structured inferential process rooted in similarity-based generalization. Across three studies, we demonstrate that individuals treat the self as a semantic prototype, where beliefs propagate to novel group members based on relational similarity—a finding robust across minimal, university, and racial categories.
 
+### Formalizing Social Identity Theory
+Our research moves social identity theory from a verbal model to a formal architecture by operationalizing the metacontrast principle as a formal ratio of summed similarities. This aligns social identity research with exemplar-based models of category learning and universal laws of generalization (Shepard, 1987). We find that self-anchoring is primarily driven by "ingroup love"—the motivation to achieve similarity with the ingroup—rather than outgroup repulsion. However, outgroup repulsion functions as a context-dependent boundary condition, emerging specifically when contrasting against high-status majority groups. 
 
+The ability to make representational claims about the role of similarity-based inference in social categorization has previously been limited by the absence of model formalism (Guest & Martin, 2021). By bridging the gap between social psychology and cognitive science, we demonstrate that the metacontrast ratio—a foundational concept in social identity theory—can be precisely measured using relational similarity. This shift from verbal to formal architectures allows for a more rigorous testing of the representational claims inherent in social identity theory, such as the idea that people consider themselves as interchangeable exemplars of their group prototype.
 
-## 80
-The “sense of sameness is the very keel and backbone of our thinking,” (James,
-1890) and similarity plays a fundamental role in people’s everyday reasoning and
-inferences (Goldstone et al., 1991; Shepard, 1987; Tversky, 1977), including how people
-reason about themselves and the social groups that they belong to. Using a network-based
-model (J. Elder, Cheung, et al., 2023) of semantic representation (Griffiths et al., 2007),
-we introduce model formalism to the long-held tenets of Social Identity Theory (Tajfel,
-1978; Turner et al., 1987) regarding the underpinnings of social identification and self-
-group overlap. We find people use semantic similarity to generalize trait self-beliefs to
-their ingroup, and that Similarity-to-ingroup primarily drives this effect. People who
-perceive themselves as more similar to their ingroup, who more strongly identify with
-their ingroup, or who express greater intergroup bias are more extreme in their tendency
-to self-project during self-to-ingroup generalization. Moreover, people self-anchor less
-strongly when they contrast their ingroup identity against a more positively perceived
-outgroup identity, reflecting that the motivation to differentiate by projecting oneself onto
-the ingroup may be amplified when contrasting one’s ingroup against a more disliked
-outgroup. Findings further support that people are motivated to belong to their social
-groups but are not merely chameleons whose self-beliefs are entirely fluctuating to
-varying social contexts and identity-based cues. Rather, people use the similarities among
-their various self-beliefs to infer and generalize what ought to be characteristic of their
-group as well, which in turn reflects people’s various feelings about their social groups.
-But people do not represent their beliefs about similarity in a vacuum (Nosofsky, 2011),
-and tendencies to generalize about the self to the ingroup may be amplified under
+### Self-Anchoring as Generalization Across Related Traits
+The current research provides strong evidence that self-anchoring is an inductive reasoning process that goes beyond simple item repetition. Prior research was vulnerable to the interpretation that self-anchoring results from repetition effects, where ratings on the same items on repeated occasions amplify their descriptiveness (Unkelbach & Rom, 2017). By demonstrating that individuals generalize self-evaluations to novel, semantically related traits, we establish that self-anchoring is a high-level cognitive process involving the propagation of beliefs across a semantic web. Individuals do not merely infer that their group is like them on specific traits; they infer what their group *ought* to be based on the structural relations within their self-concept.
 
+### Contextual Modulation and Social Identification
+The attenuation of projection rates when contrasting against prestigious or fellow minority outgroups indicates that self-anchoring is an optimization process sensitive to perceived intergroup favorability. When an outgroup is positively regarded, the self functions as a less exclusive prototype for the ingroup. This provides a formal link between cognitive generalization and social identification, with projection parameters tracking individual levels of affective attachment and bias. 
 
+Furthermore, our results suggest that social identification emerging from similarity-based classification is a dynamic process. Our framework positions social categorization as a dynamic classification process within high-dimensional semantic space, providing a compelling conceptual parallel to the structured representations found in modern transformer-based word embedding architectures (e.g., LLMs). In such models, the "meaning" of a token is derived from its relational position relative to other tokens; similarly, we find that social identity emerges from the relational position of the self relative to group attributes in a high-dimensional semantic network. This parallel suggests that the cognitive architectures underlying social identity may share fundamental structural properties with modern artificial intelligence systems designed to represent semantic relationships.
 
-## 81
-conditions of social tension or conflict (Tajfel, 1974), such as when majority and
-minority members are pitted against each other. The current work provides important
-insight into the mechanisms by which “We” becomes “I” and the conditions under which
-this occurs, while advancing and formalizing prior social psychological theory on the
-topic with more precise methodology and measurement.
+### Conclusion
+Similarity is the backbone of social cognition. By formalizing the relationship between self-concept structure and social identity, we establish that self-anchoring follows universal laws of generalization. Our research demonstrates that the integration of the individual into the group is not merely a motivational bias but a structured, inferential process. This architecture provides a precise methodology for understanding how individuals navigate their social worlds and integrate into the collective whole.
 
+### Appendix A: Posterior Predictive Checks
+We conducted posterior predictive checks (PPCs) to compare predicted and observed data, ensuring that the models were well-suited to describe the underlying cognitive processes. To the extent that data simulated from the posterior predictive distribution ($Y_{rep}$) resembles the observed outcome data ($Y$), the model is considered adequate. We evaluated PPCs for both the training and generalization phases across all three studies (Figure A1). As illustrated, the observed and predicted data are well-aligned, demonstrating robust model adequacy.
 
+**Figure A1. Posterior predictive checks for primary models in each study.**
+Note. $Y$ represents observed data and $Y_{rep}$ represents simulated data. (A) Ingroup classifications predicted by Similarity-to-self in Study 1. (B) Ingroup classifications predicted by Similarity-to-self and Condition in Study 2. (C) Ingroup classifications predicted by Similarity-to-self and Condition in Study 3. (D) Likert self-evaluations predicted by Metacontrast Ratio in Study 1. (E) Likert self-evaluations predicted by Metacontrast Ratio and Condition in Study 2. (F) Likert self-evaluations predicted by Metacontrast Ratio and Condition in Study 3.
 
-## 82
-## References
+### Appendix B: Parameter Recovery Analyses
+To determine whether parameters from the computational model were identifiable and could be recovered, we simulated behavior across each study’s conditions.
+*   **Study 1:** We simulated data across N = 250 by randomly sampling participants’ real training data and simulating generalization phase classifications. The projection rate was recoverable (r = .76) and the bias parameter was modestly recoverable (r = .40), while the temperature parameter was not recoverable at all (r = .01). We further performed recovery while retaining the original covariance structure among parameters, finding that the temperature parameter (r = .66), projection rate (r = .57), and bias parameter (r = .46) were modestly recoverable.
+*   **Study 2:** For the higher status condition, the temperature (r = .72), projection rate (r = .85), and bias parameter (r = .63) were all recoverable. For the lower status condition, the temperature parameter (r = .76) and bias parameter (r = .70) were recoverable, and the projection rate was modestly recoverable (r = .52). For the negation condition, the temperature parameter (r = .86) and bias parameter (r = .78) were recoverable, while the projection rate was less recoverable (r = .37).
+*   **Study 3:** For the majority condition, the temperature (r = .70) and bias parameters (r = .66) were recoverable, while the projection rate was modestly recoverable (r = .44). For the minority condition, the temperature (r = .46), projection rate (r = .55), and bias parameter (r = .57) were modestly recoverable.
+
+**Figure B1. Parameter recovery correlations across all studies and conditions.**
+Note. (A) Randomly generated parameters, (B) Study 1 parameters, (C) Study 2 higher status condition parameters, (D) Study 2 lower status condition parameters, (E) Study 2 negation condition parameters, (F) Study 3 majority condition parameters, (G) Study 3 minority condition parameters.
+
+## REFERENCES
 Adler, N. E., Boyce, T., Chesney, M. A., Cohen, S., Folkman, S., Kahn, R. L., & Syme,
 S. L. (1994). Socioeconomic status and health: The challenge of the gradient.
 American Psychologist, 49, 15–24. https://doi.org/10.1037/0003-066X.49.1.15

@@ -14,10 +14,11 @@ fit <- mod$sample(
   seed = 1234,
   chains = 4,
   parallel_chains = 4,
-  iter_warmup = 1000,
-  iter_sampling = 1000,
+  iter_warmup = 2000,
+  iter_sampling = 2000,
   adapt_delta = 0.95,
-  max_treedepth = 12,
+  max_treedepth = 15,
+  init = 0,
   refresh = 100
 )
 

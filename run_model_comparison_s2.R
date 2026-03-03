@@ -64,10 +64,10 @@ for(i in 1:length(uIds)) {
 
 # 2. Define Models
 models <- list(
+  bias = "S_Logistic_Bias.stan",
   symmetric = "S_Logistic_1mOppose_Bias.stan",
-  asymmetric = "S_Logistic_Asym.stan",
-  asym_lambda = "S_Logistic_Asym_Lambda_NoW.stan",
-  asym_lambda_w = "S_Logistic_Asym_Lambda.stan"
+  sym_lambda = "S_Logistic_Sym_Lambda.stan",
+  asym_lambda = "S_Logistic_Asym_Lambda_NoW.stan"
 )
 
 # 3. Fit function
@@ -81,9 +81,11 @@ fit_and_save <- function(model_name) {
     seed = 456,
     chains = 4,
     parallel_chains = 4,
-    iter_warmup = 1000,
-    iter_sampling = 1000,
-    adapt_delta = 0.95
+    iter_warmup = 2000,
+    iter_sampling = 2000,
+    adapt_delta = 0.95,
+    max_treedepth = 15,
+    init = 0
   )
   
   # A. Save LOO results

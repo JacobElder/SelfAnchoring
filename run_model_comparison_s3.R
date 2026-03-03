@@ -68,10 +68,10 @@ for(i in 1:length(uIds)) {
 
 # 2. Define Models
 models <- list(
+  bias = "S_Logistic_Bias.stan",
   symmetric = "S_Logistic_1mOppose_Bias.stan",
-  asymmetric = "S_Logistic_Asym.stan",
-  asym_lambda = "S_Logistic_Asym_Lambda_NoW.stan",
-  asym_lambda_w = "S_Logistic_Asym_Lambda.stan"
+  sym_lambda = "S_Logistic_Sym_Lambda.stan",
+  asym_lambda = "S_Logistic_Asym_Lambda_NoW.stan"
 )
 
 # 3. Fit in Parallel
@@ -85,12 +85,13 @@ results_list <- mclapply(names(models), function(model_name) {
   fit <- mod$sample(
     data = stan_data,
     seed = 789,
-    chains = 2,
-    parallel_chains = 2,
-    iter_warmup = 1000,
-    iter_sampling = 1000,
+    chains = 4,
+    parallel_chains = 4,
+    iter_warmup = 2000,
+    iter_sampling = 2000,
     adapt_delta = 0.95,
-    max_treedepth = 12,
+    max_treedepth = 15,
+    init = 0,
     refresh = 100
   )
   
