@@ -12,7 +12,6 @@ library(parallel)
 options(mc.cores = parallel::detectCores()) 
 
 # 1. Load Data
-# Using the genuine CSV text files (converted from mislabeled Parquet)
 fulldf <- read.csv(here("Study 2/Cleaning/output/fullTest.csv")) %>% filter(!is.na(ingChoiceN))
 traindf <- read.csv(here("Study 2/Cleaning/output/fullTrain_fixed.csv")) %>% filter(!is.na(selfResp))
 
@@ -24,7 +23,7 @@ traindf <- traindf %>% filter(subID %in% common_ids)
 # Load Network for Similarity Matrix
 posDf <- read.csv(here("Combined/input/adjacencyMatrix_p.csv"))
 posMat <- as.matrix(posDf)
-posGraph <- graph_from_adjacency_matrix(posMat, mode = "undirected")
+posGraph <- graph_from_adjacency_matrix(posMat, mode = "max")
 simMat <- similarity(posGraph, method = "dice")
 
 uIds <- sort(common_ids)
@@ -64,10 +63,10 @@ for(i in 1:length(uIds)) {
 
 # 2. Define Models
 models <- list(
-  bias = "S_Logistic_Bias.stan",
-  symmetric = "S_Logistic_1mOppose_Bias.stan",
-  sym_lambda = "S_Logistic_Sym_Lambda.stan",
-  asym_lambda = "S_Logistic_Asym_Lambda_NoW.stan"
+  bias = "S_Bias.stan",
+  symmetric = "S_Symmetric.stan",
+  sym_lambda = "S_Sym_Lambda.stan",
+  asym_lambda = "S_Asym_Lambda.stan"
 )
 
 # 3. Fit function
@@ -97,7 +96,6 @@ fit_and_save <- function(model_name) {
   write.csv(sum_fit, here("Results", paste0("summary_s2_", model_name, ".csv")))
   
   # C. Extract and save individual level parameters specifically
-  # This makes loading individual medians much easier for correlations
   ind_params <- sum_fit %>%
     filter(str_detect(variable, "\\[")) %>%
     select(variable, median, rhat, ess_bulk)
@@ -106,7 +104,7 @@ fit_and_save <- function(model_name) {
   return(l)
 }
 
-# 4. Sequential Fit (since user running externally)
+# 4. Fit Models (Skipping those already found in Fits/ directory if desired, but here we run all)
 loo_results <- list()
 for(m in names(models)) {
   loo_results[[m]] <- fit_and_save(m)

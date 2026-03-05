@@ -1,0 +1,22 @@
+{
+    "Level 1: Bias Model": {
+        "Study-Specific": "S_Bias.stan",
+        "Pooled": "S_Pooled_Bias.stan",
+        "Description": "Baseline model estimating general ingroup favoritism (gamma) and lapse rate (w)."
+    },
+    "Level 2: Symmetric Model": {
+        "Study-Specific": "S_Symmetric.stan",
+        "Pooled": "S_Pooled_Symmetric.stan",
+        "Description": "Traditional self-anchoring with a single projection rate (alpha) where ingroup assimilation equals outgroup repulsion."
+    },
+    "Level 3: Symmetric + Lambda": {
+        "Study-Specific": "S_Sym_Lambda.stan",
+        "Pooled": "S_Pooled_Sym_Lambda.stan",
+        "Description": "Adds Shepard's Law (lambda) to the symmetric model to estimate the semantic radius of generalization."
+    },
+    "Level 4: Asymmetric + Lambda": {
+        "Study-Specific": "S_Asym_Lambda.stan",
+        "Pooled": "S_Pooled_Asym_Lambda.stan",
+        "Description": "The full architecture decoupling alpha_in (ingroup love) from alpha_out (outgroup hate) with the lambda gradient."
+    }
+}

@@ -24,7 +24,7 @@ traindf <- traindf %>% filter(subID %in% common_ids)
 # Load Network for Similarity Matrix
 posDf <- read.csv(here("Combined/input/adjacencyMatrix_p.csv"))
 posMat <- as.matrix(posDf)
-posGraph <- graph_from_adjacency_matrix(posMat, mode = "undirected")
+posGraph <- graph_from_adjacency_matrix(posMat, mode = "max")
 simMat <- similarity(posGraph, method = "dice")
 
 uIds <- sort(common_ids)
@@ -68,10 +68,10 @@ for(i in 1:length(uIds)) {
 
 # 2. Define Models
 models <- list(
-  bias = "S_Logistic_Bias.stan",
-  symmetric = "S_Logistic_1mOppose_Bias.stan",
-  sym_lambda = "S_Logistic_Sym_Lambda.stan",
-  asym_lambda = "S_Logistic_Asym_Lambda_NoW.stan"
+  bias = "S_Bias.stan",
+  symmetric = "S_Symmetric.stan",
+  sym_lambda = "S_Sym_Lambda.stan",
+  asym_lambda = "S_Asym_Lambda.stan"
 )
 
 # 3. Fit in Parallel using mclapply

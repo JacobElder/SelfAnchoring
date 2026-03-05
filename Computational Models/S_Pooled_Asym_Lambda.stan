@@ -7,19 +7,18 @@ data {
   array[nSubjects] int<lower = 1> nTrain; 
   array[nSubjects] int<lower = 1> nTrials; 
   array[nSubjects, maxTrials] int<lower = 0, upper = 2> groupChoice; 
-  
   array[nSubjects] matrix[maxTrials, maxTrain] prevSim; 
   array[nSubjects] vector[maxTrain] prevSelf; 
 }
 
 parameters {
   // Global hyperparameters (Across Studies)
-  vector[5] global_mu_pr;
-  vector<lower=0>[5] global_sigma;
+  vector[6] global_mu_pr;
+  vector<lower=0.01>[6] global_sigma;
 
-  // Study-level raw parameters
-  array[nStudies] vector[5] study_mu_pr;
-  vector<lower=0>[5] study_sigma;
+  // Study-level raw parameters (Matt trick)
+  array[nStudies] vector[6] study_mu_raw;
+  vector<lower=0.01>[6] study_sigma;
 
   // Subject-level raw parameters (Matt trick)
   vector[nSubjects] tau_pr;     
@@ -27,6 +26,7 @@ parameters {
   vector[nSubjects] m_out_pr;   
   vector[nSubjects] bias_pr;    
   vector[nSubjects] lambda_pr;  
+  vector[nSubjects] w_pr;
 }
 
 transformed parameters {
@@ -35,6 +35,12 @@ transformed parameters {
   vector<lower=0, upper=10>[nSubjects] m_out;
   vector<lower=0, upper=1>[nSubjects] bias;
   vector<lower=0, upper=5>[nSubjects] lambda;
+  vector<lower=0, upper=1>[nSubjects] w;
+  
+  array[nStudies] vector[6] study_mu_pr;
+  for (s in 1:nStudies) {
+    study_mu_pr[s] = global_mu_pr + global_sigma .* study_mu_raw[s];
+  }
 
   for (i in 1:nSubjects) {
     int s = subjStudy[i];
@@ -43,26 +49,28 @@ transformed parameters {
     m_out[i]  = Phi_approx(study_mu_pr[s, 3] + study_sigma[3] * m_out_pr[i]) * 10; 
     bias[i]   = Phi_approx(study_mu_pr[s, 4] + study_sigma[4] * bias_pr[i]); 
     lambda[i] = Phi_approx(study_mu_pr[s, 5] + study_sigma[5] * lambda_pr[i]) * 5;
+    w[i]      = Phi_approx(study_mu_pr[s, 6] + study_sigma[6] * w_pr[i]); 
   }
 }
 
 model {
   // Global Priors
   global_mu_pr ~ normal(0, 1);
-  global_sigma ~ normal(0, 0.3);
+  global_sigma ~ cauchy(0, 1);
 
-  // Study-level Priors (Partial Pooling)
+  // Study-level Priors (Non-centered)
   for (s in 1:nStudies) {
-    study_mu_pr[s] ~ normal(global_mu_pr, global_sigma);
+    study_mu_raw[s] ~ normal(0, 1);
   }
-  study_sigma ~ normal(0, 0.3);
+  study_sigma ~ cauchy(0, 1);
 
-  // Subject-level priors
+  // Subject-level priors (Non-centered)
   tau_pr    ~ normal(0, 1);
   m_in_pr   ~ normal(0, 1);
   m_out_pr  ~ normal(0, 1);
   bias_pr   ~ normal(0, 1);
   lambda_pr ~ normal(0, 1);
+  w_pr      ~ normal(0, 1);
 
   for (s in 1:nSubjects) {
     vector[nTrain[s]] GPin;
@@ -76,34 +84,19 @@ model {
     GPout[1:nTrain[s]] = inv_logit(-m_out[s] * (prevSelf[s, 1:nTrain[s]] - 4));
     
     for (t in 1:nTrials[s]) {
-      PS[t] = pow(prevSim[s, t, 1:nTrain[s]], lambda[s]);
+      PS[t, 1:nTrain[s]] = pow(prevSim[s, t, 1:nTrain[s]], lambda[s]);
     }
     
-    simW_in = PS * GPin[1:nTrain[s]] + 1e-9;
-    simW_out = PS * GPout[1:nTrain[s]] + 1e-9;
+    simW_in  = PS[1:nTrials[s], 1:nTrain[s]] * GPin[1:nTrain[s]] + 1e-9;
+    simW_out = PS[1:nTrials[s], 1:nTrain[s]] * GPout[1:nTrain[s]] + 1e-9;
     
-    logit_p = log(bias[s]) - log(1-bias[s]) + tau[s] * (log(simW_in) - log(simW_out));
+    logit_p = log(bias[s] + 1e-9) - log(1-bias[s] + 1e-9) + tau[s] * (log(simW_in) - log(simW_out));
 
     for (t in 1:nTrials[s]) {
       if (groupChoice[s, t] > 0) {
-        (groupChoice[s, t] - 1) ~ bernoulli_logit(logit_p[t]);
+        target += log_sum_exp(log(w[s]) + bernoulli_lpmf(groupChoice[s, t] - 1 | 0.5),
+                             log1m(w[s]) + bernoulli_logit_lpmf(groupChoice[s, t] - 1 | logit_p[t]));
       }
     }
-  }    
-}
-
-generated quantities {
-  array[nStudies] real mu_tau;
-  array[nStudies] real mu_m_in;
-  array[nStudies] real mu_m_out;
-  array[nStudies] real mu_bias;
-  array[nStudies] real mu_lambda;
-
-  for (s in 1:nStudies) {
-    mu_tau[s]    = Phi_approx(study_mu_pr[s, 1]) * 10;
-    mu_m_in[s]   = Phi_approx(study_mu_pr[s, 2]) * 10;
-    mu_m_out[s]  = Phi_approx(study_mu_pr[s, 3]) * 10;
-    mu_bias[s]   = Phi_approx(study_mu_pr[s, 4]);
-    mu_lambda[s] = Phi_approx(study_mu_pr[s, 5]) * 5;
   }
 }
