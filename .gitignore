@@ -6,6 +6,9 @@
 .Rapp.history
 .DS_Store
 *.rds
+*.parquet
+*.RData
+*.RDataTmp
 *.pdf
 *.docx
 *.log
@@ -19,11 +22,22 @@
 !*.stan
 !*.Rproj
 
-# Compiled Stan Binaries
-Computational Models/S_Logistic_1mOppose_Bias
-Computational Models/S_Logistic_Asym
-Computational Models/S_Logistic_Asym_Lambda
-Computational Models/S_Logistic_Asym_Lambda_NoW
-Computational Models/S_Logistic_Bias
-Computational Models/S_Logistic_Sym_Lambda
-Computational Models/S_Pooled_Asym_Lambda
+# Large Data Directories
+Fits/
+Study 1/Cleaning/output/
+Study 2/Cleaning/output/
+Study 3/Cleaning/output/
+
+# Compiled Stan Binaries (No extension)
+Computational Models/S_Asym_Lambda
+Computational Models/S_Bias
+Computational Models/S_Sym_Lambda
+Computational Models/S_Symmetric
+Computational Models/Archive/S_Logistic_1mOppose_Bias
+Computational Models/Archive/S_Logistic_Asym
+Computational Models/Archive/S_Logistic_Asym_Lambda
+Computational Models/Archive/S_Logistic_Asym_Lambda_NoW
+Computational Models/Archive/S_Logistic_Bias
+Computational Models/Archive/S_Logistic_Sym_Lambda
+Computational Models/Archive/S_Pooled_Asym_Lambda
+Computational Models/Archive/S_Pooled_Bias
