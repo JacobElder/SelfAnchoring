@@ -51,3 +51,33 @@ model {
     }
   }
 }
+
+generated quantities {
+  // ================================================================
+  // GROUP-LEVEL PARAMETERS (back-transformed global means)
+  //   fit$draws("mu_bias")   # ingroup response bias [0, 1]
+  //   fit$draws("mu_w")      # lapse rate [0, 1]
+  // ================================================================
+  real<lower=0, upper=1> mu_bias = Phi_approx(global_mu_pr[1]);
+  real<lower=0, upper=1> mu_w    = Phi_approx(global_mu_pr[2]);
+
+  // ================================================================
+  // TRIAL-LEVEL QUANTITIES (index = (s-1)*maxTrials + t)
+  //   fit$draws("log_lik")   # log-likelihood for LOO-CV
+  //   fit$draws("p_pred")    # P(ingroup) per trial (= bias[s]; no projection)
+  //   Note: MCR not applicable — Bias model has no similarity-based projection
+  // ================================================================
+  vector[nSubjects * maxTrials] log_lik = rep_vector(0.0, nSubjects * maxTrials);
+  vector[nSubjects * maxTrials] p_pred  = rep_vector(0.0, nSubjects * maxTrials);
+
+  for (s in 1:nSubjects) {
+    for (t in 1:nTrials[s]) {
+      if (groupChoice[s, t] > 0) {
+        real p_model = bias[s];
+        log_lik[(s-1)*maxTrials + t] = log_sum_exp(log(w[s]) + bernoulli_lpmf(groupChoice[s, t] - 1 | 0.5),
+                                                  log1m(w[s]) + bernoulli_lpmf(groupChoice[s, t] - 1 | p_model));
+        p_pred[(s-1)*maxTrials + t]  = w[s] * 0.5 + (1.0 - w[s]) * p_model;
+      }
+    }
+  }
+}

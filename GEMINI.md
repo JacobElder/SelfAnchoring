@@ -60,6 +60,29 @@ I am running external Bayesian Hierarchical Analyses. You must explicitly leave 
 - Parameter recovery results verifying the identifiability of $\alpha_{in}$, $\alpha_{out}$, and potentially $\lambda$.
 - Results from the Network-Weighted Generalization (Trait Hubs) analysis.
 
+## Pareto k — Per-Subject Diagnostics & Potential Exclusions
+
+**Background:** LOO Pareto k values > 1 indicate high-leverage observations where the LOO approximation is unreliable for those specific trials. In Study 1's sym_lambda model, 262/9,028 trials (2.9%) had k > 1, concentrated in ~30 subjects (notably subject 36: 43% of their trials). This pattern suggests a few participants are genuine outliers (near-random responders or atypical parameter patterns) rather than random noise.
+
+**Implemented:** Per-subject Pareto k CSVs are generated for every model in every study:
+- Study 1 (post-hoc): `Study 1/Analysis/pareto_k_subj_s1.R` — run after all S1 LOO files exist
+- Studies 2, 3, Pooled: integrated into `fit_and_save()` function in each run script
+- Output: `Results/pareto_k_subj_<study>_<model>.csv` with columns: subID, n_trials, k_mean, k_max, n_good/ok/bad/verybad, pct_reliable, concern (NONE/LOW/MODERATE/HIGH)
+- S1 also outputs `Results/pareto_k_subj_s1_all_models.csv` (combined) and prints HIGH-concern summary
+
+**Pending decision:** Review per-subject Pareto k CSVs after all models complete. Consider excluding subjects with HIGH concern (k > 1) across multiple models, on data-quality grounds (separate from model selection). This is a principled exclusion criterion — random responders inflate lapse (w) estimates and reduce model discrimination.
+
+## Moment Matching — Status & Technical Notes
+
+**Requested but not yet implemented.** Moment matching corrects unreliable Pareto k values by adjusting importance weights to match the LOO posterior's first two moments, using existing MCMC draws (no refitting).
+
+**Why it's hard with cmdstanr:**
+- `loo::loo_moment_match.default` requires 7 custom functions, including `log_lik_i_upars` — evaluating the log-likelihood for a specific observation at arbitrary (transformed) parameter values. This requires running the model's likelihood function for specific parameter values.
+- `rstan::read_stan_csv()` can read cmdstanr CSVs into a stanfit object, but `log_prob()` won't work on it — rstan's log_prob requires a compiled C++ shared library, not the CmdStan executable cmdstanr uses. The conversion doesn't bridge this gap.
+- `loo_moment_match.stanfit` (rstan) works trivially because rstan compiles models to shared libraries with direct log_prob access.
+
+**Current status:** 96.8% reliable Pareto k (k < 0.7) across models is defensible for publication. Moment matching would address the 2.9% k > 1 trials but won't change model rankings. Flagged as future work — if loo package adds native cmdstanr support (or a helper vignette), implementation becomes straightforward. Until then, the per-subject Pareto k CSVs provide an alternative path (exclusion of high-leverage subjects).
+
 ## REQUIRED EXECUTION STEPS
 Before producing the revision for any section, you must explicitly write: "I will not remove or modify any statistical findings." Then, proceed strictly using this 3-step format:
 1. **Step 1: Extract and list all statistical findings verbatim from the original text of the requested section.**

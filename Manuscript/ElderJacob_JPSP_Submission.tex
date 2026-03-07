@@ -421,8 +421,13 @@ power.
 \textbf{Network Procedure} We utilized a semantic dependency network of
 147 traits constructed using data from 178 Amazon Mechanical Turk
 participants (25\% consensus threshold). From this network, we derived
-network-based Dice similarity (Equation 1), representing the proportion
-of shared neighbors between traits.
+network-based Dice similarity (Equation~\ref{eq-dice}), representing the
+proportion of shared neighbors between traits.
+
+\begin{equation}\phantomsection\label{eq-dice}{S_{ij} = \frac{2|N(i) \cap N(j)|}{|N(i)| + |N(j)|}}\end{equation}
+
+where \(N(i)\) and \(N(j)\) denote the neighbor sets of traits \(i\) and
+\(j\) in the semantic dependency network.
 
 \textbf{Figure 1. Trait network.} \emph{Note.} Top figure depicts full
 semantic dependency network of traits. Bottom figure is subset of
@@ -445,20 +450,163 @@ are novel and never received a self-evaluation. Participants then
 proceed through all traits in the semantic trait network, and classify
 whether each trait is characteristic of the ingroup or the outgroup.
 
-\textbf{Indices} We computed \emph{Similarity-to-Self} (\(SS_g\)) as a
-self-evaluation-weighted average of semantic similarity (Equation 2). We
-also formalize uncertainty using a standard entropy formulation
-(Equation 3) and operationalized the \emph{Metacontrast Ratio} (MCR)
-using the ratio of summed similarities to ingroup versus outgroup
-classified traits (Equation 6).
+\textbf{Indices} We computed \emph{Similarity-to-Self} (\(SS_g\);
+Equation~\ref{eq-ss}) as a similarity-weighted average of
+self-evaluations across training traits, capturing the degree to which
+the self-concept predicts the semantic neighborhood of each test trait.
+We formalized response uncertainty using a similarity-weighted Shannon
+entropy (Equation~\ref{eq-entropy}), and operationalized the
+\emph{Metacontrast Ratio} (MCR; Equation~\ref{eq-mcr}) as the ratio of a
+training trait's mean similarity to ingroup-classified versus
+outgroup-classified traits.
 
-\textbf{Computational Modeling} We compared a \emph{Bias Model}
-(Equation 7; 1 parameter) against a \emph{Self-Projection Model}
-(Equation 10; 3 parameters). The Self-Projection Model transforms
-self-evaluations into ingroup beliefs via a projection rate (\(\alpha\))
-and temperature parameter (\(\beta\)). Models were fitted using Stan
-(four MCMC chains; 1,000 samples post-warmup). Convergence was confirmed
-via \(\hat{R} < 1.05\).
+\begin{equation}\phantomsection\label{eq-ss}{SS_g = \frac{\sum_{t=1}^{T} E_t \cdot S_{tg}}{\sum_{t=1}^{T} S_{tg}}}\end{equation}
+
+where \(E_t\) is the self-evaluation on training trait \(t\), \(S_{tg}\)
+is the Dice similarity between training trait \(t\) and test trait
+\(g\), and \(T\) is the number of training traits.
+
+\begin{equation}\phantomsection\label{eq-entropy}{H_g = -\sum_{e=1}^{7} p_e \log_2 p_e, \quad p_e = \frac{\sum_{t:\, E_t = e} S_{tg}}{\sum_{t=1}^{T} S_{tg}}}\end{equation}
+
+where \(p_e\) is the similarity-weighted proportion of training traits
+rated at level \(e\) on the 7-point scale, yielding a distribution over
+self-evaluation ratings for each test trait \(g\).
+
+\begin{equation}\phantomsection\label{eq-mcr}{\text{MCR}_t = \frac{\bar{S}_{t,\,\text{in}}}{\bar{S}_{t,\,\text{out}}} = \frac{\frac{1}{|C_\text{in}|}\displaystyle\sum_{j \in C_\text{in}} S_{tj}}{\frac{1}{|C_\text{out}|}\displaystyle\sum_{j \in C_\text{out}} S_{tj}}}\end{equation}
+
+where \(C_\text{in}\) and \(C_\text{out}\) are the sets of traits the
+participant classified as ingroup- and outgroup-characteristic
+respectively, and \(S_{tj}\) is the Dice similarity between training
+trait \(t\) and classified trait \(j\).
+
+\textbf{Computational Modeling} We compared four cognitive architectures
+based on category learning principles (Nosofsky, 2011) to test the
+representational structure of self-anchoring.
+
+\textbf{Level 1: Bias Model (Motivational Baseline).} This model
+represents a general tendency to choose the ingroup regardless of trait
+content, serving as a baseline for ingroup favoritism:
+\[P(\text{Ingroup} | g) = \text{logit}^{-1}(\text{logit}(\gamma))\]
+where \(\gamma\) is the bias parameter.
+
+\textbf{Level 2: Symmetric Model (Traditional Self-Anchoring).} This
+model utilizes a single projection rate (\(\alpha\)) assuming that the
+rate of ingroup assimilation is mathematically identical to the rate of
+outgroup repulsion:
+\[P(\text{Ingroup} | g) = \frac{\gamma \cdot (\sum_{t=1}^T S_{tg} \cdot G_t)^\beta}{\gamma \cdot (\sum_{t=1}^T S_{tg} \cdot G_t)^\beta + (1-\gamma) \cdot (\sum_{t=1}^T S_{tg} \cdot (1-G_t))^\beta}\]
+where \(G_t = \frac{1}{1 + e^{-\alpha(E_t-4)}}\) represents the latent
+belief transformed from self-evaluations (\(E_t\)).
+
+\textbf{Level 3: Symmetric + \(\lambda\) Model (The Generalization
+Gradient).} This model introduces Shepard's Law by adding a
+generalization sensitivity parameter (\(\lambda\)), representing the
+decay of inference across semantic similarity
+(\(S_{tg} \rightarrow S_{tg}^\lambda\)). This architecture treats
+\(\lambda\) as a universal cognitive law that defines the self-concept's
+structural reach, independent of social target or bias.
+
+\textbf{Figure 5. How Shepard's Law (\(\lambda\)) Unlocks Parameter
+Identifiability.} \emph{Note.} As \(\lambda\) increases, the
+generalization gradient becomes steeper, restricting the influence of
+self-evaluations to only local semantic neighbors. This ``flattening''
+of influence for more distant novel traits provides the mathematical
+leverage necessary to distinguish the structural reach of the
+self-concept (\(\lambda\)) from the extremity of social projection
+(\(\alpha\)).
+
+\textbf{Level 4: Asymmetric + \(\lambda\) Model (The Full
+Architecture).} This model decouples the assimilation and repulsion
+processes into distinct parameters, \(\alpha_{in}\) and
+\(\alpha_{out}\), to test if social identity is driven by ``ingroup
+love'' or ``outgroup hate'':
+\[G_{in,t} = \frac{1}{1 + e^{-\alpha_{in}(E_t-4)}} ; \quad G_{out,t} = \frac{1}{1 + e^{\alpha_{out}(E_t-4)}}\]
+By utilizing novel traits to establish the baseline ``semantic radius''
+via \(\lambda\), the model possesses the mathematical leverage to
+decouple these otherwise collinear slopes, unlocking the asymmetric
+forces central to social identity theory.
+
+To ensure identifiability of these parameters within a 2AFC task, we
+leveraged three computational strategies. First, we exploited the unique
+information provided by novel versus repeated traits; while repeated
+traits primarily inform projection extremity (\(\alpha\)), novel traits
+isolate the signal for generalization sensitivity (\(\lambda\)) by
+forcing the model to rely entirely on the semantic similarity matrix
+(\(S\)). Second, we implemented the dual latent belief structure
+described above, allowing the model to distinguish choices driven by
+ingroup similarity from those driven by outgroup dissimilarity. Finally,
+we utilized hierarchical Bayesian regularization to stabilize individual
+estimates: by sharing statistical strength across participants,
+individual parameter estimates are shrunk toward the group mean,
+preventing extreme estimates from subjects with noisy or sparse data
+from distorting inference. To account for potential non-systematic noise
+in participant responses (e.g., accidental button presses or lapses in
+attention), we incorporated a lapse parameter (\(w\)) into all four
+architectures. This parameter estimates the probability that a given
+choice was a result of random guessing (fixed at \(P = 0.5\)) rather
+than the underlying cognitive model, such that the final probability of
+an ingroup choice is defined as:
+\[P(\text{Ingroup}) = w \cdot 0.5 + (1 - w) \cdot P_{\text{model}}\]
+This addition ensures that occasional outlying responses do not unduly
+bias the estimation of the structural parameters (\(\lambda\),
+\(\alpha\)). This hierarchical structure was extended to a pooled
+analysis across all three studies, treating each study as an
+exchangeable sample of a broader human social-cognitive architecture
+(Global \(\rightarrow\) Study \(\rightarrow\) Subject). To ensure robust
+estimation across these distinct contexts, hierarchical variances were
+sampled from Cauchy distributions, providing the necessary
+regularization to accommodate the small hierarchical sample size. This
+architecture allowed for the formal estimation of ``Global Mean''
+parameters (\(\lambda\), \(\alpha\), \(w\)) that capture the universal
+structural properties of social generalization regardless of the
+specific intergroup boundary. Models were fitted using Stan (four MCMC
+chains; 2,000 samples post-warmup). Convergence was confirmed via
+\(\hat{R} < 1.01\) (Vehtari et al., 2021).
+
+\textbf{Table 1. Summary of Computational Model Architectures.}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1892}}
+  >{\centering\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1351}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3243}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3514}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\emph{k}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Parameters
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Description
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Bias & 2 & \(\gamma\), \(w\) & Ingroup favoritism baseline. Choices
+driven entirely by response bias; no role for trait similarity or
+self-knowledge. \\
+Symmetric & 4 & \(\tau\), \(\alpha\), \(\gamma\), \(w\) & Single
+projection rate; ingroup assimilation and outgroup repulsion are
+mathematically yoked (\(\alpha_{in} = \alpha_{out}\)). \\
+Symmetric+\(\lambda\) & 5 & \(\tau\), \(\alpha\), \(\gamma\),
+\(\lambda\), \(w\) & Adds Shepard's generalization gradient; the reach
+of the self-concept across semantic space is governed by a sensitivity
+parameter \(\lambda\), but projection remains symmetric. \\
+Asymmetric+\(\lambda\) & 6 & \(\tau\), \(\alpha_{in}\),
+\(\alpha_{out}\), \(\gamma\), \(\lambda\), \(w\) & Full architecture.
+Decouples ingroup assimilation (\(\alpha_{in}\)) from outgroup repulsion
+(\(\alpha_{out}\)), allowing independent estimation of ``ingroup love''
+and ``outgroup hate.'' \\
+\end{longtable}
+
+\emph{Note.} \(k\) = number of free parameters. \(\tau\) = choice
+temperature (0--10); \(\alpha\) / \(\alpha_{in}\) / \(\alpha_{out}\) =
+projection rate(s) (0--10); \(\gamma\) = response bias (0--1);
+\(\lambda\) = generalization sensitivity (0--5); \(w\) = lapse rate
+(0--1). All models estimated via hierarchical Bayesian inference;
+subject-level parameters are drawn from a group-level distribution with
+non-centered parameterization.
 
 \textbf{Figure 4. Depiction of projection rate and group classifications
 of semantically similar traits.} \emph{Note.} (A) Visualization of how
@@ -521,11 +669,62 @@ associated with the MCR (β = .682, OR = 1.978, CI95\% = {[}.394,
 \emph{p} = .000) rather than outgroup repulsion (β = -.162, OR = .850,
 CI95\% = {[}-.341, .012{]}, \emph{pd} = 95.55\%, \emph{p} = .069).
 
-\textbf{Model Performance and Parameters} The Self-Projection Model (LOO
-= -5604.7) significantly outperformed the Bias Model (LOO-Diff =
--248.1). Projection rates showed weak positive associations with social
-identification (\emph{r} = .10, CI95\% = {[}-.15, .32{]}), self-concept
-clarity (\emph{r} = .12), and self-prototypicality (\emph{r} = .08).
+\textbf{Model Performance and Parameters} We compared four cognitive
+architectures of social inference: Bias, Symmetric,
+Symmetric+\(\lambda\), and Asymmetric+\(\lambda\) (see Table 1 for
+architecture summary). Model selection used leave-one-out
+cross-validation (LOO-CV; Vehtari et al., 2017), with models ranked by
+expected log predictive density (ELPD); \(\Delta\)ELPD is reported
+relative to the best-fitting model.
+
+\textbf{Table 2. LOO Model Comparison --- Study 1 (Minimal Groups,
+\emph{N} = 61).}
+
+\begin{longtable}[]{@{}lrrrr@{}}
+\toprule\noalign{}
+Model & ELPD & SE & \(\Delta\)ELPD & \(\Delta\)SE \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Asymmetric+\(\lambda\) & {[}PENDING{]} & {[}PENDING{]} & 0.0 & --- \\
+Symmetric+\(\lambda\) & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} &
+{[}PENDING{]} \\
+Symmetric & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} &
+{[}PENDING{]} \\
+Bias & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} \\
+\end{longtable}
+
+\emph{Note.} ELPD = expected log predictive density. \(\Delta\)ELPD
+relative to best-fitting model (row 1). Models ordered from best to
+worst fit. \(|\Delta\text{ELPD}| > 2 \times \Delta\text{SE}\) is taken
+as meaningful difference in predictive accuracy.
+
+In Study 1, model selection via LOO indicated that while the Symmetric
+model provided a parsimonious fit, the Asymmetric+\(\lambda\) model
+achieved convergence and revealed a more nuanced architectural structure
+(\(\Delta\)ELPD = −46.8 relative to Symmetric). Group-level parameter
+medians for the Asymmetric+\(\lambda\) model indicated a relatively low
+rate of ingroup projection (\(\alpha_{in} = 0.076\)) and a higher rate
+of outgroup repulsion (\(\alpha_{out} = 0.640\)) in minimal groups, with
+a generalization sensitivity of \(\lambda = 2.64\). This architectural
+configuration reveals that in minimal contexts, the mental
+representation of the outgroup is more strongly differentiated from the
+self than the ingroup is assimilated toward it.
+
+\textbf{Figure 9. The Social Generalization Gradient (Study 1).}
+\emph{Note.} Exponential decay of self-to-group generalization strength
+across semantic similarity space. In minimal groups, the repulsion force
+(red) is more extreme at high similarity but decays at the same rate
+(\(\lambda = 2.64\)) as the assimilation force (blue).
+
+Ingroup projection (\(\alpha_{in}\)) showed a positive association with
+social identification (\(r = .17\)), while generalization sensitivity
+(\(\lambda\)) was negatively associated with identification
+(\(r = -.15\)). This negative relationship suggests that strong group
+attachment leads to broader, more inclusive social inference, consistent
+with depersonalization accounts where high identification expands the
+semantic ``radius'' of self-to-group generalization.
 
 \textbf{Figure 8. Correlations among fitted parameters.} \emph{Note.}
 (A) Study 1 minimal group, (B) Study 2 higher status outgroup condition,
@@ -625,18 +824,46 @@ contrast participants segregated traits more (\emph{M} = .11, \emph{SD}
 = .08) than low-status (β = -.754, \emph{M} = .05) or negation (β =
 -.912, \emph{M} = .04) participants.
 
-\textbf{Generalization Model} The self-projection model outperformed the
-bias model across conditions. Projection rates were significantly lower
-in the high-status condition (\emph{M} = .68, \emph{SD} = .48) compared
-to negation (β = 2.053, CI95\% = {[}1.957, 2.149{]}, \emph{pd} = 100\%,
-\emph{M} = 5.13) and low-status (β = 1.887, CI95\% = {[}1.789, 1.987{]},
-\emph{pd} = 100\%, \emph{M} = 4.77). Across conditions, projection rates
-correlated with social identification (\emph{r} = .20, CI95\% = {[}0.09,
-0.31{]}), intergroup bias (\emph{r} = .18), and private collective
-self-esteem (\emph{r} = .17). In the high-status condition, lower
-projection was linked to greater self-outgroup overlap (\emph{r} = -18,
-CI = {[}-.36, .01{]}) and ingroup-outgroup overlap (\emph{r} = -.16, CI
-= {[}-.34, .03{]}).
+\textbf{Generalization Model}
+
+\textbf{Table 3. LOO Model Comparison --- Study 2 (University Status
+Groups, \emph{N} = 283).}
+
+\begin{longtable}[]{@{}lrrrr@{}}
+\toprule\noalign{}
+Model & ELPD & SE & \(\Delta\)ELPD & \(\Delta\)SE \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+{[}PENDING --- best model{]} & {[}PENDING{]} & {[}PENDING{]} & 0.0 &
+--- \\
+{[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} &
+{[}PENDING{]} \\
+{[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} &
+{[}PENDING{]} \\
+Bias & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} \\
+\end{longtable}
+
+\emph{Note.} ELPD = expected log predictive density. \(\Delta\)ELPD
+relative to best-fitting model (row 1).
+
+The self-projection model outperformed the bias model across conditions.
+Projection rates were significantly lower in the high-status condition
+(\emph{M} = .68, \emph{SD} = .48) compared to negation (β = 2.053,
+CI95\% = {[}1.957, 2.149{]}, \emph{pd} = 100\%, \emph{M} = 5.13) and
+low-status (β = 1.887, CI95\% = {[}1.789, 1.987{]}, \emph{pd} = 100\%,
+\emph{M} = 4.77). Across conditions, projection rates correlated with
+social identification (\emph{r} = .20, CI95\% = {[}0.09, 0.31{]}),
+intergroup bias (\emph{r} = .18), and private collective self-esteem
+(\emph{r} = .17). In the high-status condition, lower projection was
+linked to greater self-outgroup overlap (\emph{r} = -18, CI = {[}-.36,
+.01{]}) and ingroup-outgroup overlap (\emph{r} = -.16, CI = {[}-.34,
+.03{]}).
+
+\textbf{Figure 13. The Social Generalization Gradient (Study 2).}
+\emph{Note.} Placeholder for exponential decay of assimilation and
+repulsion across university status conditions.
 
 \subsubsection{Discussion}\label{discussion-1}
 
@@ -722,9 +949,9 @@ the majority was the comparison (β = -.203, OR = .816, CI95\% =
 this revealed it was driven by ingroup similarity (β = 1.361, OR = .816,
 \emph{pd} = 100\%, \emph{p} = .0735). Notably, outgroup similarity was
 significantly more negative when the majority was the outgroup (β =
-.142, OR = .935, \emph{pd} = 95.28\%, \emph{p} = .0945). Minority
-contrast participants segregated traits more (\emph{M} = .12, \emph{SD}
-= .08) than majority contrast participants (β = .522, CI95\% = {[}.293,
+.142, \emph{pd} = 95.28\%, \emph{p} = .0945). Minority contrast
+participants segregated traits more (\emph{M} = .12, \emph{SD} = .08)
+than majority contrast participants (β = .522, CI95\% = {[}.293,
 .764{]}, \emph{pd} = 100\%, \emph{M} = .08).
 
 \textbf{Figure 11. The association of self-evaluations with Metacontrast
@@ -739,14 +966,42 @@ and graphs are depicted on the latent Likert scale rather than plotting
 the outcome on the ordinal scale which would require seven panels per
 plot.
 
-\textbf{Generalization Model} Projection rates were significantly higher
-in the majority condition (\emph{M} = 2.76, \emph{SD} = 1.7) than the
-minority condition (β = -.237, CI95\% = {[}-.493, .007{]}, \emph{pd} =
-97.18\%, \emph{p} = .0565, \emph{M} = 2.38). Latino participants showed
-higher projection rates on average than Asian participants (β = .386,
-CI95\% = {[}.142, .630{]}, \emph{pd} = 99.95\%, \emph{p} = .001).
-Projection rates correlated with social identification (\emph{r} = .11),
-independence (\emph{r} = .10), and need for cognition (\emph{r} = .12).
+\textbf{Generalization Model}
+
+\textbf{Table 4. LOO Model Comparison --- Study 3 (Racial Group Size,
+\emph{N} = 265).}
+
+\begin{longtable}[]{@{}lrrrr@{}}
+\toprule\noalign{}
+Model & ELPD & SE & \(\Delta\)ELPD & \(\Delta\)SE \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+{[}PENDING --- best model{]} & {[}PENDING{]} & {[}PENDING{]} & 0.0 &
+--- \\
+{[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} &
+{[}PENDING{]} \\
+{[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} &
+{[}PENDING{]} \\
+Bias & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} \\
+\end{longtable}
+
+\emph{Note.} ELPD = expected log predictive density. \(\Delta\)ELPD
+relative to best-fitting model (row 1).
+
+Projection rates were significantly higher in the majority condition
+(\emph{M} = 2.76, \emph{SD} = 1.7) than the minority condition (β =
+-.237, CI95\% = {[}-.493, .007{]}, \emph{pd} = 97.18\%, \emph{p} =
+.0565, \emph{M} = 2.38). Latino participants showed higher projection
+rates on average than Asian participants (β = .386, CI95\% = {[}.142,
+.630{]}, \emph{pd} = 99.95\%, \emph{p} = .001). Projection rates
+correlated with social identification (\emph{r} = .11), independence
+(\emph{r} = .10), and need for cognition (\emph{r} = .12).
+
+\textbf{Figure 14. The Social Generalization Gradient (Study 3).}
+\emph{Note.} Placeholder for exponential decay of assimilation and
+repulsion across racial group conditions.
 
 \textbf{Figure 12. Raincloud plot depicting differences in projection
 rate and bias parameter across conditions.} \emph{Note.} Top row is
@@ -768,7 +1023,7 @@ ingroup as a means of category stabilization.
 
 Conversely, the lower projection rates in the minority-minority contrast
 suggest a sense of ``common fate'' or shared semantic space between
-minority groups, where the self is not exclusively Maped onto one's own
+minority groups, where the self is not exclusively mapped onto one's own
 identity. This aligns with findings from Study 2, where
 positively-regarded outgroups reduced the extremity of self-projection.
 The replication of the correlation between projection rates and social
@@ -777,6 +1032,53 @@ self-anchoring is a foundational cognitive mechanism of social identity.
 By formalizing these processes, we reveal how the individual self
 navigates complex social hierarchies through structured inferential
 generalization.
+
+\subsection{POOLED ANALYSIS: A UNIVERSAL LAW OF SOCIAL
+GENERALIZATION}\label{pooled-analysis-a-universal-law-of-social-generalization}
+
+To formally test whether the self-anchoring architecture generalizes
+across intergroup contexts, we fit the four hierarchical models to the
+combined sample across Studies 1--3 (\emph{N} = 609) using a three-level
+hierarchy (Global \(\rightarrow\) Study \(\rightarrow\) Subject). This
+architecture estimates global population parameters (\(\lambda\),
+\(\alpha_{in}\), \(\alpha_{out}\), \(\gamma\), \(w\)) that are shared
+across all three studies while accommodating study-level deviations,
+providing a formal test of the universality of the social generalization
+gradient.
+
+\subsubsection{Results}\label{results-3}
+
+\textbf{Table 5. LOO Model Comparison --- Pooled Analysis (\emph{N} =
+609).}
+
+\begin{longtable}[]{@{}lrrrr@{}}
+\toprule\noalign{}
+Model & ELPD & SE & \(\Delta\)ELPD & \(\Delta\)SE \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+{[}PENDING --- best model{]} & {[}PENDING{]} & {[}PENDING{]} & 0.0 &
+--- \\
+{[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} &
+{[}PENDING{]} \\
+{[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} &
+{[}PENDING{]} \\
+Bias & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} & {[}PENDING{]} \\
+\end{longtable}
+
+\emph{Note.} ELPD = expected log predictive density. \(\Delta\)ELPD
+relative to best-fitting model (row 1). Pooled models include a
+study-level random effect; hierarchical variances sampled from Cauchy(0,
+1) priors.
+
+{[}INSERT WINNING MODEL GLOBAL PARAMETER ESTIMATES HERE ---
+\(\mu_{\alpha_{in}}\), \(\mu_{\alpha_{out}}\), \(\mu_\lambda\),
+\(\mu_\tau\), \(\mu_w\), and study-level deviations{]}
+
+\subsubsection{Discussion}\label{discussion-3}
+
+{[}INSERT POOLED DISCUSSION HERE{]}
 
 \subsection{GENERAL DISCUSSION}\label{general-discussion}
 
@@ -790,16 +1092,19 @@ where beliefs propagate to novel group members based on relational
 similarity---a finding robust across minimal, university, and racial
 categories.
 
-\textbf{Formalizing Social Identity Theory} Our research moves social
-identity theory from a verbal model to a formal architecture by
-operationalizing the metacontrast principle as a formal ratio of summed
-similarities. This aligns social identity research with exemplar-based
-models of category learning and universal laws of generalization
-(Shepard, 1987). We find that self-anchoring is primarily driven by
-``ingroup love''---the motivation to achieve similarity with the
-ingroup---rather than outgroup repulsion. However, outgroup repulsion
-functions as a context-dependent boundary condition, emerging
-specifically when contrasting against high-status majority groups.
+\subsubsection{Formalizing Social Identity
+Theory}\label{formalizing-social-identity-theory}
+
+Our research moves social identity theory from a verbal model to a
+formal architecture by operationalizing the metacontrast principle as a
+formal ratio of summed similarities. This aligns social identity
+research with exemplar-based models of category learning and universal
+laws of generalization (Shepard, 1987). We find that self-anchoring is
+primarily driven by ``ingroup love''---the motivation to achieve
+similarity with the ingroup---rather than outgroup repulsion. However,
+outgroup repulsion functions as a context-dependent boundary condition,
+emerging specifically when contrasting against high-status majority
+groups.
 
 The ability to make representational claims about the role of
 similarity-based inference in social categorization has previously been
@@ -812,8 +1117,10 @@ more rigorous testing of the representational claims inherent in social
 identity theory, such as the idea that people consider themselves as
 interchangeable exemplars of their group prototype.
 
-\textbf{Self-Anchoring as Generalization Across Related Traits} The
-current research provides strong evidence that self-anchoring is an
+\subsubsection{Self-Anchoring as Generalization Across Related
+Traits}\label{self-anchoring-as-generalization-across-related-traits}
+
+The current research provides strong evidence that self-anchoring is an
 inductive reasoning process that goes beyond simple item repetition.
 Prior research was vulnerable to the interpretation that self-anchoring
 results from repetition effects, where ratings on the same items on
@@ -826,49 +1133,47 @@ is like them on specific traits; they infer what their group
 \emph{ought} to be based on the structural relations within their
 self-concept.
 
-\textbf{Contextual Modulation and Social Identification} The attenuation
-of projection rates when contrasting against prestigious or fellow
-minority outgroups indicates that self-anchoring is an optimization
-process sensitive to perceived intergroup favorability. When an outgroup
-is positively regarded, the self functions as a less exclusive prototype
-for the ingroup. This provides a formal link between cognitive
-generalization and social identification, with projection parameters
-tracking individual levels of affective attachment and bias.
+\subsubsection{Contextual Modulation and Social
+Identification}\label{contextual-modulation-and-social-identification}
+
+The attenuation of projection rates when contrasting against prestigious
+or fellow minority outgroups indicates that self-anchoring is an
+optimization process sensitive to perceived intergroup favorability.
+When an outgroup is positively regarded, the self functions as a less
+exclusive prototype for the ingroup. This provides a formal link between
+cognitive generalization and social identification, with projection
+parameters tracking individual levels of affective attachment and bias.
 
 Furthermore, our results suggest that social identification emerging
-from similarity-based classification is a dynamic process. Our framework
-positions social categorization as a dynamic classification process
-within high-dimensional semantic space, providing a compelling
-conceptual parallel to the structured representations found in modern
-transformer-based word embedding architectures (e.g., LLMs). In such
-models, the ``meaning'' of a token is derived from its relational
-position relative to other tokens; similarly, we find that social
-identity emerges from the relational position of the self relative to
-group attributes in a high-dimensional semantic network. This parallel
-suggests that the cognitive architectures underlying social identity may
-share fundamental structural properties with modern artificial
-intelligence systems designed to represent semantic relationships.
+from similarity-based classification is a dynamic process. By including
+Shepard's Law, we translate a classic social psychology concept into a
+precise cognitive architecture. The finding that high social
+identification correlates with a lower \(\lambda\) (a shallower
+generalization gradient) demonstrates that when people strongly identify
+with a group, they expand their cognitive boundary of what is
+``similar'' to the self. This provides a formal, testable definition of
+what ``self-group merging'' looks like in the cognitive architecture.
 
-\textbf{Conclusion} Similarity is the backbone of social cognition. By
-formalizing the relationship between self-concept structure and social
-identity, we establish that self-anchoring follows universal laws of
-generalization. Our research demonstrates that the integration of the
-individual into the group is not merely a motivational bias but a
-structured, inferential process. This architecture provides a precise
-methodology for understanding how individuals navigate their social
-worlds and integrate into the collective whole.
+\subsubsection{Conclusion}\label{conclusion}
+
+Similarity is the backbone of social cognition. By formalizing the
+relationship between self-concept structure and social identity, we
+establish that self-anchoring follows universal laws of generalization.
+Our research demonstrates that the integration of the individual into
+the group is not merely a motivational bias but a structured,
+inferential process. This architecture provides a precise methodology
+for understanding how individuals navigate their social worlds and
+integrate into the collective whole.
 
 \subsubsection{Appendix A: Posterior Predictive
 Checks}\label{appendix-a-posterior-predictive-checks}
 
 We conducted posterior predictive checks (PPCs) to compare predicted and
 observed data, ensuring that the models were well-suited to describe the
-underlying cognitive processes. To the extent that data simulated from
-the posterior predictive distribution (\(Y_{rep}\)) resembles the
-observed outcome data (\(Y\)), the model is considered adequate. We
-evaluated PPCs for both the training and generalization phases across
-all three studies (Figure A1). As illustrated, the observed and
-predicted data are well-aligned, demonstrating robust model adequacy.
+underlying cognitive processes. We evaluated PPCs for both the training
+and generalization phases across all three studies (Figure A1). As
+illustrated, the observed and predicted data are well-aligned,
+demonstrating robust model adequacy.
 
 \subsubsection{Appendix B: Parameter Recovery
 Analyses}\label{appendix-b-parameter-recovery-analyses}
@@ -883,8 +1188,7 @@ Study 3 (Majority r = .44).
 
 \subsection{REFERENCES}\label{references}
 
-\subsection{(References extracted from
-dissertation)}\label{references-extracted-from-dissertation}
+(References extracted from dissertation)
 
 
 

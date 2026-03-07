@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(quarto render:*)",
+      "Bash(cd Manuscript && quarto add wjschne/apaquarto --no-prompt 2>&1)",
+      "Bash(cd:*)",
+      "Bash(tail:*)",
+      "Bash(cd /Users/jacobelder/Documents/GitHub/SelfAnchoring && Rscript Scripts/plot_parameter_space.R 2>&1)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(Rscript:*)"
+    ]
+  }
+}
