@@ -60,23 +60,25 @@ fit_and_save_pooled <- function(model_name) {
     seed = 1234, 
     chains = 4, 
     parallel_chains = 4,
-    iter_warmup = 2000, 
-    iter_sampling = 2000, 
+    iter_warmup = 1000,
+    iter_sampling = 2000,
     adapt_delta = 0.99,
-    max_treedepth = 15, 
+    max_treedepth = 12,
     init = 0,
     refresh = 100
   )
   
-  # Save Fit and results
-  fit$save_object(here("Fits", paste0("fit_pooled_", model_name, ".rds")))
+  # Save Fit Object disabled — files are 1-1.5 GB each; all needed info in LOO + CSVs
+  # fit$save_object(here("Fits", paste0("fit_pooled_", model_name, ".rds")))
   
   # A. Save LOO results
   l <- fit$loo()
   saveRDS(l, here("Fits", paste0("loo_pooled_", model_name, ".rds")))
   
-  # B. Save Full Summary (Portability)
-  sum_fit <- fit$summary()
+  # B. Save summary (structural parameters only — GQ arrays excluded to avoid OOM)
+  struct_vars <- grep("^(log_lik|p_pred\\[|mcr\\[)",
+                      fit$metadata()$stan_variables, value = TRUE, invert = TRUE)
+  sum_fit <- fit$summary(variables = struct_vars)
   write.csv(sum_fit, here("Results", paste0("summary_pooled_", model_name, ".csv")))
   
   # C. Extract and save individual level parameters specifically

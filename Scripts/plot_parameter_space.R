@@ -23,7 +23,7 @@ lambda_df <- expand.grid(S = sim_seq, lambda = c(0.5, 1, 2, 4)) %>%
   mutate(
     weight = S^lambda,
     lambda_label = factor(lambda,
-      labels = c("λ = 0.5  (Analogical Thinker)",
+      labels = c("λ = 0.5  (Generalizer)",
                  "λ = 1.0  (Baseline)",
                  "λ = 2.0",
                  "λ = 4.0  (Compartmentalizer)"))
@@ -37,15 +37,16 @@ p_lambda <- ggplot(lambda_df, aes(x = S, y = weight, color = lambda_label)) +
                      labels = c("0\n(Unrelated)", ".25", ".50", ".75", "1\n(Identical)")) +
   labs(
     x = "Semantic Similarity to Self-Concept",
-    y = expression("Generalization Weight  " ~ (S^lambda)),
-    title = expression(bold("A.  ") * lambda * "  — Generalization Breadth")
+    y = expression("Generalization Weight  " ~ (S^lambda))
   ) +
-  annotate("text", x = 0.55, y = 0.92, hjust = 0,
+  annotate("label", x = 0.55, y = 0.92, hjust = 0,
            label = "Broad reach: distant traits still\ninfluence group beliefs",
-           color = "#1971C2", size = 3.2) +
-  annotate("text", x = 0.55, y = 0.12, hjust = 0,
+           color = "#1971C2", size = 3.2,
+           fill = "white", label.padding = unit(0.18, "lines")) +
+  annotate("label", x = 0.55, y = 0.12, hjust = 0,
            label = "Narrow reach: only close\nneighbors influence beliefs",
-           color = "#E03131", size = 3.2) +
+           color = "#E03131", size = 3.2,
+           fill = "white", label.padding = unit(0.18, "lines")) +
   theme_bw(base_size = 12) +
   theme(legend.position = c(0.02, 0.98), legend.justification = c(0, 1),
         legend.background = element_rect(fill = "white", color = "gray80"),
@@ -66,10 +67,10 @@ alpha_df <- expand.grid(E = E_seq, alpha = c(0.5, 1.5, 4, 8)) %>%
     G_in  = plogis(alpha * (E - 4)),
     G_out = plogis(-alpha * (E - 4)),
     alpha_label = factor(alpha,
-      labels = c("α = 0.5  (Objective Observer)",
+      labels = c("α = 0.5  (Self-Contained)",
                  "α = 1.5  (Moderate)",
                  "α = 4.0",
-                 "α = 8.0  (Egocentric Anchor)"))
+                 "α = 8.0  (Self-Projector)"))
   )
 
 p_alpha <- ggplot(alpha_df, aes(x = E, y = G_in, color = alpha_label)) +
@@ -82,13 +83,14 @@ p_alpha <- ggplot(alpha_df, aes(x = E, y = G_in, color = alpha_label)) +
   scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   labs(
     x = "Self-Rating on Trait",
-    y = expression("Ingroup Projection Weight  " ~ G["in"](E)),
-    title = expression(bold("B.  ") * alpha["in"] * "  — Projection Force (Ingroup)")
+    y = expression("Ingroup Projection Weight  " ~ G["in"](E))
   ) +
-  annotate("text", x = 6.7, y = 0.62, hjust = 1, size = 3.2, color = "#E03131",
-           label = "High α: any self-descriptive\ntrait strongly projected") +
-  annotate("text", x = 6.7, y = 0.72, hjust = 1, size = 3.2, color = "#1971C2",
-           label = "Low α: self-description barely\ninfluences group perception") +
+  annotate("label", x = 6.7, y = 0.62, hjust = 1, size = 3.2, color = "#E03131",
+           label = "High α: any self-descriptive\ntrait strongly projected",
+           fill = "white", label.padding = unit(0.18, "lines")) +
+  annotate("label", x = 6.7, y = 0.79, hjust = 1, size = 3.2, color = "#1971C2",
+           label = "Low α: self-description barely\ninfluences group perception",
+           fill = "white", label.padding = unit(0.18, "lines")) +
   theme_bw(base_size = 12) +
   theme(legend.position = c(0.02, 0.98), legend.justification = c(0, 1),
         legend.background = element_rect(fill = "white", color = "gray80"),
@@ -112,12 +114,15 @@ make_venn_panel <- function(lambda_val, alpha_in_val, alpha_out_val = 3) {
   # Outgroup distance: higher alpha_out = pushed further away
   d_out <- 2.2 + (alpha_out_val / 10) * 1.2
 
+  # Vertical offsets for labels: Self below center, Ingroup above center
+  # to prevent overlap when circles are close (high alpha_in)
   data.frame(
-    x0    = c(0,    d_in, -d_out),
-    y0    = c(0,    0,     0),
-    r     = c(r_self, 1.2,  1.2),
-    label = c("Self", "Ingroup", "Outgroup"),
-    fill  = c("#339AF0", "#FF6B6B", "#ADB5BD")
+    x0     = c(0,    d_in, -d_out),
+    y0     = c(0,    0,     0),
+    y_text = c(-0.45, 0.45,  0),   # stagger labels vertically
+    r      = c(r_self, 1.2,  1.2),
+    label  = c("Self", "Ingroup", "Outgroup"),
+    fill   = c("#339AF0", "#FF6B6B", "#ADB5BD")
   )
 }
 
@@ -134,8 +139,9 @@ venn_plots <- map(venn_params, function(p) {
   ggplot(df) +
     geom_circle(aes(x0 = x0, y0 = y0, r = r, fill = label),
                 alpha = 0.35, color = "white", linewidth = 1.2) +
-    geom_text(aes(x = x0, y = y0, label = label),
-              size = 3.2, fontface = "bold", color = "gray20") +
+    geom_label(aes(x = x0, y = y_text, label = label),
+               size = 3.0, fontface = "bold", color = "gray20",
+               fill = "white", linewidth = 0, label.padding = unit(0.12, "lines")) +
     scale_fill_manual(values = c("Self" = "#339AF0",
                                  "Ingroup" = "#FF6B6B",
                                  "Outgroup" = "#ADB5BD")) +
@@ -146,10 +152,7 @@ venn_plots <- map(venn_params, function(p) {
           plot.title = element_text(hjust = 0.5, size = 9, color = "gray30"))
 })
 
-p_venn <- wrap_plots(venn_plots, nrow = 2) +
-  plot_annotation(
-    title = expression(bold("C.  ") * "Self-Group Semantic Overlap as a Function of  " * lambda * "  and  " * alpha["in"])
-  )
+p_venn <- wrap_plots(venn_plots, nrow = 2)
 
 # ============================================================
 # COMBINE AND SAVE
@@ -172,5 +175,7 @@ ggsave(here("Figures", "parameter_space_visualization.pdf"),
        final_plot, width = 12, height = 11)
 ggsave(here("Figures", "parameter_space_visualization.png"),
        final_plot, width = 12, height = 11, dpi = 300)
+ggsave(here("Figures", "fig03_parameter_space_visualization.tiff"),
+       final_plot, width = 12, height = 11, dpi = 300)
 
-message("Saved: Figures/parameter_space_visualization.pdf/.png")
+message("Saved: Figures/parameter_space_visualization.pdf/.png + fig03_parameter_space_visualization.tiff")

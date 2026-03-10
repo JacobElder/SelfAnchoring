@@ -83,6 +83,27 @@ I am running external Bayesian Hierarchical Analyses. You must explicitly leave 
 
 **Current status:** 96.8% reliable Pareto k (k < 0.7) across models is defensible for publication. Moment matching would address the 2.9% k > 1 trials but won't change model rankings. Flagged as future work — if loo package adds native cmdstanr support (or a helper vignette), implementation becomes straightforward. Until then, the per-subject Pareto k CSVs provide an alternative path (exclusion of high-leverage subjects).
 
+## SCT Tenets to Formally Investigate (Future Analyses)
+
+Three derivations from Self-Categorization Theory remain untested in the current formal framework. These should be investigated when time permits — ideally as an "SCT Predictions" section or as part of the General Discussion's theoretical contribution.
+
+**1. Depersonalization & Self-Concept Group-Alignment**
+SCT depersonalization is NOT about rating traits neutrally (near 4). It means the self-concept becomes *organized around the group prototype* — high identifiers rate themselves as high on group-characteristic traits and low on non-group traits. The self is not lost; it merges with the group. The right formal operationalization is therefore:
+- **Within-subject r(selfResp, ingChoiceN)** across shared traits: how strongly does a person's self-rating of a trait predict whether they classify it as ingroup-characteristic? High alignment = depersonalized self-concept.
+- NOT variance of self-ratings (which conflates individuated vs. generic self-concepts).
+- NOT entropy of self-ratings (though entropy + MAD-from-4 together could distinguish "generic/neutral" from "extreme-but-group-congruent" — see below).
+
+Formal tests: (a) does SI predict higher within-subject r(selfResp, ingChoiceN)? (b) does this alignment predict α (are more group-aligned people stronger projectors)? (c) does GP variance (model parameter space) mediate the SI → α relationship?
+
+**To-do: Entropy + MAD-from-4 as supplementary self-concept measures (Study 1)**
+Shannon entropy of `selfResp` per subject (7-point Likert treated as probability distribution over categories) is better than raw variance for ordinal data. However, low entropy could mean ratings cluster near 4 (neutral/generic — one type of depersonalization) OR all at 7 (extreme but uniform — not depersonalized). To distinguish: also compute `mean(abs(selfResp - 4))` (MAD from neutral). Low entropy + low MAD = generic depersonalization. Low entropy + high MAD = extreme but undifferentiated (group-congruent). This trio (entropy, MAD-from-4, within-subject alignment) together characterizes the full range of self-concept types. **Not yet implemented.**
+
+**2. Comparative Fit as a Function of Intergroup Distance**
+SCT holds that categorization is triggered when metacontrast is maximized — when between-category differences are large relative to within-category. The λ parameter operationalizes this: sharper λ = more exclusive categorization = higher comparative fit. Testable prediction: λ should be *larger* in high-intergroup-distance conditions (Study 2 high-status outgroup, Study 3 majority vs. White) than in low-distance conditions (Study 2 negation, Study 3 minority-minority). Compare posterior λ distributions across conditions.
+
+**3. Self-as-Prototype Assumption**
+SCT assumes the self is the prototypical ingroup member. Testable derivation: participants with higher perceived *prototypicality* (Proto scale) should show stronger α — their self-ratings are more diagnostic of ingroup membership. Proto trends positive with α in Study 1 (r = .17, p = .19) but doesn't survive correction. Across Studies 2 and 3, this should become cleaner. Study 3's minority contrast (where minority-group members may feel less prototypical of a larger ethnic category) is a particularly sharp test: expect lower α in the minority condition relative to majority.
+
 ## REQUIRED EXECUTION STEPS
 Before producing the revision for any section, you must explicitly write: "I will not remove or modify any statistical findings." Then, proceed strictly using this 3-step format:
 1. **Step 1: Extract and list all statistical findings verbatim from the original text of the requested section.**

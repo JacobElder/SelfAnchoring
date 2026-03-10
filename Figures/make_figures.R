@@ -1,0 +1,745 @@
+# make_figures.R
+# Generates all TIFF figures for ElderJacob_JPSP_Submission.qmd
+#
+# Prerequisites (run before this script):
+#   - marginal_effects_s1.R, marginal_effects_s2.R, marginal_effects_s3.R
+#     (creates Results/marginal_effects_s*_predictions.csv)
+#   - run_model_comparison_s*.R (creates Fits/loo_s*_*.rds)
+#   - LOO files in Fits/ (git-ignored; regenerate with run_model_comparison_*.R)
+#
+# Output: Figures/*.tiff (300 DPI, git-ignored; tracked via this R script)
+#
+# Figure inventory:
+#   fig04_parameter_illustration.tiff — from/self-ratings to ingroup predictions
+#   fig05_lambda_identifiability.tiff  — Shepard's law / lambda identifiability
+#   fig07_marginal_effects.tiff        — 3×3 behavioral marginal effects grid
+#   fig09_generalization_gradient_s1.tiff — exponential decay, S1 group params
+#   fig_elpd_raincloud_s1.tiff         — per-subject ELPD by model, Study 1
+#   fig_elpd_raincloud_s2.tiff         — per-subject ELPD by model, Study 2
+#   fig_elpd_raincloud_s3.tiff         — per-subject ELPD by model, Study 3
+#   fig_elpd_raincloud_pooled.tiff     — per-subject ELPD by model, Pooled
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(patchwork)
+  library(here)
+})
+
+# ── Optional packages (graceful fallback) ─────────────────────────────────────
+has_ggdist <- requireNamespace("ggdist", quietly = TRUE)
+has_loo    <- requireNamespace("loo",    quietly = TRUE)
+if (!has_ggdist) message("ggdist not installed — ELPD rainclouds will be skipped. Install with: install.packages('ggdist')")
+if (!has_loo)    message("loo not installed — ELPD rainclouds will be skipped. Install with: install.packages('loo')")
+
+dir.create(here("Figures"), showWarnings = FALSE)
+
+# ── Shared visual theme ────────────────────────────────────────────────────────
+theme_apa <- function(base_size = 11) {
+  theme_minimal(base_size = base_size) +
+    theme(
+      panel.grid.minor  = element_blank(),
+      panel.grid.major  = element_line(color = "grey92"),
+      legend.position   = "bottom",
+      legend.title      = element_text(size = base_size - 1, face = "bold"),
+      strip.text        = element_text(face = "bold", size = base_size),
+      axis.title        = element_text(size = base_size - 0.5),
+      axis.text         = element_text(size = base_size - 1),
+      plot.title        = element_text(face = "bold", size = base_size + 0.5)
+    )
+}
+
+TIFF_DPI    <- 300
+TIFF_UNITS  <- "in"
+
+# ── Color palettes ─────────────────────────────────────────────────────────────
+# Model colors (ELPD raincloud)
+model_cols <- c(
+  "Bias"    = "#6C757D",
+  "Sym"     = "#2B5C8A",
+  "Sym+λ"   = "#4E9A9A",
+  "Asym+λ"  = "#C7522A"
+)
+
+# ── Colorblind-safe + greyscale-compatible palettes ───────────────────────────
+# Okabe-Ito palette — safe for deuteranopia/protanopia, distinct in greyscale
+# via luminance differences. Dual-coded with linetype for redundancy.
+
+# Study 1 (no condition): single black line
+s1_col      <- "black"
+s1_lty      <- "solid"
+
+# Study 2: 3 outgroup conditions (Negation=ref, High-Status=UCLA, Low-Status=CSU LA)
+s2_cols     <- c("Not UCR" = "#E69F00",   # orange
+                 "UCLA"    = "#0072B2",   # dark blue
+                 "CSU LA"  = "#009E73")   # green
+s2_ltys     <- c("Not UCR" = "solid", "UCLA" = "dashed", "CSU LA" = "dotdash")
+s2_labels   <- c("Not UCR" = "Negation", "UCLA" = "High-Status", "CSU LA" = "Low-Status")
+
+# Study 3: 2 conditions
+s3_cols     <- c("Minority" = "#CC79A7",  # pink/mauve
+                 "Majority" = "#0072B2")  # dark blue
+s3_ltys     <- c("Minority" = "solid", "Majority" = "dashed")
+s3_labels   <- c("Minority" = "Racial Minority Outgroup",
+                 "Majority" = "Racial Majority Outgroup")
+
+# ── Dissertation-style theme (white bg, black border, no grid, bold axes) ────
+theme_dissert <- function(base_size = 11) {
+  theme(
+    # Panel
+    panel.background  = element_blank(),
+    panel.border      = element_rect(colour = "black", fill = NA, linewidth = 0.8),
+    panel.grid.major  = element_blank(),
+    panel.grid.minor  = element_blank(),
+    # Axes
+    axis.line         = element_blank(),   # border covers it
+    axis.ticks        = element_line(colour = "black", linewidth = 0.4),
+    axis.text         = element_text(size = base_size - 1, colour = "black"),
+    axis.title        = element_text(size = base_size,     face = "bold", colour = "black"),
+    # Legend
+    legend.background = element_rect(fill = NA),
+    legend.key        = element_rect(fill = NA),
+    legend.text       = element_text(size = base_size - 1),
+    legend.title      = element_blank(),
+    # Strip / facet
+    strip.background  = element_blank(),
+    strip.text        = element_text(size = base_size, face = "bold"),
+    # Titles
+    plot.title        = element_text(size = base_size, face = "bold"),
+    plot.background   = element_rect(fill = "white", colour = NA)
+  )
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 7 — Marginal Effects: 3 Studies × 3 Predictors
+# Smooth continuous prediction curves (dense grid) emulating ggpredict() style
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Figure 7: Marginal Effects ──")
+
+read_preds <- function(path) {
+  if (!file.exists(path)) {
+    message("  Missing: ", path, " — re-run the marginal_effects script")
+    return(NULL)
+  }
+  df <- read.csv(path)
+  # Handle old format (only SS, 3 points, predicted.Z column)
+  if (!"predictor" %in% names(df)) {
+    if ("predicted.Z" %in% names(df) && !"outgroup" %in% names(df)) {
+      df <- df |>
+        dplyr::filter(is.na(novel)) |>
+        dplyr::rename(predictor_val = predicted.Z) |>
+        dplyr::mutate(predictor = "ss", model = "M3")
+    } else if ("predicted.Z" %in% names(df) && "outgroup" %in% names(df)) {
+      df <- df |>
+        dplyr::rename(predictor_val = predicted.Z) |>
+        dplyr::mutate(predictor = "ss", model = "M3")
+    } else if ("predicted.Z" %in% names(df) && "condition" %in% names(df)) {
+      df <- df |>
+        dplyr::rename(predictor_val = predicted.Z) |>
+        dplyr::mutate(predictor = "ss", model = "M3")
+    }
+  }
+  df
+}
+
+# Make a single smooth prediction panel — dissertation style
+make_smooth_panel <- function(df, predictor_filter,
+                              condition_col  = NULL,
+                              color_map      = NULL,
+                              lty_map        = NULL,
+                              label_map      = NULL,
+                              y_lab          = "Probability of Ingroup Classification",
+                              x_lab          = NULL,
+                              legend_pos     = c(0.05, 0.75)) {
+
+  if (is.null(df)) {
+    return(ggplot() + theme_void() +
+             annotate("text", x=0.5, y=0.5, label="Pending\n(re-run marginal_effects script)",
+                      hjust=0.5, size=3, colour="grey60"))
+  }
+
+  pred_xlabs <- c(
+    "desirability" = "Desirability (Z)",
+    "selfResp"     = "Self-Evaluation (Z)",
+    "ss"           = "Similarity-to-Self (Z)"
+  )
+  if (is.null(x_lab)) x_lab <- pred_xlabs[predictor_filter]
+
+  d <- df |> dplyr::filter(predictor == predictor_filter)
+  if (nrow(d) == 0) {
+    return(ggplot() + theme_void() +
+             annotate("text", x=0.5, y=0.5,
+                      label = paste0(pred_xlabs[predictor_filter], "\nPending"),
+                      hjust=0.5, size=3, colour="grey60"))
+  }
+
+  # Y limits from data (don't clip CI) + add small padding
+  y_lo <- floor(min(d$conf.low,  na.rm=TRUE) * 20) / 20
+  y_hi <- ceil2(max(d$conf.high, na.rm=TRUE) * 20) / 20
+  y_lo <- max(0, y_lo)
+  y_hi <- min(1, y_hi)
+
+  if (!is.null(condition_col) && condition_col %in% names(d)) {
+    d[[condition_col]] <- factor(d[[condition_col]])
+    # Keep original factor levels so color/lty maps match; pass label_map to scale labels
+
+    p <- ggplot(d, aes(x = predictor_val, y = estimate,
+                       colour   = .data[[condition_col]],
+                       fill     = .data[[condition_col]],
+                       linetype = .data[[condition_col]])) +
+      geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+                  colour = NA, alpha = 0.15) +
+      geom_line(linewidth = 0.9) +
+      scale_colour_manual(values = color_map, labels = label_map, name = NULL) +
+      scale_fill_manual(values   = color_map, labels = label_map, name = NULL) +
+      scale_linetype_manual(values = lty_map,  labels = label_map, name = NULL) +
+      theme_dissert() +
+      theme(legend.position = legend_pos,
+            legend.justification = c("right","bottom"),
+            legend.text = element_text(size = 8),
+            legend.key.size = unit(0.9, "lines"),
+            legend.spacing.y = unit(0.1, "cm"))
+  } else {
+    p <- ggplot(d, aes(x = predictor_val, y = estimate)) +
+      geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+                  fill = "grey80", colour = NA, alpha = 0.6) +
+      geom_line(colour = s1_col, linetype = s1_lty, linewidth = 0.9) +
+      theme_dissert() +
+      theme(legend.position = "none")
+  }
+
+  p +
+    geom_hline(yintercept = 0.5, linetype = "dashed",
+               colour = "grey50", linewidth = 0.4) +
+    scale_y_continuous(labels = scales::percent_format(1),
+                       limits = c(y_lo, y_hi),
+                       expand = expansion(mult = 0.01)) +
+    scale_x_continuous(expand = expansion(mult = 0.02)) +
+    labs(x = x_lab, y = y_lab) +
+    theme(plot.margin = margin(1, 2, 1, 0, "mm"))
+}
+
+ceil2 <- function(x) ceiling(x * 20) / 20   # round up to nearest 0.05
+
+# Load and standardise prediction data
+preds_s1 <- read_preds(here("Results", "marginal_effects_s1_predictions.csv"))
+preds_s2 <- read_preds(here("Results", "marginal_effects_s2_predictions.csv"))
+preds_s3 <- read_preds(here("Results", "marginal_effects_s3_predictions.csv"))
+
+# ── Build all 9 panels ────────────────────────────────────────────────────────
+y_lab_short <- "P(Ingroup)"
+
+# Row 1 — Study 1 (no condition grouping)
+p1_des  <- make_smooth_panel(preds_s1, "desirability", y_lab = y_lab_short)
+p1_self <- make_smooth_panel(preds_s1, "selfResp",     y_lab = y_lab_short)
+p1_ss   <- make_smooth_panel(preds_s1, "ss",           y_lab = y_lab_short)
+
+# Row 2 — Study 2 (by outgroup condition)
+p2_des  <- make_smooth_panel(preds_s2, "desirability", condition_col="outgroup",
+                              color_map=s2_cols, lty_map=s2_ltys, label_map=s2_labels,
+                              y_lab = y_lab_short, legend_pos = c(0.97, 0.08))
+p2_self <- make_smooth_panel(preds_s2, "selfResp",     condition_col="outgroup",
+                              color_map=s2_cols, lty_map=s2_ltys, label_map=s2_labels,
+                              y_lab = y_lab_short, legend_pos = c(0.97, 0.08))
+p2_ss   <- make_smooth_panel(preds_s2, "ss",           condition_col="outgroup",
+                              color_map=s2_cols, lty_map=s2_ltys, label_map=s2_labels,
+                              y_lab = y_lab_short, legend_pos = c(0.97, 0.08))
+
+# Row 3 — Study 3 (by majority/minority condition)
+p3_des  <- make_smooth_panel(preds_s3, "desirability", condition_col="condition",
+                              color_map=s3_cols, lty_map=s3_ltys, label_map=s3_labels,
+                              y_lab = y_lab_short, legend_pos = c(0.97, 0.08))
+p3_self <- make_smooth_panel(preds_s3, "selfResp",     condition_col="condition",
+                              color_map=s3_cols, lty_map=s3_ltys, label_map=s3_labels,
+                              y_lab = y_lab_short, legend_pos = c(0.97, 0.08))
+p3_ss   <- make_smooth_panel(preds_s3, "ss",           condition_col="condition",
+                              color_map=s3_cols, lty_map=s3_ltys, label_map=s3_labels,
+                              y_lab = y_lab_short, legend_pos = c(0.97, 0.08))
+
+# ── Column-title rows (invisible spacer plots with bold label) ────────────────
+col_label <- function(txt) {
+  ggplot() + theme_void() +
+    annotate("text", x=0.5, y=0.5, label=txt, fontface="bold", size=3.8) +
+    theme(plot.margin = margin(0,0,0,0))
+}
+
+# Row labels via left-side spacer plots (no in-panel titles per APA 7)
+row_label <- function(txt) {
+  ggplot() + theme_void() +
+    annotate("text", x=0.5, y=0.5, label=txt, fontface="bold", size=3.4,
+             angle=90, hjust=0.5, vjust=0.5) +
+    theme(plot.margin = margin(0,0,0,0))
+}
+
+# 4-column layout: row labels | col1 | col2 | col3
+fig7 <- (
+    plot_spacer() | col_label("Desirability") | col_label("Self-Evaluation") | col_label("Similarity-to-Self")
+  ) /
+  (row_label("Study 1\n(Minimal Groups)") | p1_des | p1_self | p1_ss) /
+  (row_label("Study 2\n(University Status)") | p2_des | p2_self | p2_ss) /
+  (row_label("Study 3\n(Racial Groups)") | p3_des | p3_self | p3_ss) +
+  plot_layout(heights = c(0.06, 1, 1, 1), widths = c(0.055, 1, 1, 1)) +
+  plot_annotation(
+    theme = theme(plot.background = element_rect(fill = "white", colour = NA))
+  )
+
+ggsave(here("Figures", "fig07_marginal_effects.tiff"),
+       fig7, width = 11, height = 11, dpi = TIFF_DPI, units = TIFF_UNITS,
+       compression = "lzw")
+message("  Saved: Figures/fig07_marginal_effects.tiff")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ELPD SLOPEGRAPH — Per-Subject LOO-ELPD by Model, per Study
+# Thin connecting lines show within-subject trajectories across model complexity;
+# boxplots overlay the aggregate distribution per model.
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── ELPD Slopegraphs ──")
+
+if (!has_loo) {
+  message("  Skipping ELPD slopegraphs (loo not available). Install with: install.packages('loo')")
+} else {
+  library(loo)
+
+  # Helper: sum pointwise ELPD within subjects using pareto_k subject mapping
+  get_subj_elpd <- function(loo_file, pk_df) {
+    if (!file.exists(loo_file)) return(NULL)
+    loo_obj <- readRDS(loo_file)
+    pw      <- loo_obj$pointwise[, "elpd_loo"]
+
+    pk <- pk_df |> arrange(subj_idx)
+    n_trials    <- pk$n_trials
+    trial_end   <- cumsum(n_trials)
+    trial_start <- c(1L, head(trial_end, -1L) + 1L)
+
+    subj_elpd <- sapply(seq_along(n_trials), function(i) {
+      idx <- trial_start[i]:trial_end[i]
+      if (any(idx > length(pw))) return(NA_real_)
+      sum(pw[idx])
+    })
+    tibble(subID = pk$subID, subj_elpd = subj_elpd)
+  }
+
+  make_elpd_slopegraph <- function(elpd_long, study_label, available_models,
+                                    condition_col = NULL, condition_labels = NULL,
+                                    condition_colors = NULL) {
+    n_models_possible <- 4
+    if (length(available_models) < n_models_possible) {
+      pending <- setdiff(c("Bias","Sym","Sym+λ","Asym+λ"), available_models)
+      caption_txt <- paste0("Note. ", paste(pending, collapse = ", "),
+                            " model(s) pending — not yet run for ", study_label, ".")
+    } else {
+      caption_txt <- paste0(
+        "Note. Each line = one participant's summed LOO-ELPD across model architectures. ",
+        "Higher (less negative) = better predictive fit. Boxplots show median and IQR; ",
+        "diamonds = group mean."
+      )
+    }
+
+    elpd_long$model <- factor(elpd_long$model, levels = names(model_cols))
+
+    # Group means for diamond overlay (grouped by condition if faceting)
+    group_vars <- if (!is.null(condition_col)) c("model", condition_col) else "model"
+    mean_df <- elpd_long |>
+      group_by(across(all_of(group_vars))) |>
+      summarise(mean_elpd = mean(subj_elpd, na.rm = TRUE), .groups = "drop")
+
+    # Condition color coding for connecting lines (same palette as fig07)
+    use_cond_color <- !is.null(condition_col) && !is.null(condition_colors)
+
+    if (use_cond_color) {
+      line_geom <- geom_line(aes(group = subID, color = .data[[condition_col]]),
+                             alpha = 0.45, linewidth = 0.3)
+    } else {
+      line_geom <- geom_line(aes(group = subID), color = "grey45",
+                             alpha = 0.40, linewidth = 0.3)
+    }
+
+    p <- ggplot(elpd_long, aes(x = model, y = subj_elpd)) +
+      line_geom +
+      # Colored boxplots per model (no outlier points — trajectories show them)
+      geom_boxplot(
+        aes(fill = model),
+        width = 0.38, outlier.shape = NA, alpha = 0.70,
+        color = "grey25", linewidth = 0.45
+      ) +
+      # Group mean diamonds (filled by model, grey border)
+      geom_point(data = mean_df,
+                 aes(x = model, y = mean_elpd, fill = model),
+                 size = 3.5, shape = 23, color = "grey25") +
+      scale_fill_manual(values = model_cols, guide = "none") +
+      scale_x_discrete(labels = c(
+        "Bias"   = "Bias",
+        "Sym"    = "Symmetric",
+        "Sym+λ"  = "Sym+λ",
+        "Asym+λ" = "Asym+λ"
+      )) +
+      labs(
+        x = NULL,
+        y = "Per-Subject LOO-ELPD"
+      ) +
+      theme_dissert() +
+      theme(legend.position = "none")
+
+    # Add condition color scale if using condition-coded lines
+    if (use_cond_color) {
+      p <- p + scale_color_manual(values = condition_colors, guide = "none")
+    }
+
+    # Add condition facets if requested
+    if (!is.null(condition_col)) {
+      labeller_fn <- if (!is.null(condition_labels)) {
+        ggplot2::as_labeller(condition_labels)
+      } else {
+        ggplot2::label_value
+      }
+      p <- p + facet_wrap(as.formula(paste("~", condition_col)),
+                           labeller = labeller_fn, nrow = 1)
+    }
+
+    p
+  }
+
+  # ── Study 1 ─────────────────────────────────────────────────────────────────
+  pk_s1 <- tryCatch(
+    read.csv(here("Results","pareto_k_subj_s1_sym_lambda.csv")) |> arrange(subj_idx),
+    error = function(e) { message("  Cannot read S1 pareto_k file"); NULL }
+  )
+
+  if (!is.null(pk_s1)) {
+    models_s1 <- list(
+      "Bias"    = here("Fits","loo_s1_bias.rds"),
+      "Sym"     = here("Fits","loo_s1_symmetric.rds"),
+      "Sym+λ"   = here("Fits","loo_s1_sym_lambda.rds"),
+      "Asym+λ"  = here("Fits","loo_s1_asym_lambda.rds")
+    )
+
+    elpd_s1 <- imap_dfr(models_s1, function(path, label) {
+      res <- get_subj_elpd(path, pk_s1)
+      if (is.null(res)) return(NULL)
+      res |> mutate(model = label)
+    })
+
+    if (nrow(elpd_s1) > 0) {
+      available_s1 <- unique(elpd_s1$model)
+      p_s1 <- make_elpd_slopegraph(elpd_s1, "Study 1 (Minimal Groups)", available_s1)
+      ggsave(here("Figures","fig_elpd_raincloud_s1.tiff"),
+             p_s1, width = 7, height = 5.5, dpi = TIFF_DPI, units = TIFF_UNITS,
+             compression = "lzw")
+      message("  Saved: Figures/fig_elpd_raincloud_s1.tiff")
+    }
+  }
+
+  # ── Study 2 ─────────────────────────────────────────────────────────────────
+  pk_s2 <- tryCatch(
+    read.csv(here("Results","pareto_k_subj_s2_bias.csv")) |> arrange(subj_idx),
+    error = function(e) { message("  Cannot read S2 pareto_k file"); NULL }
+  )
+
+  if (!is.null(pk_s2)) {
+    models_s2 <- list(
+      "Bias"    = here("Fits","loo_s2_bias.rds"),
+      "Sym"     = here("Fits","loo_s2_symmetric.rds"),
+      "Sym+λ"   = here("Fits","loo_s2_sym_lambda.rds"),
+      "Asym+λ"  = here("Fits","loo_s2_asym_lambda.rds")
+    )
+
+    elpd_s2 <- imap_dfr(models_s2, function(path, label) {
+      res <- get_subj_elpd(path, pk_s2)
+      if (is.null(res)) return(NULL)
+      res |> mutate(model = label)
+    })
+
+    if (nrow(elpd_s2) > 0) {
+      # Join outgroup condition for faceting
+      cond_s2 <- tryCatch(
+        read.csv(here("Study 2","Cleaning","output","fullTest.csv")) |>
+          dplyr::distinct(subID, outgroup),
+        error = function(e) NULL
+      )
+      if (!is.null(cond_s2)) elpd_s2 <- dplyr::left_join(elpd_s2, cond_s2, by = "subID")
+
+      available_s2 <- unique(elpd_s2$model)
+      s2_cond_labels <- c("Not UCR"="Negation", "UCLA"="High-Status", "CSU LA"="Low-Status")
+      p_s2 <- make_elpd_slopegraph(elpd_s2, "Study 2 (University Status)", available_s2,
+                                    condition_col     = if ("outgroup" %in% names(elpd_s2)) "outgroup" else NULL,
+                                    condition_labels  = s2_cond_labels,
+                                    condition_colors  = s2_cols)
+      ggsave(here("Figures","fig_elpd_raincloud_s2.tiff"),
+             p_s2, width = 10, height = 5.5, dpi = TIFF_DPI, units = TIFF_UNITS,
+             compression = "lzw")
+      message("  Saved: Figures/fig_elpd_raincloud_s2.tiff")
+    }
+  }
+
+  # ── Study 3 ─────────────────────────────────────────────────────────────────
+  pk_s3 <- tryCatch(
+    read.csv(here("Results","pareto_k_subj_s3_bias.csv")) |> arrange(subj_idx),
+    error = function(e) { message("  Cannot read S3 pareto_k file"); NULL }
+  )
+
+  if (!is.null(pk_s3)) {
+    models_s3 <- list(
+      "Bias"    = here("Fits","loo_s3_bias.rds"),
+      "Sym"     = here("Fits","loo_s3_symmetric.rds"),
+      "Sym+λ"   = here("Fits","loo_s3_sym_lambda.rds"),
+      "Asym+λ"  = here("Fits","loo_s3_asym_lambda.rds")
+    )
+
+    elpd_s3 <- imap_dfr(models_s3, function(path, label) {
+      res <- get_subj_elpd(path, pk_s3)
+      if (is.null(res)) return(NULL)
+      res |> mutate(model = label)
+    })
+
+    if (nrow(elpd_s3) > 0) {
+      # Join condition for faceting
+      cond_s3 <- tryCatch(
+        read.csv(here("Study 3","Cleaning","output","fullTest_fixed.csv")) |>
+          dplyr::distinct(subID, condition),
+        error = function(e) NULL
+      )
+      if (!is.null(cond_s3)) elpd_s3 <- dplyr::left_join(elpd_s3, cond_s3, by = "subID")
+
+      available_s3 <- unique(elpd_s3$model)
+      s3_cond_labels <- c("Minority"="Racial Minority Outgroup", "Majority"="Racial Majority Outgroup")
+      p_s3 <- make_elpd_slopegraph(elpd_s3, "Study 3 (Racial Groups)", available_s3,
+                                    condition_col     = if ("condition" %in% names(elpd_s3)) "condition" else NULL,
+                                    condition_labels  = s3_cond_labels,
+                                    condition_colors  = s3_cols)
+      ggsave(here("Figures","fig_elpd_raincloud_s3.tiff"),
+             p_s3, width = 8.5, height = 5.5, dpi = TIFF_DPI, units = TIFF_UNITS,
+             compression = "lzw")
+      message("  Saved: Figures/fig_elpd_raincloud_s3.tiff")
+    }
+  }
+  # ── Pooled ──────────────────────────────────────────────────────────────────
+  pk_pooled <- tryCatch(
+    read.csv(here("Results","pareto_k_subj_pooled_bias.csv")) |> arrange(subj_idx),
+    error = function(e) { message("  Cannot read pooled pareto_k file"); NULL }
+  )
+
+  if (!is.null(pk_pooled)) {
+    models_pooled <- list(
+      "Bias"    = here("Fits","loo_pooled_bias.rds"),
+      "Sym"     = here("Fits","loo_pooled_symmetric.rds"),
+      "Sym+λ"   = here("Fits","loo_pooled_sym_lambda.rds"),
+      "Asym+λ"  = here("Fits","loo_pooled_asym_lambda.rds")
+    )
+
+    elpd_pooled <- imap_dfr(models_pooled, function(path, label) {
+      res <- get_subj_elpd(path, pk_pooled)
+      if (is.null(res)) return(NULL)
+      res |> mutate(model = label)
+    })
+
+    if (nrow(elpd_pooled) > 0) {
+      available_pooled <- unique(elpd_pooled$model)
+      p_pooled <- make_elpd_slopegraph(elpd_pooled, "Pooled (N = 609)", available_pooled)
+      ggsave(here("Figures","fig_elpd_raincloud_pooled.tiff"),
+             p_pooled, width = 7, height = 5.5, dpi = TIFF_DPI, units = TIFF_UNITS,
+             compression = "lzw")
+      message("  Saved: Figures/fig_elpd_raincloud_pooled.tiff")
+    }
+  }
+
+}  # end loo block
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 9 — Generalization Gradient (Study 1)
+# Exponential decay: generalization strength = S^lambda, plotted over S ∈ [0,1]
+# Group-level lambda posterior from summary_s1_sym_lambda.csv
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Figure 9: Generalization Gradient ──")
+
+# Back-transform group-level lambda from mu_pr (probit scale)
+# lambda ~ Phi_approx(mu_pr[3]) * 5  (scale = 5 for lambda in sym_lambda model)
+# For plotting, use median and 5th/95th percentiles from summary CSV.
+# The summary CSV has mu_pr[3] = lambda hyperparameter on probit scale.
+# Back-transform: lambda = Phi(mu_pr) * 5
+summary_s1 <- tryCatch(
+  read.csv(here("Results","summary_s1_sym_lambda.csv")),
+  error = function(e) { message("  Missing summary_s1_sym_lambda.csv"); NULL }
+)
+
+if (!is.null(summary_s1)) {
+  # mu_pr[3] is the lambda hyperparameter (row index 4 in 1-indexed CSV: lp__, mu_pr[1..4])
+  # Parameter ordering S_Sym_Lambda: [m, bias, lambda, w] → mu_pr[3] = lambda
+  lambda_row <- summary_s1 |> filter(grepl("^\"?mu_pr\\[3\\]", variable))
+
+  if (nrow(lambda_row) == 0) {
+    # Try matching by row position (mu_pr[3] is 4th row after lp__)
+    lambda_row <- summary_s1[4, ]
+  }
+
+  if (nrow(lambda_row) > 0) {
+    # summary CSV has: mean, median, sd, mad, q5, q95
+    lam_med <- as.numeric(lambda_row$median)
+    lam_q5  <- as.numeric(lambda_row$q5)
+    lam_q95 <- as.numeric(lambda_row$q95)
+
+    # Back-transform from probit scale: lambda = Phi(mu_pr) * 5
+    lambda_median <- pnorm(lam_med) * 5
+    lambda_lo     <- pnorm(lam_q5)  * 5
+    lambda_hi     <- pnorm(lam_q95) * 5
+
+    message(sprintf("  λ (median) = %.2f [%.2f, %.2f]", lambda_median, lambda_lo, lambda_hi))
+
+    # Also read individual lambda estimates for ribboning
+    # Use params_ind_s1_sym_lambda.csv — extract "lambda[i]" rows
+    params_s1 <- read.csv(here("Results","params_ind_s1_sym_lambda.csv"))
+    lambda_ind <- params_s1 |>
+      filter(grepl("^\"?lambda\\[", variable)) |>
+      pull(median)
+
+    # Generalization function: g(S) = S^lambda (Shepard's law applied to Dice similarity)
+    S_seq <- seq(0, 1, by = 0.005)
+
+    grad_df <- tibble(
+      S            = S_seq,
+      g_median     = S_seq ^ lambda_median,
+      g_lo         = S_seq ^ lambda_hi,   # higher lambda → steeper decay
+      g_hi         = S_seq ^ lambda_lo    # lower lambda → shallower
+    )
+
+    # Individual participant gradients (light grey ribbons)
+    ind_df <- map_dfr(lambda_ind, function(lam) {
+      tibble(S = S_seq, g = S_seq ^ lam, lambda = lam)
+    })
+
+    fig9 <- ggplot() +
+      # Individual gradients (thin, low alpha)
+      geom_line(data = ind_df,
+                aes(x = S, y = g, group = lambda),
+                color = "#2B5C8A", alpha = 0.07, linewidth = 0.3) +
+      # CI ribbon for group estimate
+      geom_ribbon(data = grad_df,
+                  aes(x = S, ymin = g_lo, ymax = g_hi),
+                  fill = "#4E9A9A", alpha = 0.35) +
+      # Median group gradient
+      geom_line(data = grad_df,
+                aes(x = S, y = g_median),
+                color = "#2B5C8A", linewidth = 1.2) +
+      annotate("text",
+               x     = 0.65, y = 0.88,
+               label = sprintf("λ = %.2f\n95%% CI [%.2f, %.2f]",
+                                lambda_median, lambda_lo, lambda_hi),
+               hjust = 0, size = 3.2, color = "#2B5C8A") +
+      scale_x_continuous(name = "Semantic Similarity to Training Trait (Dice)",
+                         breaks = seq(0, 1, 0.25)) +
+      scale_y_continuous(name = "Generalization Weight (S^λ)",
+                         breaks = seq(0, 1, 0.2),
+                         limits = c(0, 1)) +
+      theme_apa()
+
+    ggsave(here("Figures","fig09_generalization_gradient_s1.tiff"),
+           fig9, width = 6, height = 4.5, dpi = TIFF_DPI, units = TIFF_UNITS,
+           compression = "lzw")
+    message("  Saved: Figures/fig09_generalization_gradient_s1.tiff")
+  } else {
+    message("  Could not locate lambda mu_pr row in summary CSV")
+  }
+}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE — MCR × Individual Differences (Study 1 populated; S2/S3 placeholders)
+# subject_mcr from asym_lambda model (tied with sym_lambda winner; MCR GQ not
+# present in sym_lambda Stan model).  Key correlate: SING.Ind r = .53 p < .001.
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── MCR × Individual Differences ──")
+
+ind_diffs_s1 <- tryCatch(
+  read.csv(here("Results","ind_diffs_s1_full.csv")),
+  error = function(e) { message("  Missing ind_diffs_s1_full.csv"); NULL }
+)
+
+make_placeholder_panel <- function(label) {
+  ggplot() + theme_void() +
+    annotate("rect", xmin=0, xmax=1, ymin=0, ymax=1,
+             fill="grey95", color="grey70", linewidth=0.5) +
+    annotate("text", x=0.5, y=0.5, label=label,
+             hjust=0.5, vjust=0.5, size=3.2, color="grey50") +
+    theme(plot.background = element_rect(fill="white", colour=NA))
+}
+
+if (!is.null(ind_diffs_s1)) {
+  # ── Study 1: MCR vs. SING.Ind (strongest correlate, r = .53) ────────────────
+  r_val <- cor.test(ind_diffs_s1$subject_mcr, ind_diffs_s1$SING.Ind)
+  r_lab <- sprintf("r = %.2f, p < .001", r_val$estimate)
+
+  p_mcr_s1 <- ggplot(ind_diffs_s1, aes(x = SING.Ind, y = subject_mcr)) +
+    geom_point(color = s1_col, size = 2, alpha = 0.65) +
+    geom_smooth(method = "lm", se = TRUE, color = s1_col,
+                fill = "grey75", linewidth = 0.9) +
+    annotate("label", x = Inf, y = Inf,
+             label = r_lab, parse = FALSE,
+             hjust = 1.05, vjust = 1.3, size = 3.2, color = "grey20",
+             fill = "white", linewidth = 0.3) +
+    scale_x_continuous(name = "Social Identity Importance\n(SING Independence)") +
+    scale_y_continuous(name = "Metacontrast Ratio") +
+    theme_dissert()
+
+  p_mcr_s2 <- make_placeholder_panel(
+    "Study 2\n(University Groups)\nMCR pending\nS2 model completion"
+  )
+  p_mcr_s3 <- make_placeholder_panel(
+    "Study 3\n(Racial Groups)\nMCR pending\nS3 model completion"
+  )
+
+  fig_mcr <- p_mcr_s1 | p_mcr_s2 | p_mcr_s3
+
+  ggsave(here("Figures","fig_mcr_indiff.tiff"),
+         fig_mcr, width = 10, height = 4, dpi = TIFF_DPI, units = TIFF_UNITS,
+         compression = "lzw")
+  message("  Saved: Figures/fig_mcr_indiff.tiff")
+} else {
+  message("  Skipping MCR figure (ind_diffs_s1_full.csv not found)")
+}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 2 — Task Schematic (convert JPG to TIFF)
+# Source: Figures/Old Figures/SA_TaskSchematic/TaskSchematic.jpg
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Figure 2: Task Schematic ──")
+
+convert_jpg_to_tiff <- function(jpg_path, tiff_path) {
+  if (!file.exists(jpg_path)) {
+    message("  Missing: ", jpg_path)
+    return(invisible(NULL))
+  }
+  has_magick <- requireNamespace("magick", quietly = TRUE)
+  if (has_magick) {
+    img <- magick::image_read(jpg_path)
+    magick::image_write(img, path = tiff_path, format = "tiff",
+                        quality = NULL, density = TIFF_DPI)
+    message("  Saved: ", tiff_path)
+  } else {
+    tryCatch({
+      img_data <- jpeg::readJPEG(jpg_path)
+      tiff(tiff_path, width = dim(img_data)[2], height = dim(img_data)[1],
+           units = "px", res = TIFF_DPI, compression = "lzw")
+      grid::grid.raster(img_data)
+      dev.off()
+      message("  Saved via grDevices: ", tiff_path)
+    }, error = function(e) message("  Could not convert (install magick): ", e$message))
+  }
+}
+
+convert_jpg_to_tiff(
+  here("Figures", "Old Figures", "SA_TaskSchematic", "TaskSchematic.jpg"),
+  here("Figures", "fig02_task_schematic.tiff")
+)
+
+# ── Notes on Figures 3, 4, 5 ─────────────────────────────────────────────────
+# These are generated by their own scripts which save TIFF directly via ggsave:
+#   fig03: Scripts/plot_parameter_space.R
+#   fig04: Figures/make_parameter_illustration.R
+#   fig05: Scripts/plot_lambda_explanation.R
+# Run those scripts independently to regenerate.
+
+
+message("\n── Done. Run marginal_effects_s*.R scripts to regenerate prediction CSVs,")
+message("   then re-run this script to update fig07_marginal_effects.tiff.")
+message("   Run run_model_comparison_s*.R to regenerate ELPD raincloud figures.\n")

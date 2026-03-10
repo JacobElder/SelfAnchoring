@@ -21,14 +21,14 @@ fulldf <- fulldf %>% filter(subID %in% common_ids)
 traindf <- traindf %>% filter(subID %in% common_ids)
 
 # Load Network for Similarity Matrix
-posDf <- read.csv(here("Combined/input/adjacencyMatrix_p.csv"))
+posDf <- read.csv(here("Pooled/input/adjacencyMatrix_p.csv"))
 posMat <- as.matrix(posDf)
 posGraph <- graph_from_adjacency_matrix(posMat, mode = "max")
 simMat <- similarity(posGraph, method = "dice")
 
 uIds <- sort(common_ids)
 maxSubjs <- length(uIds)
-maxTrials <- max(fulldf$trialTotal)
+maxTrials <- max(fulldf$trialTotalT2)
 maxTrain <- 91
 
 # Prepare Stan Data List
@@ -111,23 +111,25 @@ fit_and_save <- function(model_name) {
     seed = 123,
     chains = 4,
     parallel_chains = 4,
-    iter_warmup = 2000,
+    iter_warmup = 1000,
     iter_sampling = 2000,
     adapt_delta = 0.99,
-    max_treedepth = 15,
+    max_treedepth = 12,
     init = 0,
     refresh = 100
   )
   
-  # Save Fit Object (Optional, but good for local)
-  fit$save_object(here("Fits", paste0("fit_s1_", model_name, ".rds")))
+  # Save Fit Object disabled — files are 1-1.5 GB each; all needed info in LOO + CSVs
+  # fit$save_object(here("Fits", paste0("fit_s1_", model_name, ".rds")))
   
   # A. Save LOO results
   l <- fit$loo()
   saveRDS(l, here("Fits", paste0("loo_s1_", model_name, ".rds")))
   
-  # B. Save Full Summary (Portability)
-  sum_fit <- fit$summary()
+  # B. Save summary (structural parameters only — GQ arrays excluded to avoid OOM)
+  struct_vars <- grep("^(log_lik|p_pred\\[|mcr\\[)",
+                      fit$metadata()$stan_variables, value = TRUE, invert = TRUE)
+  sum_fit <- fit$summary(variables = struct_vars)
   write.csv(sum_fit, here("Results", paste0("summary_s1_", model_name, ".csv")))
   
   # C. Extract and save individual level parameters specifically

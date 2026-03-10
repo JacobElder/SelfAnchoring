@@ -9,7 +9,16 @@
       "Bash(cd /Users/jacobelder/Documents/GitHub/SelfAnchoring && Rscript Scripts/plot_parameter_space.R 2>&1)",
       "Bash(grep:*)",
       "Bash(ls:*)",
-      "Bash(Rscript:*)"
+      "Bash(Rscript:*)",
+      "Bash(sort:*)",
+      "Bash(head:*)",
+      "Bash(sips -s format png \"/Users/jacobelder/Documents/GitHub/SelfAnchoring/Figures/Old Figures/CVprediction.tiff\" --out /tmp/CVprediction_preview.png 2>&1 && sips -s format png \"/Users/jacobelder/Documents/GitHub/SelfAnchoring/Figures/Old Figures/TrainingPredictedEffects.tiff\" --out /tmp/TrainingPredictedEffects_preview.png 2>&1 && sips -s format png \"/Users/jacobelder/Documents/GitHub/SelfAnchoring/Figures/Old Figures/SelfProjection.tiff\" --out /tmp/SelfProjection_preview.png 2>&1)",
+      "Bash(sips -s format png \"/Users/jacobelder/Documents/GitHub/SelfAnchoring/Figures/Old Figures/CVpredictionGeneralize.tiff\" --out /tmp/CVpredictionGeneralize_preview.png 2>&1 && sips -s format png \"/Users/jacobelder/Documents/GitHub/SelfAnchoring/Figures/Old Figures/Slope.tiff\" --out /tmp/Slope_preview.png 2>&1)",
+      "Bash(which quarto && quarto --version 2>/dev/null)",
+      "Bash(python3:*)",
+      "Bash(sips:*)",
+      "Bash(echo CCA done:*)",
+      "Bash(caffeinate:*)"
     ]
   }
 }

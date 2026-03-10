@@ -79,6 +79,7 @@ p <- ggplot() +
   )
 
 # Save
-ggsave("Figure_Lambda_Identifiability.png", p, width = 7, height = 5, dpi = 300)
+ggsave(here::here("Figures", "Figure_Lambda_Identifiability.png"), p, width = 7, height = 5, dpi = 300)
+ggsave(here::here("Figures", "fig05_lambda_identifiability.tiff"), p, width = 7, height = 5, dpi = 300)
 
-message("Figure_Lambda_Identifiability.png has been generated (staggered labels).")
+message("Saved: Figures/Figure_Lambda_Identifiability.png + fig05_lambda_identifiability.tiff")

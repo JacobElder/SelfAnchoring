@@ -13,4 +13,4 @@ check_read <- function(path) {
 
 check_read(here("Study 3/Cleaning/output/fullTest_fixed.csv"))
 check_read(here("Study 3/Cleaning/output/fullTrain_fixed.csv"))
-check_read(here("Combined/input/adjacencyMatrix_p.csv"))
+check_read(here("Pooled/input/adjacencyMatrix_p.csv"))

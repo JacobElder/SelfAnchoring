@@ -60,7 +60,7 @@ maxTrials <- max(fulldf$trialTotalT2, na.rm=TRUE)
 maxTrain <- 91
 
 # Adjacency Matrix
-posDf <- read.csv("Combined/input/adjacencyMatrix_p.csv")
+posDf <- read.csv("Pooled/input/adjacencyMatrix_p.csv")
 simMat <- similarity(graph_from_adjacency_matrix(as.matrix(posDf), mode = "undirected"), method = "dice")
 
 # Prepare Stan Data
