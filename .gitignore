@@ -30,6 +30,7 @@ Fits/
 Results/
 Pooled/input/
 **/Cleaning/output/
+**/Cleaning/input/
 
 # Generated Figures (regenerate locally with Figures/make_figures.R)
 *.tiff
