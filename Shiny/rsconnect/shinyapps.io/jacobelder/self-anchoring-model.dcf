@@ -1,0 +1,10 @@
+name: self-anchoring-model
+title:
+username: jacobelder
+account: jacobelder
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16868905
+bundleId: 11696586
+url: https://jacobelder.shinyapps.io/self-anchoring-model/
+version: 1

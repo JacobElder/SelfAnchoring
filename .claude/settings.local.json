@@ -18,7 +18,10 @@
       "Bash(python3:*)",
       "Bash(sips:*)",
       "Bash(echo CCA done:*)",
-      "Bash(caffeinate:*)"
+      "Bash(caffeinate:*)",
+      "Bash(find /Users/jacobelder/Documents/GitHub/SelfAnchoring/\"Study 2/Analysis/\" -type f -exec ls -lh {} ;)",
+      "Bash(find /Users/jacobelder/Documents/GitHub/SelfAnchoring/Fits -maxdepth 1 -type f -name \"*s2*\" -exec ls -lh {} ;)",
+      "Bash(find:*)"
     ]
   }
 }

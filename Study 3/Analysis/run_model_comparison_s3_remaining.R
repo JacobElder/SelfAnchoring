@@ -1,5 +1,5 @@
-# AD HOC: Study 3 — sym_lambda and asym_lambda only
-# bias and symmetric LOO already saved (Mar 8). Delete this script when done.
+# AD HOC: Study 3 — asym_lambda only
+# bias, symmetric, sym_lambda LOO already saved. Delete this script when done.
 
 library(cmdstanr)
 library(tidyverse)
@@ -79,10 +79,8 @@ compute_subj_pareto_k <- function(l, study_label, model_name, uIds, nTrials_vec,
   do.call(rbind, rows)
 }
 
-# 2. Remaining models (symmetric + lambda models — bias already done)
+# 2. asym_lambda only — bias, symmetric, sym_lambda LOO all saved
 models <- list(
-  symmetric   = "S_Symmetric.stan",
-  sym_lambda  = "S_Sym_Lambda.stan",
   asym_lambda = "S_Asym_Lambda.stan"
 )
 
@@ -108,9 +106,10 @@ fit_and_save <- function(model_name) {
   l <- fit$loo()
   saveRDS(l, here("Fits", paste0("loo_s3_", model_name, ".rds")))
 
-  # B. Summary (structural parameters only — GQ arrays excluded to avoid OOM)
-  struct_vars <- grep("^(log_lik|p_pred\\[|mcr\\[)",
-                      fit$metadata()$stan_variables, value = TRUE, invert = TRUE)
+  # B. Summary — exclude trial-level GQ flat vectors (log_lik, p_pred, mcr)
+  # Note: metadata()$stan_variables returns BASE names (no brackets), so exclude by name
+  all_vars    <- fit$metadata()$stan_variables
+  struct_vars <- all_vars[!all_vars %in% c("log_lik", "p_pred", "mcr")]
   sum_fit <- fit$summary(variables = struct_vars)
   write.csv(sum_fit, here("Results", paste0("summary_s3_", model_name, ".csv")))
 
@@ -152,13 +151,15 @@ for (m in names(models)) {
   results_list[[m]] <- fit_and_save(m)
 }
 
-# 4. Load previously saved LOO for bias, then run full comparison
-loo_bias <- readRDS(here("Fits", "loo_s3_bias.rds"))
+# 4. Load previously saved LOOs, run full comparison
+loo_bias       <- readRDS(here("Fits", "loo_s3_bias.rds"))
+loo_symmetric  <- readRDS(here("Fits", "loo_s3_symmetric.rds"))
+loo_sym_lambda <- readRDS(here("Fits", "loo_s3_sym_lambda.rds"))
 
 loo_list <- list(
   bias        = loo_bias,
-  symmetric   = results_list$symmetric$loo,
-  sym_lambda  = results_list$sym_lambda$loo,
+  symmetric   = loo_symmetric,
+  sym_lambda  = loo_sym_lambda,
   asym_lambda = results_list$asym_lambda$loo
 )
 

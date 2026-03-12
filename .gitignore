@@ -24,6 +24,9 @@
 
 # Data Files
 *.csv
+!Results/*.csv
+!Study*/Cleaning/output/*.csv
+!Pooled/input/*.csv
 
 # Large Data Directories
 Fits/

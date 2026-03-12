@@ -1,5 +1,7 @@
-# AD HOC: Study 2 — sym_lambda and asym_lambda only
-# bias and symmetric LOO already saved (Mar 7-8). Delete this script when done.
+# AD HOC: Study 2 — asym_lambda only (fallback re-run)
+# bias, symmetric, sym_lambda LOO all saved. asym_lambda LOO saved Mar 11 23:17.
+# Only use this if rescue_s2_asym_lambda.R fails (chain CSVs cleaned up).
+# Delete this script when done.
 
 library(cmdstanr)
 library(tidyverse)
@@ -79,9 +81,8 @@ compute_subj_pareto_k <- function(l, study_label, model_name, uIds, nTrials_vec,
   do.call(rbind, rows)
 }
 
-# 2. Remaining models only
+# 2. asym_lambda only — all others already done
 models <- list(
-  sym_lambda  = "S_Sym_Lambda.stan",
   asym_lambda = "S_Asym_Lambda.stan"
 )
 
@@ -107,9 +108,10 @@ fit_and_save <- function(model_name) {
   l <- fit$loo()
   saveRDS(l, here("Fits", paste0("loo_s2_", model_name, ".rds")))
 
-  # B. Summary — exclude trial-level GQ arrays (OOM), keep subject_mcr (small)
-  struct_vars <- grep("^(log_lik|p_pred\\[|mcr\\[)",
-                      fit$metadata()$stan_variables, value = TRUE, invert = TRUE)
+  # B. Summary — exclude trial-level GQ flat vectors (log_lik, p_pred, mcr)
+  # Note: metadata()$stan_variables returns BASE names (no brackets), so exclude by name
+  all_vars    <- fit$metadata()$stan_variables
+  struct_vars <- all_vars[!all_vars %in% c("log_lik", "p_pred", "mcr")]
   sum_fit <- fit$summary(variables = struct_vars)
   write.csv(sum_fit, here("Results", paste0("summary_s2_", model_name, ".csv")))
 
@@ -155,10 +157,12 @@ for (m in names(models)) {
 loo_bias      <- readRDS(here("Fits", "loo_s2_bias.rds"))
 loo_symmetric <- readRDS(here("Fits", "loo_s2_symmetric.rds"))
 
+loo_sym_lambda <- readRDS(here("Fits", "loo_s2_sym_lambda.rds"))
+
 loo_list <- list(
-  bias       = loo_bias,
-  symmetric  = loo_symmetric,
-  sym_lambda  = results_list$sym_lambda$loo,
+  bias        = loo_bias,
+  symmetric   = loo_symmetric,
+  sym_lambda  = loo_sym_lambda,
   asym_lambda = results_list$asym_lambda$loo
 )
 

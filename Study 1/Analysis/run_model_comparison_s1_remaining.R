@@ -104,9 +104,9 @@ fit <- mod$sample(
 l <- fit$loo()
 saveRDS(l, here("Fits", "loo_s1_sym_lambda.rds"))
 
-# B. Summary — corrected struct_vars keeps subject_mcr[i] (N-length), excludes trial-level arrays
-struct_vars <- grep("^(log_lik|p_pred\\[|mcr\\[)",
-                    fit$metadata()$stan_variables, value = TRUE, invert = TRUE)
+# B. Summary — exclude trial-level GQ flat vectors (log_lik, p_pred, mcr)
+all_vars    <- fit$metadata()$stan_variables
+struct_vars <- all_vars[!all_vars %in% c("log_lik", "p_pred", "mcr")]
 sum_fit <- fit$summary(variables = struct_vars)
 write.csv(sum_fit, here("Results", "summary_s1_sym_lambda.csv"))
 
