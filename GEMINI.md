@@ -3,6 +3,8 @@
 ## Project Overview
 Refining the dissertation manuscript for JPSP, strengthening the theoretical ties between social identity theory and category learning/exemplar models (e.g., GCM).
 
+**Primary Manuscript File:** `Manuscript/ElderJacob_JPSP_Submission.qmd`
+
 ## Technical Foundation & Lessons Learned
 - **Data Integrity:** Identified that `fullTrain.csv` in Study 2 and 3 were binary Parquet files mislabeled as `.csv`. Resolved by creating `fullTrain_fixed.csv` (Study 2/3) and `fullTest_fixed.csv` (Study 3). All analytical scripts must use the `_fixed` versions.
 - **Stan Optimization:**
@@ -106,6 +108,6 @@ SCT assumes the self is the prototypical ingroup member. Testable derivation: pa
 
 ## REQUIRED EXECUTION STEPS
 Before producing the revision for any section, you must explicitly write: "I will not remove or modify any statistical findings." Then, proceed strictly using this 3-step format:
-1. **Step 1: Extract and list all statistical findings verbatim from the original text of the requested section.**
-2. **Step 2: Revise the text for redundancy, clarity, and the requested theoretical framing, adhering strictly to the guardrails above.**
-3. **Step 3: Confirm that each statistical finding from Step 1 appears unchanged in the revision.**
+1.  **Step 1: Extract and list all statistical findings verbatim from the original text of the requested section.**
+2.  **Step 2: Revise the text for redundancy, clarity, and the requested theoretical framing, adhering strictly to the guardrails above.**
+3.  **Step 3: Confirm that each statistical finding from Step 1 appears unchanged in the revision.**
