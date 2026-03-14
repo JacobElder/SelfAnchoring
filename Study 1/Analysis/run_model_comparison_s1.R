@@ -1,5 +1,6 @@
 # Model Comparison Script for Study 1 (Minimal Groups)
 # Optimized for Speed (cmdstanr) and Portability (CSV Export)
+# Memory-Efficient Version: Saves each model's results to disk and reloads at the end.
 
 library(cmdstanr)
 library(tidyverse)
@@ -12,26 +13,21 @@ library(parallel)
 options(mc.cores = parallel::detectCores()) 
 
 # 1. Load Data
+# Note: This section remains unchanged. The data loading is efficient.
 fulldf <- read.csv(here("Study 1/Cleaning/output/fullTest.csv")) %>% filter(!is.na(ingChoiceN))
 traindf <- read.csv(here("Study 1/Cleaning/output/fullTrain.csv")) %>% filter(!is.na(selfResp))
-
-# Ensure subjects exist in BOTH training and test sets
 common_ids <- intersect(unique(fulldf$subID), unique(traindf$subID))
 fulldf <- fulldf %>% filter(subID %in% common_ids)
 traindf <- traindf %>% filter(subID %in% common_ids)
-
-# Load Network for Similarity Matrix
 posDf <- read.csv(here("Pooled/input/adjacencyMatrix_p.csv"))
 posMat <- as.matrix(posDf)
 posGraph <- graph_from_adjacency_matrix(posMat, mode = "max")
 simMat <- similarity(posGraph, method = "dice")
-
 uIds <- sort(common_ids)
 maxSubjs <- length(uIds)
 maxTrials <- max(fulldf$trialTotalT2)
 maxTrain <- 91
 
-# Prepare Stan Data List
 stan_data <- list(
   nSubjects = maxSubjs,
   maxTrials = maxTrials,
@@ -42,30 +38,25 @@ stan_data <- list(
   prevSim = array(0, c(maxSubjs, maxTrials, maxTrain)),
   prevSelf = array(0, c(maxSubjs, maxTrain))
 )
-
-# Populate Arrays
 for(i in 1:length(uIds)) {
   s_df <- filter(fulldf, subID == uIds[i])
   s_train <- filter(traindf, subID == uIds[i])
   t_count <- nrow(s_df)
   tr_count <- nrow(s_train)
-  
   stan_data$nTrials[i] <- t_count
   stan_data$nTrain[i] <- tr_count
-  
   if (t_count > 0) {
     stan_data$groupChoice[i, 1:t_count] <- s_df$ingChoiceN + 1
     if (tr_count > 0) {
       stan_data$prevSim[i, 1:t_count, 1:tr_count] <- simMat[s_df$Idx, s_train$Idx]
     }
   }
-  
   if (tr_count > 0) {
     stan_data$prevSelf[i, 1:tr_count] <- s_train$selfResp
   }
 }
 
-# Helper: per-subject Pareto k summary
+# Helper: per-subject Pareto k summary (unchanged)
 compute_subj_pareto_k <- function(l, study_label, model_name, uIds, nTrials_vec, maxTrials) {
   pk <- l$diagnostics$pareto_k
   rows <- lapply(seq_along(uIds), function(i) {
@@ -100,84 +91,77 @@ models <- list(
   asym_lambda = "S_Asym_Lambda.stan"
 )
 
-# 3. Fit function
+# 3. Fit function (now saves to disk and returns nothing to save memory)
 fit_and_save <- function(model_name) {
   message(paste("Starting Study 1 model:", model_name))
-  
   mod <- cmdstan_model(here("Computational Models", models[[model_name]]))
   
   fit <- mod$sample(
-    data = stan_data,
-    seed = 123,
-    chains = 4,
-    parallel_chains = 4,
-    iter_warmup = 1000,
-    iter_sampling = 2000,
-    adapt_delta = 0.99,
-    max_treedepth = 12,
-    init = 0,
-    refresh = 100
+    data = stan_data, seed = 123, chains = 4, parallel_chains = 4,
+    iter_warmup = 1000, iter_sampling = 2000, adapt_delta = 0.99,
+    max_treedepth = 12, init = 0, refresh = 100
   )
   
-  # Save Fit Object disabled — files are 1-1.5 GB each; all needed info in LOO + CSVs
-  # fit$save_object(here("Fits", paste0("fit_s1_", model_name, ".rds")))
-  
-  # A. Save LOO results
   l <- fit$loo()
   saveRDS(l, here("Fits", paste0("loo_s1_", model_name, ".rds")))
   
-  # B. Summary — exclude trial-level GQ flat vectors (log_lik, p_pred, mcr)
   all_vars    <- fit$metadata()$stan_variables
   struct_vars <- all_vars[!all_vars %in% c("log_lik", "p_pred", "mcr")]
   sum_fit <- fit$summary(variables = struct_vars)
-  write.csv(sum_fit, here("Results", paste0("summary_s1_", model_name, ".csv")))
+  write.csv(sum_fit, here("Results", paste0("summary_s1_", model_name, ".csv")), row.names = FALSE)
   
-  # C. Extract and save individual level parameters specifically
   ind_params <- sum_fit %>%
     filter(str_detect(variable, "\\[")) %>%
     select(variable, median, rhat, ess_bulk)
-  write.csv(ind_params, here("Results", paste0("params_ind_s1_", model_name, ".csv")))
+  write.csv(ind_params, here("Results", paste0("params_ind_s1_", model_name, ".csv")), row.names = FALSE)
   
-  # D. Diagnostics
   diag <- fit$diagnostic_summary()
   pk   <- l$diagnostics$pareto_k
   diag_df <- data.frame(
-    model           = model_name,
-    max_rhat        = max(sum_fit$rhat, na.rm = TRUE),
-    num_divergent   = sum(diag$num_divergent),
-    pct_divergent   = round(100 * sum(diag$num_divergent) / (4 * 2000), 3),
-    min_ess_bulk    = min(sum_fit$ess_bulk, na.rm = TRUE),
-    converged       = (max(sum_fit$rhat, na.rm = TRUE) < 1.01 & sum(diag$num_divergent) == 0),
-    # Pareto k: LOO-CV approximation quality (per trial)
-    # Good < 0.5, OK 0.5-0.7, Bad 0.7-1.0, Very bad > 1.0
-    pk_good         = sum(pk < 0.5),
-    pk_ok           = sum(pk >= 0.5 & pk < 0.7),
-    pk_bad          = sum(pk >= 0.7 & pk < 1.0),
-    pk_verybad      = sum(pk >= 1.0),
-    pk_pct_ok       = round(100 * mean(pk < 0.7), 1),
-    pk_max          = round(max(pk), 3),
-    loo_reliable    = mean(pk < 0.7) > 0.9   # >90% of obs in good/ok range
+    model = model_name, max_rhat = max(sum_fit$rhat, na.rm = TRUE),
+    num_divergent = sum(diag$num_divergent), pct_divergent = round(100 * sum(diag$num_divergent) / (4 * 2000), 3),
+    min_ess_bulk = min(sum_fit$ess_bulk, na.rm = TRUE), converged = (max(sum_fit$rhat, na.rm = TRUE) < 1.01 & sum(diag$num_divergent) == 0),
+    pk_good = sum(pk < 0.5), pk_ok = sum(pk >= 0.5 & pk < 0.7), pk_bad = sum(pk >= 0.7 & pk < 1.0),
+    pk_verybad = sum(pk >= 1.0), pk_pct_ok = round(100 * mean(pk < 0.7), 1),
+    pk_max = round(max(pk), 3), loo_reliable = mean(pk < 0.7) > 0.9
   )
+  write.csv(diag_df, here("Results", paste0("diag_s1_", model_name, ".csv")), row.names = FALSE)
 
-  # E. Per-subject Pareto k
   subj_pk <- compute_subj_pareto_k(l, "S1", model_name, uIds, stan_data$nTrials, maxTrials)
   write.csv(subj_pk, here("Results", paste0("pareto_k_subj_s1_", model_name, ".csv")), row.names = FALSE)
-
-  return(list(loo = l, diag = diag_df))
+  
+  rm(fit, l, sum_fit, ind_params, diag, pk, diag_df, subj_pk); gc()
+  return(NULL)
 }
 
-# 4. Fit Models (using for loop for safety against oversubscription, but parallel chains)
-results_list <- list()
+# 4. Fit Models (Loop and save)
 for(m in names(models)) {
-  results_list[[m]] <- fit_and_save(m)
+  fit_and_save(m)
 }
 
-# 5. Save Comparison Results
-loo_list <- lapply(results_list, function(x) x$loo)
-diag_list <- lapply(results_list, function(x) x$diag)
+# 5. Save Comparison Results (Load from disk)
+message("All models fit for Study 1. Comparing results from saved files.")
+loo_files <- list.files(path = here("Fits"), pattern = "loo_s1_.*\\.rds", full.names = TRUE)
+diag_files <- list.files(path = here("Results"), pattern = "diag_s1_.*\\.csv", full.names = TRUE)
 
-comp <- loo_compare(loo_list)
-write.csv(as.data.frame(comp), here("Results", "model_comparison_s1_results.csv"))
-write.csv(do.call(rbind, diag_list), here("Results", "model_diagnostics_s1.csv"))
+if (length(loo_files) >= length(models) && length(diag_files) >= length(models)) {
+  # Filter to only models defined in this script
+  model_basenames <- paste0(names(models), ".rds")
+  loo_files <- loo_files[grepl(paste(model_basenames, collapse="|"), basename(loo_files))]
 
-message("Study 1 comparison complete.")
+  diag_model_basenames <- paste0(names(models), ".csv")
+  diag_files <- diag_files[grepl(paste(diag_model_basenames, collapse="|"), basename(diag_files))]
+
+  loo_list <- lapply(loo_files, readRDS)
+  names(loo_list) <- str_remove(str_remove(basename(loo_files), "loo_s1_"), ".rds")
+  
+  diag_list <- lapply(diag_files, read.csv)
+  
+  comp <- loo_compare(loo_list)
+  write.csv(as.data.frame(comp), here("Results", "model_comparison_s1_results.csv"), row.names = FALSE)
+  write.csv(do.call(rbind, diag_list), here("Results", "model_diagnostics_s1.csv"), row.names = FALSE)
+  
+  message("Study 1 comparison complete.")
+} else {
+  warning("Could not find all necessary loo/diagnostic files for S1 comparison.")
+}

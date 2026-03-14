@@ -12,12 +12,10 @@ data {
 }
 
 parameters {
-  // tau (choice temperature) removed: unidentifiable when lapse rate (w) is high.
-  // tau fixed at 1 implicitly.
   vector[4] global_mu_pr;            // [1]=m, [2]=bias, [3]=lambda, [4]=w
-  vector<lower=0.01>[4] global_sigma;
+  vector<lower=0>[4] global_sigma;
   array[nStudies] vector[4] study_mu_raw;
-  vector<lower=0.01>[4] study_sigma;
+  array[nStudies] vector<lower=0>[4] study_sigma; // Study-specific subject SD
   vector[nSubjects] m_pr;
   vector[nSubjects] bias_pr;
   vector[nSubjects] lambda_pr;
@@ -35,18 +33,25 @@ transformed parameters {
   }
   for (i in 1:nSubjects) {
     int s = subjStudy[i];
-    m[i]      = Phi_approx(study_mu_pr[s, 1] + study_sigma[1] * m_pr[i]) * 10;
-    bias[i]   = Phi_approx(study_mu_pr[s, 2] + study_sigma[2] * bias_pr[i]);
-    lambda[i] = Phi_approx(study_mu_pr[s, 3] + study_sigma[3] * lambda_pr[i]) * 5;
-    w[i]      = Phi_approx(study_mu_pr[s, 4] + study_sigma[4] * w_pr[i]);
+    m[i]      = Phi_approx(study_mu_pr[s, 1] + study_sigma[s, 1] * m_pr[i]) * 10;
+    bias[i]   = Phi_approx(study_mu_pr[s, 2] + study_sigma[s, 2] * bias_pr[i]);
+    lambda[i] = Phi_approx(study_mu_pr[s, 3] + study_sigma[s, 3] * lambda_pr[i]) * 5;
+    w[i]      = Phi_approx(study_mu_pr[s, 4] + study_sigma[s, 4] * w_pr[i]);
   }
 }
 
 model {
+  // Global Priors
   global_mu_pr ~ normal(0, 1);
-  global_sigma ~ cauchy(0, 1);
-  for (s in 1:nStudies) study_mu_raw[s] ~ normal(0, 1);
-  study_sigma ~ cauchy(0, 1);
+  global_sigma ~ normal(0, 0.3); // Tightened
+
+  // Study-level Priors
+  for (s in 1:nStudies) {
+    study_mu_raw[s] ~ normal(0, 1);
+    study_sigma[s]  ~ normal(0, 0.3); // Tightened
+  }
+
+  // Subject-level Priors
   m_pr      ~ normal(0, 1);
   bias_pr   ~ normal(0, 1);
   lambda_pr ~ normal(0, 1);
@@ -69,35 +74,20 @@ model {
 
     for (t in 1:nTrials[s]) {
       if (groupChoice[s, t] > 0) {
-        target += log_sum_exp(log(w[s]) + bernoulli_lpmf(groupChoice[s, t] - 1 | 0.5),
-                             log1m(w[s]) + bernoulli_logit_lpmf(groupChoice[s, t] - 1 | logit_p[t]));
+        target += log_mix(w[s], 
+                         bernoulli_lpmf(groupChoice[s, t] - 1 | 0.5),
+                         bernoulli_logit_lpmf(groupChoice[s, t] - 1 | logit_p[t]));
       }
     }
   }
 }
 
 generated quantities {
-  // ================================================================
-  // GROUP-LEVEL PARAMETERS (back-transformed global means)
-  //   fit$draws("mu_m")      # projection slope (symmetric) [0, 10]
-  //   fit$draws("mu_bias")   # ingroup response bias [0, 1]
-  //   fit$draws("mu_lambda") # generalization sensitivity [0, 5]
-  //   fit$draws("mu_w")      # lapse rate [0, 1]
-  // ================================================================
   real<lower=0, upper=10> mu_m      = Phi_approx(global_mu_pr[1]) * 10;
   real<lower=0, upper=1>  mu_bias   = Phi_approx(global_mu_pr[2]);
   real<lower=0, upper=5>  mu_lambda = Phi_approx(global_mu_pr[3]) * 5;
   real<lower=0, upper=1>  mu_w      = Phi_approx(global_mu_pr[4]);
 
-  // ================================================================
-  // TRIAL-LEVEL QUANTITIES (index = (s-1)*maxTrials + t)
-  //   fit$draws("log_lik")   # log-likelihood for LOO-CV
-  //   fit$draws("p_pred")    # P(ingroup) per trial
-  //   fit$draws("mcr")       # model-derived Metacontrast Ratio per trial
-  //                          # MCR_t = simW_in[t] / simW_out[t]
-  //                          # (m-scaled symmetric GP; lambda-sharpened similarity)
-  // SUBJECT-LEVEL: fit$draws("subject_mcr")  # mean MCR per subject
-  // ================================================================
   vector[nSubjects * maxTrials] log_lik     = rep_vector(0.0, nSubjects * maxTrials);
   vector[nSubjects * maxTrials] p_pred      = rep_vector(0.0, nSubjects * maxTrials);
   vector[nSubjects * maxTrials] mcr         = rep_vector(0.0, nSubjects * maxTrials);
@@ -123,8 +113,9 @@ generated quantities {
     for (t in 1:nTrials[s]) {
       if (groupChoice[s, t] > 0) {
         real mcr_t = simW_in[t] / simW_out[t];
-        log_lik[(s-1)*maxTrials + t] = log_sum_exp(log(w[s]) + bernoulli_lpmf(groupChoice[s, t] - 1 | 0.5),
-                                                  log1m(w[s]) + bernoulli_logit_lpmf(groupChoice[s, t] - 1 | logit_p[t]));
+        log_lik[(s-1)*maxTrials + t] = log_mix(w[s], 
+                                              bernoulli_lpmf(groupChoice[s, t] - 1 | 0.5),
+                                              bernoulli_logit_lpmf(groupChoice[s, t] - 1 | logit_p[t]));
         p_pred[(s-1)*maxTrials + t]  = w[s] * 0.5 + (1.0 - w[s]) * inv_logit(logit_p[t]);
         mcr[(s-1)*maxTrials + t]     = mcr_t;
         mcr_sum  += mcr_t;

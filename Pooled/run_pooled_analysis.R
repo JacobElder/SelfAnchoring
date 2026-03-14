@@ -1,5 +1,6 @@
 # Pooled Model Comparison Analysis
 # Optimized for Speed (cmdstanr) and Portability (CSV Export)
+# Memory-Efficient Version: Saves each model's results to disk and reloads at the end.
 
 library(cmdstanr)
 library(tidyverse)
@@ -38,7 +39,7 @@ compute_subj_pareto_k <- function(l, study_label, model_name, uIds, nTrials_vec,
   do.call(rbind, rows)
 }
 
-# Recover subject indices (use 1:nSubjects if IDs not stored in pooled_stan_data)
+# Recover subject indices
 pooled_uIds <- if (!is.null(stan_data$subIDs)) stan_data$subIDs else seq_len(stan_data$nSubjects)
 pooled_maxTrials <- max(stan_data$nTrials)
 
@@ -50,7 +51,7 @@ models <- list(
   asym_lambda = "S_Pooled_Asym_Lambda.stan"
 )
 
-# 3. Fit function
+# 3. Fit function (now saves to disk and returns nothing to save memory)
 fit_and_save_pooled <- function(model_name) {
   message(paste("Fitting Pooled model:", model_name))
   mod <- cmdstan_model(here("Computational Models", models[[model_name]]))
@@ -59,7 +60,7 @@ fit_and_save_pooled <- function(model_name) {
     data = stan_data, 
     seed = 1234, 
     chains = 4, 
-    parallel_chains = 4,
+    parallel_chains = 2,
     iter_warmup = 1000,
     iter_sampling = 2000,
     adapt_delta = 0.99,
@@ -68,27 +69,23 @@ fit_and_save_pooled <- function(model_name) {
     refresh = 100
   )
   
-  # Save Fit Object disabled — files are 1-1.5 GB each; all needed info in LOO + CSVs
-  # fit$save_object(here("Fits", paste0("fit_pooled_", model_name, ".rds")))
-  
   # A. Save LOO results
   l <- fit$loo()
   saveRDS(l, here("Fits", paste0("loo_pooled_", model_name, ".rds")))
   
-  # B. Summary — exclude trial-level GQ flat vectors (log_lik, p_pred, mcr)
-  # Note: metadata()$stan_variables returns BASE names (no brackets), so exclude by name
+  # B. Save Summary
   all_vars    <- fit$metadata()$stan_variables
   struct_vars <- all_vars[!all_vars %in% c("log_lik", "p_pred", "mcr")]
   sum_fit <- fit$summary(variables = struct_vars)
-  write.csv(sum_fit, here("Results", paste0("summary_pooled_", model_name, ".csv")))
+  write.csv(sum_fit, here("Results", paste0("summary_pooled_", model_name, ".csv")), row.names = FALSE)
   
-  # C. Extract and save individual level parameters specifically
+  # C. Save Individual Parameters
   ind_params <- sum_fit %>%
     filter(str_detect(variable, "\\[")) %>%
     select(variable, median, rhat, ess_bulk)
-  write.csv(ind_params, here("Results", paste0("params_ind_pooled_", model_name, ".csv")))
+  write.csv(ind_params, here("Results", paste0("params_ind_pooled_", model_name, ".csv")), row.names = FALSE)
   
-  # D. Diagnostics
+  # D. Save Diagnostics
   diag <- fit$diagnostic_summary()
   pk   <- l$diagnostics$pareto_k
   diag_df <- data.frame(
@@ -106,26 +103,42 @@ fit_and_save_pooled <- function(model_name) {
     pk_max          = round(max(pk), 3),
     loo_reliable    = mean(pk < 0.7) > 0.9
   )
+  write.csv(diag_df, here("Results", paste0("diag_pooled_", model_name, ".csv")), row.names = FALSE)
 
-  # E. Per-subject Pareto k
+  # E. Save Per-subject Pareto k
   subj_pk <- compute_subj_pareto_k(l, "Pooled", model_name, pooled_uIds, stan_data$nTrials, pooled_maxTrials)
   write.csv(subj_pk, here("Results", paste0("pareto_k_subj_pooled_", model_name, ".csv")), row.names = FALSE)
 
-  return(list(loo = l, diag = diag_df))
+  # Explicitly clear memory
+  rm(fit, l, sum_fit, ind_params, diag, pk, diag_df, subj_pk)
+  gc()
+  
+  return(NULL)
 }
 
-# 4. Run Analysis
-results_list <- list()
+# 4. Run Analysis (Loop and save)
 for(m in names(models)) {
-  results_list[[m]] <- fit_and_save_pooled(m)
+  fit_and_save_pooled(m)
 }
 
-# 5. Model Comparison
-loo_list <- lapply(results_list, function(x) x$loo)
-diag_list <- lapply(results_list, function(x) x$diag)
+# 5. Model Comparison (Load from disk)
+message("All models fit. Comparing results from saved files.")
+loo_files <- list.files(path = here("Fits"), pattern = "loo_pooled_.*\\.rds", full.names = TRUE)
+diag_files <- list.files(path = here("Results"), pattern = "diag_pooled_.*\\.csv", full.names = TRUE)
 
-comp <- loo_compare(loo_list)
-write.csv(as.data.frame(comp), here("Results", "pooled_model_comparison_results.csv"))
-write.csv(do.call(rbind, diag_list), here("Results", "pooled_model_diagnostics.csv"))
-
-message("Pooled model comparison complete.")
+# Check if all files are present
+if (length(loo_files) == length(models) && length(diag_files) == length(models)) {
+  loo_list <- lapply(loo_files, readRDS)
+  names(loo_list) <- str_remove(str_remove(basename(loo_files), "loo_pooled_"), ".rds")
+  
+  diag_list <- lapply(diag_files, read.csv)
+  
+  # Perform comparison and save
+  comp <- loo_compare(loo_list)
+  write.csv(as.data.frame(comp), here("Results", "pooled_model_comparison_results.csv"), row.names = FALSE)
+  write.csv(do.call(rbind, diag_list), here("Results", "pooled_model_diagnostics.csv"), row.names = FALSE)
+  
+  message("Pooled model comparison complete.")
+} else {
+  warning("Could not find all necessary loo/diagnostic files for comparison. Please check Fits/ and Results/ directories.")
+}
