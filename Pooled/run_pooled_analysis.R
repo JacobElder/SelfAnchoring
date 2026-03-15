@@ -57,19 +57,20 @@ fit_and_save_pooled <- function(model_name) {
   mod <- cmdstan_model(here("Computational Models", models[[model_name]]))
   
   fit <- mod$sample(
-    data = stan_data, 
-    seed = 1234, 
-    chains = 4, 
-    parallel_chains = 2,
+    data = stan_data,
+    seed = 1234,
+    chains = 4,
+    parallel_chains = 4,
     iter_warmup = 1000,
-    iter_sampling = 2000,
+    iter_sampling = 1000,
     adapt_delta = 0.99,
     max_treedepth = 12,
     init = 0,
     refresh = 100
   )
-  
-  # A. Save LOO results
+
+  # A. Save LOO results (gc() before to free post-sampling memory; 4000 draws is adequate)
+  gc()
   l <- fit$loo()
   saveRDS(l, here("Fits", paste0("loo_pooled_", model_name, ".rds")))
   
@@ -92,7 +93,7 @@ fit_and_save_pooled <- function(model_name) {
     model           = model_name,
     max_rhat        = max(sum_fit$rhat, na.rm = TRUE),
     num_divergent   = sum(diag$num_divergent),
-    pct_divergent   = round(100 * sum(diag$num_divergent) / (4 * 2000), 3),
+    pct_divergent   = round(100 * sum(diag$num_divergent) / (4 * 1000), 3),
     min_ess_bulk    = min(sum_fit$ess_bulk, na.rm = TRUE),
     converged       = (max(sum_fit$rhat, na.rm = TRUE) < 1.01 & sum(diag$num_divergent) == 0),
     pk_good         = sum(pk < 0.5),

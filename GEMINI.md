@@ -53,7 +53,6 @@ Revise the text to explicitly reflect the following theoretical perspectives, av
 - **Connection to Concept Learning:** Explicitly bridge social psychology with cognitive science by highlighting that self-to-group inference follows universal laws of category learning (e.g., Shepard's Law).
 - **The Novel-Trait Test:** Emphasize that testing generalization to novel but semantically related traits isolates cognitive generalization from simple procedural repetition.
 - **Asymmetric Projection:** Highlight that self-anchoring is generally driven by an assimilation process (ingroup love, $\alpha_{in}$) rather than a rejection process (outgroup hate, $\alpha_{out}$), though boundary conditions apply.
-- **AI & Transformer Word Embeddings (Topical Aside):** Include a brief, sophisticated aside connecting the paper's semantic network approach to the architecture of word embeddings in modern transformer models (e.g., LLMs). Keep this as a brief conceptual parallel rather than the central premise.
 - **Discussion Focus:** Ensure the General Discussion focuses primarily on the established structural findings (novel trait generalization and projection asymmetry), treating the $\lambda$ parameter modeling as a rigorous exploratory extension rather than a foregone conclusion.
 
 ## Handling Pending Model Results
@@ -90,15 +89,7 @@ I am running external Bayesian Hierarchical Analyses. You must explicitly leave 
 Three derivations from Self-Categorization Theory remain untested in the current formal framework. These should be investigated when time permits — ideally as an "SCT Predictions" section or as part of the General Discussion's theoretical contribution.
 
 **1. Depersonalization & Self-Concept Group-Alignment**
-SCT depersonalization is NOT about rating traits neutrally (near 4). It means the self-concept becomes *organized around the group prototype* — high identifiers rate themselves as high on group-characteristic traits and low on non-group traits. The self is not lost; it merges with the group. The right formal operationalization is therefore:
-- **Within-subject r(selfResp, ingChoiceN)** across shared traits: how strongly does a person's self-rating of a trait predict whether they classify it as ingroup-characteristic? High alignment = depersonalized self-concept.
-- NOT variance of self-ratings (which conflates individuated vs. generic self-concepts).
-- NOT entropy of self-ratings (though entropy + MAD-from-4 together could distinguish "generic/neutral" from "extreme-but-group-congruent" — see below).
-
-Formal tests: (a) does SI predict higher within-subject r(selfResp, ingChoiceN)? (b) does this alignment predict α (are more group-aligned people stronger projectors)? (c) does GP variance (model parameter space) mediate the SI → α relationship?
-
-**To-do: Entropy + MAD-from-4 as supplementary self-concept measures (Study 1)**
-Shannon entropy of `selfResp` per subject (7-point Likert treated as probability distribution over categories) is better than raw variance for ordinal data. However, low entropy could mean ratings cluster near 4 (neutral/generic — one type of depersonalization) OR all at 7 (extreme but uniform — not depersonalized). To distinguish: also compute `mean(abs(selfResp - 4))` (MAD from neutral). Low entropy + low MAD = generic depersonalization. Low entropy + high MAD = extreme but undifferentiated (group-congruent). This trio (entropy, MAD-from-4, within-subject alignment) together characterizes the full range of self-concept types. **Not yet implemented.**
+SCT depersonalization means the self-concept becomes *organized around the group prototype* — high identifiers rate themselves as high on group-characteristic traits and low on non-group traits. This is already captured in the existing analyses: (a) the random slope for selfResp in the mixed-effects logistic regression gives a per-subject regularized estimate of how strongly self-ratings predict ingroup classification (more rigorous than a raw within-subject r, which would be redundant); (b) MCR provides a richer model-derived index incorporating both projection slope and generalization breadth. Variance, entropy, or MAD-from-4 of self-ratings are NOT valid operationalizations — they capture differentiated vs. undifferentiated self-concepts, not group alignment.
 
 **2. Comparative Fit as a Function of Intergroup Distance**
 SCT holds that categorization is triggered when metacontrast is maximized — when between-category differences are large relative to within-category. The λ parameter operationalizes this: sharper λ = more exclusive categorization = higher comparative fit. Testable prediction: λ should be *larger* in high-intergroup-distance conditions (Study 2 high-status outgroup, Study 3 majority vs. White) than in low-distance conditions (Study 2 negation, Study 3 minority-minority). Compare posterior λ distributions across conditions.

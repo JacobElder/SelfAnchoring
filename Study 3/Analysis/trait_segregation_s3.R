@@ -1,32 +1,39 @@
-# Trait Segregation Correlations — Study 1
+# Trait Segregation Correlations — Study 3
 # Correlates groupHomoph (network nominal homophily) with:
-#   - Computational parameters (m, bias, lambda, w)
-#   - Model-derived MCR (subject_mcr)
-#   - Per-subject ΔELPD
+#   - Computational parameters (m, bias, lambda, w) from sym_lambda
+#   - Model-derived MCR (subject_mcr) from asym_lambda
+#   - Per-subject ΔELPD (asym_lambda - sym_lambda)
 #   - Individual difference scales
-# FDR correction applied across the full family of tests.
+# FDR correction applied separately for param and personality families.
+# bias (γ) included in FDR-corrected family per updated protocol.
 
 library(tidyverse)
 library(here)
 
 # ── 1. Load subject-level data ────────────────────────────────────────────────
-fulldf <- read.csv(here("Study 1/Cleaning/output/fullTest.csv")) |>
+fulldf <- read.csv(here("Study 3/Cleaning/output/fullTest_fixed.csv")) |>
   filter(!is.na(ingChoiceN))
 
-uIds <- sort(unique(fulldf$subID))
+traindf <- read.csv(here("Study 3/Cleaning/output/fullTrain_fixed.csv")) |>
+  filter(!is.na(selfResp))
 
-scale_vars <- c("DS","Proto","SCC","SI","RSE","NTB","NFC","SING.Ind","SING.Inter")
+common_ids <- sort(intersect(unique(fulldf$subID), unique(traindf$subID)))
+fulldf <- filter(fulldf, subID %in% common_ids)
+uIds <- sort(common_ids)
+
+scale_vars  <- c("DS","Proto","SCC","SI","RSE","NTB","NFC","SING.Ind","SING.Inter")
 avail_scales <- intersect(scale_vars, names(fulldf))
 
 # One row per subject
 id_df <- fulldf[!duplicated(fulldf$subID), ]
 id_df <- id_df[order(match(id_df$subID, uIds)), ]
 id_df$subj_idx <- seq_len(nrow(id_df))
-id_df <- id_df[, c("subj_idx","subID", "groupHomoph", avail_scales)]
+cond_col <- intersect(c("condition","outgroup","mgroup","Condition"), names(id_df))
+id_df <- id_df[, c("subj_idx","subID", cond_col, "groupHomoph", avail_scales)]
 
-# ── 2. Load computational parameters and ΔELPD ────────────────────────────────
-params_file <- here("Results","params_ind_s1_sym_lambda.csv")
-if (!file.exists(params_file)) params_file <- here("Results","params_ind_s1_asym_lambda.csv")
+# ── 2. Load computational parameters ─────────────────────────────────────────
+params_file <- here("Results","params_ind_s3_sym_lambda.csv")
+if (!file.exists(params_file)) params_file <- here("Results","params_ind_s3_asym_lambda.csv")
 
 params_sl <- read.csv(params_file)
 params_sl <- params_sl[grepl("^(m|bias|lambda|w)\\[", params_sl$variable), ]
@@ -38,21 +45,18 @@ params_wide <- reshape(params_sl[, c("subj_idx","param","median")],
 names(params_wide) <- sub("median\\.", "", names(params_wide))
 
 # MCR from asym_lambda
-params_al <- read.csv(here("Results","params_ind_s1_asym_lambda.csv"))
+params_al <- read.csv(here("Results","params_ind_s3_asym_lambda.csv"))
 mcr <- params_al[grepl("^subject_mcr\\[", params_al$variable), ]
 mcr$subj_idx <- as.integer(regmatches(mcr$variable, regexpr("[0-9]+", mcr$variable)))
 mcr <- mcr[, c("subj_idx","median")]; names(mcr)[2] <- "subject_mcr"
 
-# ΔELPD
-loo_path_sym  <- here("Fits","loo_s1_sym_lambda.rds")
-loo_path_asym <- here("Fits","loo_s1_asym_lambda.rds")
+# ΔELPD (asym - sym)
+loo_path_sym  <- here("Fits","loo_s3_sym_lambda.rds")
+loo_path_asym <- here("Fits","loo_s3_asym_lambda.rds")
 
 delta_elpd_df <- NULL
 if (file.exists(loo_path_sym) && file.exists(loo_path_asym)) {
-  traindf <- read.csv(here("Study 1/Cleaning/output/fullTrain.csv")) |>
-    filter(!is.na(selfResp))
-  common_ids <- sort(intersect(uIds, unique(traindf$subID)))
-  maxTrials <- max(fulldf$trialTotal, na.rm=TRUE)
+  maxTrials   <- max(fulldf$trialTotalT2)
   nTrials_vec <- sapply(uIds, function(id) nrow(filter(fulldf, subID == id)))
   loo_sym  <- readRDS(loo_path_sym)
   loo_asym <- readRDS(loo_path_asym)
@@ -71,11 +75,12 @@ if (!is.null(delta_elpd_df)) df <- merge(df, delta_elpd_df, by="subj_idx")
 df <- merge(df, id_df, by="subj_idx")
 cat(sprintf("Merged N: %d\n", nrow(df)))
 
-# ── 4. Correlate groupHomoph with params, MCR, ΔELPD, and scales ──────────────
+# ── 4. Correlate groupHomoph with params, MCR, and scales ────────────────────
 # Two separate FDR families:
-#   Family 1: computational params (m, bias/γ, lambda, subject_mcr, delta_elpd)
+#   Family 1: computational params (m, bias/γ, lambda, subject_mcr) + ΔELPD
 #   Family 2: individual-difference scales
-# w is descriptive only.
+# w is descriptive only (not FDR-corrected).
+
 param_preds <- intersect(c("m","bias","lambda","subject_mcr","delta_elpd"), names(df))
 descr_preds <- intersect(c("w"), names(df))
 
@@ -96,9 +101,11 @@ run_cors_1 <- function(pred_set, df) {
 res_params  <- run_cors_1(param_preds, df)
 res_scales  <- run_cors_1(avail_scales, df)
 res_descr   <- run_cors_1(descr_preds, df)
+
 res_params$p_fdr <- round(p.adjust(res_params$p_raw, method="BH"), 4)
 res_scales$p_fdr <- round(p.adjust(res_scales$p_raw, method="BH"), 4)
 res_descr$p_fdr  <- NA_real_
+
 res <- rbind(res_params, res_scales, res_descr)
 res <- res[order(res$p_raw), ]
 
@@ -116,5 +123,5 @@ cat(sprintf("\nDescriptives: M = %.3f, SD = %.3f, range [%.3f, %.3f]\n",
   mean(df$groupHomoph, na.rm=TRUE), sd(df$groupHomoph, na.rm=TRUE),
   min(df$groupHomoph, na.rm=TRUE), max(df$groupHomoph, na.rm=TRUE)))
 
-write.csv(res, here("Results","trait_segregation_s1_correlations.csv"), row.names=FALSE)
-message("Saved: Results/trait_segregation_s1_correlations.csv")
+write.csv(res, here("Results","trait_segregation_s3_correlations.csv"), row.names=FALSE)
+message("Saved: Results/trait_segregation_s3_correlations.csv")

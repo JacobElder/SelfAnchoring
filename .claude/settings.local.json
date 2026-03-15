@@ -21,7 +21,12 @@
       "Bash(caffeinate:*)",
       "Bash(find /Users/jacobelder/Documents/GitHub/SelfAnchoring/\"Study 2/Analysis/\" -type f -exec ls -lh {} ;)",
       "Bash(find /Users/jacobelder/Documents/GitHub/SelfAnchoring/Fits -maxdepth 1 -type f -name \"*s2*\" -exec ls -lh {} ;)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(vm_stat:*)",
+      "Bash(# Check pooled symmetric CSV progress \\(iteration count\\) ls /var/folders/4d/8dmpyclj3j10xhz5nx1ynz780000gp/T/RtmpjvHZdy/S_Pooled_Symmetric-*.csv)",
+      "Bash(done)",
+      "Bash(kill 36235:*)",
+      "Bash(pkill:*)"
     ]
   }
 }
