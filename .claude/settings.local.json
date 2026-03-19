@@ -26,7 +26,13 @@
       "Bash(# Check pooled symmetric CSV progress \\(iteration count\\) ls /var/folders/4d/8dmpyclj3j10xhz5nx1ynz780000gp/T/RtmpjvHZdy/S_Pooled_Symmetric-*.csv)",
       "Bash(done)",
       "Bash(kill 36235:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(grep Pages:*)",
+      "Bash(pdftotext:*)",
+      "WebFetch(domain:osf.io)",
+      "WebFetch(domain:api.osf.io)",
+      "WebSearch",
+      "Bash(git:*)"
     ]
   }
 }

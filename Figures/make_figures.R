@@ -643,6 +643,215 @@ if (!is.null(summary_s1)) {
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# FIGURE — Multi-Study Generalization Gradients
+# S^λ decay curves by study and by condition within study.
+# Layout: 3 panels (S1, S2, S3) sharing x/y axes.
+# Individual participant gradients in background; condition means as solid lines.
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Multi-Study Generalization Gradients ──")
+
+S_seq <- seq(0, 1, by = 0.005)
+
+# ── Load condition means from desc CSVs ──────────────────────────────────────
+read_cond_lambda <- function(path, condition_map = NULL) {
+  if (!file.exists(path)) return(NULL)
+  df <- read.csv(path)
+  df <- df[df$param == "lambda", c("condition","M","SD","n")]
+  if (!is.null(condition_map)) df$condition <- condition_map[df$condition]
+  df
+}
+
+# S2 condition labels
+s2_map <- c("Not UCR" = "Negation", "UCLA" = "High-Status", "CSU LA" = "Low-Status")
+# (desc CSV already uses these labels directly)
+
+cond_s2 <- read_cond_lambda(here("Results","param_by_condition_s2_desc.csv"))
+cond_s3 <- read_cond_lambda(here("Results","param_by_condition_s3_desc.csv"))
+
+# ── Load individual λ by condition ───────────────────────────────────────────
+ind_s2_grad <- tryCatch(
+  read.csv(here("Results","ind_diffs_s2_full.csv")) |>
+    dplyr::select(subj_idx, outgroup, lambda),
+  error = function(e) NULL
+)
+ind_s3_grad <- tryCatch(
+  read.csv(here("Results","ind_diffs_s3_full.csv")) |>
+    dplyr::select(subj_idx, condition, lambda),
+  error = function(e) NULL
+)
+
+# ── Helper: build gradient data frame from a tibble of condition × lambda ─────
+make_grad_df <- function(cond_df, cond_col = "condition") {
+  do.call(rbind, lapply(seq_len(nrow(cond_df)), function(i) {
+    lam    <- cond_df$M[i]
+    lam_lo <- max(0.01, lam - cond_df$SD[i])
+    lam_hi <- lam + cond_df$SD[i]
+    data.frame(
+      S       = S_seq,
+      g_med   = S_seq ^ lam,
+      g_lo    = S_seq ^ lam_hi,  # higher λ = steeper decay = lower g
+      g_hi    = S_seq ^ lam_lo,
+      condition = cond_df[[cond_col]][i]
+    )
+  }))
+}
+
+# ── Panel S1 ─────────────────────────────────────────────────────────────────
+make_grad_panel_s1 <- function() {
+  if (is.null(summary_s1)) return(ggplot() + theme_void())
+
+  lambda_row <- summary_s1 |> dplyr::filter(grepl("^\"?mu_pr\\[3\\]", variable))
+  if (nrow(lambda_row) == 0) return(ggplot() + theme_void())
+
+  lam_med <- pnorm(as.numeric(lambda_row$median)) * 5
+  lam_lo  <- pnorm(as.numeric(lambda_row$q5))     * 5
+  lam_hi  <- pnorm(as.numeric(lambda_row$q95))    * 5
+
+  grad_s1 <- data.frame(
+    S    = S_seq,
+    g_med = S_seq ^ lam_med,
+    g_lo  = S_seq ^ lam_hi,
+    g_hi  = S_seq ^ lam_lo
+  )
+
+  # Individual gradients
+  params_s1 <- tryCatch(read.csv(here("Results","params_ind_s1_sym_lambda.csv")), error = function(e) NULL)
+  ind_lam_s1 <- if (!is.null(params_s1)) {
+    params_s1 |>
+      dplyr::filter(grepl("^\"?lambda\\[", variable)) |>
+      dplyr::pull(median)
+  } else { numeric(0) }
+
+  p <- ggplot()
+  if (length(ind_lam_s1) > 0) {
+    ind_df <- do.call(rbind, lapply(ind_lam_s1, function(l)
+      data.frame(S = S_seq, g = S_seq ^ l, lam = l)))
+    p <- p + geom_line(data = ind_df, aes(x = S, y = g, group = lam),
+                       colour = s1_col, alpha = 0.06, linewidth = 0.25)
+  }
+  p +
+    geom_ribbon(data = grad_s1, aes(x = S, ymin = g_lo, ymax = g_hi),
+                fill = s1_col, alpha = 0.20) +
+    geom_line(data = grad_s1, aes(x = S, y = g_med),
+              colour = s1_col, linewidth = 1.1) +
+    annotate("text", x = 0.62, y = 0.87,
+             label = sprintf("\u03bb = %.2f [%.2f, %.2f]", lam_med, lam_lo, lam_hi),
+             hjust = 0, size = 3, colour = s1_col) +
+    scale_x_continuous(name = "Semantic Similarity (Dice)", breaks = seq(0,1,0.25)) +
+    scale_y_continuous(name = "Generalization Weight (S^\u03bb)", limits = c(0,1), breaks = seq(0,1,0.2)) +
+    theme_dissert(base_size = 10) +
+    theme(legend.position = "none")
+}
+
+# ── Panel S2 ─────────────────────────────────────────────────────────────────
+make_grad_panel_s2 <- function() {
+  if (is.null(cond_s2)) return(ggplot() + theme_void() +
+                                annotate("text", x=0.5, y=0.5, label="S2 pending", hjust=0.5, size=3, colour="grey50"))
+
+  grad_s2 <- make_grad_df(cond_s2, "condition")
+  grad_s2$condition <- factor(grad_s2$condition, levels = names(s2_cols))
+
+  ind_ribbons <- if (!is.null(ind_s2_grad)) {
+    ind_s2_grad |>
+      dplyr::mutate(cond_color = s2_cols[outgroup]) |>
+      dplyr::group_by(outgroup) |>
+      dplyr::group_modify(~ {
+        do.call(rbind, lapply(.x$lambda, function(l)
+          data.frame(S = S_seq, g = S_seq ^ l)))
+      }) |>
+      dplyr::ungroup()
+  } else { NULL }
+
+  p <- ggplot()
+  if (!is.null(ind_ribbons)) {
+    p <- p + geom_line(data = ind_ribbons, aes(x = S, y = g, group = interaction(outgroup, S),
+                                                colour = outgroup),
+                       alpha = 0.04, linewidth = 0.2)
+  }
+  p +
+    geom_ribbon(data = grad_s2,
+                aes(x = S, ymin = g_lo, ymax = g_hi, fill = condition),
+                alpha = 0.18) +
+    geom_line(data = grad_s2,
+              aes(x = S, y = g_med, colour = condition, linetype = condition),
+              linewidth = 1.0) +
+    scale_colour_manual(values = s2_cols,  labels = s2_labels, name = NULL) +
+    scale_fill_manual(values   = s2_cols,  labels = s2_labels, name = NULL) +
+    scale_linetype_manual(values = s2_ltys, labels = s2_labels, name = NULL) +
+    scale_x_continuous(name = "Semantic Similarity (Dice)", breaks = seq(0,1,0.25)) +
+    scale_y_continuous(name = "Generalization Weight (S^\u03bb)", limits = c(0,1), breaks = seq(0,1,0.2)) +
+    theme_dissert(base_size = 10) +
+    theme(legend.position = c(0.95, 0.95),
+          legend.justification = c("right","top"),
+          legend.text = element_text(size = 8),
+          legend.key.size = unit(0.9, "lines"))
+}
+
+# ── Panel S3 ─────────────────────────────────────────────────────────────────
+make_grad_panel_s3 <- function() {
+  if (is.null(cond_s3)) return(ggplot() + theme_void() +
+                                annotate("text", x=0.5, y=0.5, label="S3 pending", hjust=0.5, size=3, colour="grey50"))
+
+  grad_s3 <- make_grad_df(cond_s3, "condition")
+  grad_s3$condition <- factor(grad_s3$condition, levels = names(s3_cols))
+
+  ind_ribbons3 <- if (!is.null(ind_s3_grad)) {
+    ind_s3_grad |>
+      dplyr::group_by(condition) |>
+      dplyr::group_modify(~ {
+        do.call(rbind, lapply(.x$lambda, function(l)
+          data.frame(S = S_seq, g = S_seq ^ l)))
+      }) |>
+      dplyr::ungroup()
+  } else { NULL }
+
+  p <- ggplot()
+  if (!is.null(ind_ribbons3)) {
+    p <- p + geom_line(data = ind_ribbons3,
+                       aes(x = S, y = g, group = interaction(condition, S),
+                           colour = condition),
+                       alpha = 0.04, linewidth = 0.2)
+  }
+  p +
+    geom_ribbon(data = grad_s3,
+                aes(x = S, ymin = g_lo, ymax = g_hi, fill = condition),
+                alpha = 0.18) +
+    geom_line(data = grad_s3,
+              aes(x = S, y = g_med, colour = condition, linetype = condition),
+              linewidth = 1.0) +
+    scale_colour_manual(values = s3_cols,  labels = s3_labels, name = NULL) +
+    scale_fill_manual(values   = s3_cols,  labels = s3_labels, name = NULL) +
+    scale_linetype_manual(values = s3_ltys, labels = s3_labels, name = NULL) +
+    scale_x_continuous(name = "Semantic Similarity (Dice)", breaks = seq(0,1,0.25)) +
+    scale_y_continuous(name = "Generalization Weight (S^\u03bb)", limits = c(0,1), breaks = seq(0,1,0.2)) +
+    theme_dissert(base_size = 10) +
+    theme(legend.position = c(0.95, 0.95),
+          legend.justification = c("right","top"),
+          legend.text = element_text(size = 7.5),
+          legend.key.size = unit(0.9, "lines"))
+}
+
+pg1 <- make_grad_panel_s1()
+pg2 <- make_grad_panel_s2()
+pg3 <- make_grad_panel_s3()
+
+fig_grad_all <- (
+  (row_label("Study 1\n(Minimal Groups)") | pg1) /
+  (row_label("Study 2\n(University Status)") | pg2) /
+  (row_label("Study 3\n(Racial Groups)") | pg3)
+) +
+  plot_layout(widths = c(0.06, 1)) +
+  plot_annotation(
+    theme = theme(plot.background = element_rect(fill = "white", colour = NA))
+  )
+
+ggsave(here("Figures","fig_generalization_gradients.tiff"),
+       fig_grad_all, width = 7, height = 10,
+       dpi = TIFF_DPI, units = TIFF_UNITS, compression = "lzw")
+message("  Saved: Figures/fig_generalization_gradients.tiff")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # FIGURE — MCR × Individual Differences (Study 1 populated; S2/S3 placeholders)
 # subject_mcr from asym_lambda model (tied with sym_lambda winner; MCR GQ not
 # present in sym_lambda Stan model).  Key correlate: SING.Ind r = .53 p < .001.
@@ -738,6 +947,303 @@ convert_jpg_to_tiff(
 #   fig04: Figures/make_parameter_illustration.R
 #   fig05: Scripts/plot_lambda_explanation.R
 # Run those scripts independently to regenerate.
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE — Cross-Study Parameter Forest Plot
+# Group-level posterior medians + 90% CIs for α, γ, λ, w across S1, S2, S3.
+# Back-transforms mu_pr from probit scale using pnorm() * scale.
+# Shows parameter stability (or divergence) across intergroup contexts.
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Cross-Study Parameter Forest Plot ──")
+
+# Back-transform helper: pnorm(x) * scale
+bt <- function(x, scale = 1) pnorm(x) * scale
+
+extract_group_params <- function(csv_path, study_label) {
+  if (!file.exists(csv_path)) {
+    message("  Missing: ", csv_path); return(NULL)
+  }
+  sum_df <- read.csv(csv_path)
+  # mu_pr order for sym_lambda: [m, bias, lambda, w] → indices 1-4
+  # variables named "mu_pr[1]" through "mu_pr[4]"
+  params <- list(
+    list(name = "\u03b1",       idx = 1, scale = 10),
+    list(name = "\u03b3",       idx = 2, scale = 1),
+    list(name = "\u03bb",       idx = 3, scale = 5),
+    list(name = "w",            idx = 4, scale = 1)
+  )
+  do.call(rbind, lapply(params, function(p) {
+    pat  <- paste0("mu_pr\\[", p$idx, "\\]")
+    row  <- sum_df[grepl(pat, sum_df$variable), ]
+    if (nrow(row) == 0) return(NULL)
+    data.frame(
+      study  = study_label,
+      param  = p$name,
+      median = bt(as.numeric(row$median), p$scale),
+      lo     = bt(as.numeric(row$q5),     p$scale),
+      hi     = bt(as.numeric(row$q95),    p$scale)
+    )
+  }))
+}
+
+gp_s1 <- extract_group_params(here("Results","summary_s1_sym_lambda.csv"), "Study 1\n(Minimal Groups)")
+gp_s2 <- extract_group_params(here("Results","summary_s2_sym_lambda.csv"), "Study 2\n(University Status)")
+gp_s3 <- extract_group_params(here("Results","summary_s3_sym_lambda.csv"), "Study 3\n(Racial Groups)")
+
+gp_all <- do.call(rbind, Filter(Negate(is.null), list(gp_s1, gp_s2, gp_s3)))
+
+if (!is.null(gp_all) && nrow(gp_all) > 0) {
+
+  study_cols <- c(
+    "Study 1\n(Minimal Groups)"    = "#2B5C8A",
+    "Study 2\n(University Status)" = "#E69F00",
+    "Study 3\n(Racial Groups)"     = "#CC79A7"
+  )
+  study_shapes <- c(
+    "Study 1\n(Minimal Groups)"    = 16,
+    "Study 2\n(University Status)" = 17,
+    "Study 3\n(Racial Groups)"     = 15
+  )
+
+  param_levels <- c("\u03b1", "\u03b3", "\u03bb", "w")
+  param_xlabs  <- c(
+    "\u03b1" = "Projection Rate (\u03b1)\n[0 – 10]",
+    "\u03b3" = "Ingroup Bias (\u03b3)\n[0 – 1]",
+    "\u03bb" = "Generalization Sensitivity (\u03bb)\n[0 – 5]",
+    "w"      = "Lapse Rate (w)\n[0 – 1]"
+  )
+
+  gp_all$param  <- factor(gp_all$param,  levels = param_levels)
+  gp_all$study  <- factor(gp_all$study,  levels = names(study_cols))
+
+  forest_panels <- lapply(param_levels, function(p) {
+    d    <- gp_all[gp_all$param == p, ]
+    xlab <- param_xlabs[p]
+    ggplot(d, aes(x = median, y = study, colour = study, shape = study)) +
+      geom_errorbarh(aes(xmin = lo, xmax = hi),
+                     height = 0.18, linewidth = 0.8) +
+      geom_point(size = 3.5) +
+      scale_colour_manual(values = study_cols, guide = "none") +
+      scale_shape_manual(values = study_shapes, guide = "none") +
+      labs(x = xlab, y = NULL) +
+      theme_dissert(base_size = 10) +
+      theme(axis.text.y = element_text(size = 8.5),
+            plot.margin = margin(4, 8, 4, 4, "mm"))
+  })
+
+  fig_forest <- wrap_plots(forest_panels, nrow = 1) +
+    plot_annotation(
+      theme = theme(plot.background = element_rect(fill = "white", colour = NA))
+    )
+
+  ggsave(here("Figures","fig_cross_study_params.tiff"),
+         fig_forest, width = 12, height = 3.8,
+         dpi = TIFF_DPI, units = TIFF_UNITS, compression = "lzw")
+  message("  Saved: Figures/fig_cross_study_params.tiff")
+} else {
+  message("  Skipping forest plot — summary CSVs not found")
+}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE — Study 2 Condition Effects: γ vs. α (individual points + boxplot)
+# Core finding: α invariant across conditions; γ drops dramatically in
+# High-Status condition. Side-by-side panels for α (projection rate) and
+# γ (ingroup bias).
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Study 2 Condition Effects (γ vs α) ──")
+
+ind_s2 <- tryCatch(
+  read.csv(here("Results","ind_diffs_s2_full.csv")),
+  error = function(e) { message("  Missing ind_diffs_s2_full.csv"); NULL }
+)
+
+if (!is.null(ind_s2) && "outgroup" %in% names(ind_s2)) {
+
+  cond_order  <- c("Not UCR", "UCLA", "CSU LA")
+  cond_labels <- c("Not UCR" = "Negation", "UCLA" = "High-Status", "CSU LA" = "Low-Status")
+  cond_cols   <- c("Not UCR" = "#E69F00", "UCLA" = "#0072B2", "CSU LA" = "#009E73")
+
+  ind_s2$outgroup <- factor(ind_s2$outgroup, levels = cond_order)
+
+  make_cond_panel <- function(df, y_var, y_label, y_lim = NULL) {
+    # Compute condition means for crossbar
+    means <- df |>
+      dplyr::group_by(outgroup) |>
+      dplyr::summarise(m = mean(.data[[y_var]], na.rm = TRUE), .groups = "drop")
+
+    p <- ggplot(df, aes(x = outgroup, y = .data[[y_var]], colour = outgroup)) +
+      geom_jitter(width = 0.18, size = 1.4, alpha = 0.55) +
+      geom_boxplot(aes(fill = outgroup), alpha = 0.25, colour = "grey30",
+                   width = 0.45, outlier.shape = NA, linewidth = 0.6) +
+      scale_colour_manual(values = cond_cols, guide = "none") +
+      scale_fill_manual(values = cond_cols, guide = "none") +
+      scale_x_discrete(labels = cond_labels) +
+      labs(x = NULL, y = y_label) +
+      theme_dissert(base_size = 10) +
+      theme(axis.text.x = element_text(size = 9))
+
+    if (!is.null(y_lim)) p <- p + coord_cartesian(ylim = y_lim)
+    p
+  }
+
+  p_alpha <- make_cond_panel(ind_s2, "m",    "\u03b1 (Projection Rate)", c(0, 10))
+  p_gamma <- make_cond_panel(ind_s2, "bias", "\u03b3 (Ingroup Bias)",    c(0, 1))
+
+  fig_cond_s2 <- (p_alpha | p_gamma) +
+    plot_annotation(
+      theme = theme(plot.background = element_rect(fill = "white", colour = NA))
+    )
+
+  ggsave(here("Figures","fig_condition_effects_s2.tiff"),
+         fig_cond_s2, width = 8, height = 4.5,
+         dpi = TIFF_DPI, units = TIFF_UNITS, compression = "lzw")
+  message("  Saved: Figures/fig_condition_effects_s2.tiff")
+} else {
+  message("  Skipping condition effects figure (ind_diffs_s2_full.csv not found or missing outgroup column)")
+}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE — MCR × Individual Differences (all 3 studies, SING.Ind)
+# MCR × SING.Ind replicates across all three studies (FDR-significant each).
+# 3-panel scatter (one per study) with regression line and r annotation.
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── MCR × Individual Differences (all 3 studies) ──")
+
+load_ind <- function(path, study_label, condition_col = NULL) {
+  if (!file.exists(path)) { message("  Missing: ", path); return(NULL) }
+  df <- read.csv(path)
+  df$study <- study_label
+  df
+}
+
+id_s1 <- load_ind(here("Results","ind_diffs_s1_full.csv"), "Study 1\n(Minimal Groups)")
+id_s2 <- load_ind(here("Results","ind_diffs_s2_full.csv"), "Study 2\n(University Status)")
+id_s3 <- load_ind(here("Results","ind_diffs_s3_full.csv"), "Study 3\n(Racial Groups)")
+
+make_mcr_scatter <- function(df, x_var, x_label, study_col) {
+  if (is.null(df) || !x_var %in% names(df) || !"subject_mcr" %in% names(df)) {
+    return(ggplot() + theme_void() +
+             annotate("rect", xmin=0,xmax=1,ymin=0,ymax=1,fill="grey95",color="grey70") +
+             annotate("text", x=0.5, y=0.5,
+                      label = paste0(unique(df$study), "\n[Pending]"),
+                      hjust=0.5, size=3, color="grey50"))
+  }
+  d_clean <- df[!is.na(df[[x_var]]) & !is.na(df$subject_mcr), ]
+  ct <- cor.test(d_clean[[x_var]], d_clean$subject_mcr)
+  r  <- round(ct$estimate, 2)
+  p  <- ct$p.value
+  p_label <- if (p < .001) "p < .001" else sprintf("p = %.3f", p)
+  r_label <- sprintf("r = %s\n%s", formatC(r, format="f", digits=2), p_label)
+
+  ggplot(d_clean, aes_string(x = x_var, y = "subject_mcr")) +
+    geom_point(colour = study_col, size = 1.8, alpha = 0.6) +
+    geom_smooth(method = "lm", se = TRUE, colour = study_col,
+                fill = study_col, alpha = 0.15, linewidth = 0.9) +
+    annotate("label", x = Inf, y = Inf, hjust = 1.08, vjust = 1.35,
+             label = r_label, size = 3, fill = "white", colour = "grey20",
+             label.size = 0.3) +
+    labs(x = x_label, y = "Metacontrast Ratio (MCR)",
+         title = unique(df$study)) +
+    theme_dissert(base_size = 10) +
+    theme(plot.title = element_text(hjust = 0.5, size = 9.5))
+}
+
+study_cols_vec <- c(
+  "Study 1\n(Minimal Groups)"    = "#2B5C8A",
+  "Study 2\n(University Status)" = "#E69F00",
+  "Study 3\n(Racial Groups)"     = "#CC79A7"
+)
+
+x_var   <- "SING.Ind"
+x_label <- "Independent Self-Construal (SING.Ind)"
+
+p_mcr1 <- make_mcr_scatter(id_s1, x_var, x_label, study_cols_vec["Study 1\n(Minimal Groups)"])
+p_mcr2 <- make_mcr_scatter(id_s2, x_var, x_label, study_cols_vec["Study 2\n(University Status)"])
+p_mcr3 <- make_mcr_scatter(id_s3, x_var, x_label, study_cols_vec["Study 3\n(Racial Groups)"])
+
+fig_mcr_pers <- (p_mcr1 | p_mcr2 | p_mcr3) +
+  plot_annotation(
+    theme = theme(plot.background = element_rect(fill = "white", colour = NA))
+  )
+
+ggsave(here("Figures","fig_mcr_personality.tiff"),
+       fig_mcr_pers, width = 10, height = 4,
+       dpi = TIFF_DPI, units = TIFF_UNITS, compression = "lzw")
+message("  Saved: Figures/fig_mcr_personality.tiff")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE — Trait Network (Supplementary Materials)
+# Visualizes the semantic adjacency graph using igraph force-directed layout.
+# Nodes = traits, edges = adjacency. Saved for Supplementary reference.
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Trait Network (Supplementary) ──")
+
+has_igraph <- requireNamespace("igraph", quietly = TRUE)
+has_ggraph <- requireNamespace("ggraph", quietly = TRUE)
+
+if (has_igraph) {
+  library(igraph)
+
+  adj_path <- here("Pooled","input","adjacencyMatrix_p.csv")
+  if (file.exists(adj_path)) {
+    adj_mat   <- as.matrix(read.csv(adj_path, row.names = 1, check.names = FALSE))
+    # Use first 80 most-connected traits for legibility
+    deg       <- rowSums(adj_mat)
+    top_idx   <- order(deg, decreasing = TRUE)[1:min(80, nrow(adj_mat))]
+    adj_sub   <- adj_mat[top_idx, top_idx]
+    g         <- graph_from_adjacency_matrix(adj_sub, mode = "undirected", diag = FALSE)
+    V(g)$degree <- degree(g)
+
+    if (has_ggraph) {
+      library(ggraph)
+      set.seed(42)
+      fig_net <- ggraph(g, layout = "fr") +
+        geom_edge_link(colour = "grey75", alpha = 0.5, linewidth = 0.3) +
+        geom_node_point(aes(size = degree, colour = degree)) +
+        scale_colour_gradient(low = "#c7e9c0", high = "#006d2c",
+                              name = "Degree") +
+        scale_size(range = c(1.5, 5), guide = "none") +
+        labs(
+          title    = "Semantic Trait Network (Top 80 Traits by Connectivity)",
+          subtitle = "Nodes = personality traits; edges = adjacency in SAGE database. Force-directed layout (Fruchterman-Reingold)."
+        ) +
+        theme_void(base_size = 9) +
+        theme(
+          plot.title      = element_text(face = "bold", size = 10, hjust = 0.5),
+          plot.subtitle   = element_text(size = 8, colour = "grey40", hjust = 0.5),
+          legend.position = "right",
+          plot.background = element_rect(fill = "white", colour = NA)
+        )
+    } else {
+      # Fallback: base R igraph plot via ggplot raster
+      message("  ggraph not installed — using base igraph plot for trait network")
+      tiff_out <- here("Figures","fig01_trait_network.tiff")
+      tiff(tiff_out, width = 8, height = 8, units = TIFF_UNITS, res = TIFF_DPI,
+           compression = "lzw")
+      set.seed(42)
+      plot(g, vertex.size = 4, vertex.label = NA, edge.color = "grey70",
+           vertex.color = "#2B5C8A", main = "Semantic Trait Network (Top 80 Traits)")
+      dev.off()
+      message("  Saved (base igraph): Figures/fig01_trait_network.tiff")
+      fig_net <- NULL
+    }
+
+    if (!is.null(fig_net)) {
+      ggsave(here("Figures","fig01_trait_network.tiff"),
+             fig_net, width = 8, height = 7,
+             dpi = TIFF_DPI, units = TIFF_UNITS, compression = "lzw")
+      message("  Saved: Figures/fig01_trait_network.tiff")
+    }
+  } else {
+    message("  Missing: Pooled/input/adjacencyMatrix_p.csv")
+  }
+} else {
+  message("  igraph not installed — skipping trait network figure")
+}
 
 
 message("\n── Done. Run marginal_effects_s*.R scripts to regenerate prediction CSVs,")

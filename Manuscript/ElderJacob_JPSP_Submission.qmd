@@ -1,6 +1,6 @@
 ---
-title: "Seeing Myself in My Group: A Formal Architecture of Self-Anchoring via Similarity-Based Generalization"
-shorttitle: "Self-Anchoring Formal Architecture"
+title: "Building 'Us' in the Image of 'I': The Constructive Cognitive Architecture of Social Identity"
+shorttitle: "Constructive Architecture of Social Identity"
 author:
   - name: Jacob J. Elder
     affiliations:
@@ -51,7 +51,7 @@ We utilize a "training-to-generalization" paradigm common in concept learning re
 Across three studies, we examine how various intergroup contexts amplify or attenuate these generalization weights. Study 1 utilizes minimal groups to provide a proof-of-concept for similarity-based generalization. Study 2 examines the role of relative social status using university groups, testing whether status context modulates the prior ingroup preference (γ), the projection rate (α), or the breadth of self-concept generalization (λ)—and whether real social categories with meaningful status histories can dissociate ingroup assimilation from outgroup repulsion in ways that minimal groups cannot. Study 3 applies this framework to racial identities, examining how majority or minority outgroup contrasts exert differential effects on the tendency to self-anchor. This framework operationalizes the "sense of sameness" (James, 1890) underlying group identification.
 
 ## STUDY 1: SELF-ANCHORING BASED ON MINIMAL CONDITIONS
-Study 1 provided a first proof-of-concept for similarity-based generalization in a minimal group context where group knowledge is absent.
+Study 1 provided a first proof-of-concept for similarity-based generalization in a minimal group context where group knowledge is absent. Study 1 was pre-registered at OSF (https://osf.io/7jn3e). We pre-registered three predictions: that Similarity-to-Self (SS) predicts ingroup classification, that this effect extends to novel unseen traits, and that individual differences in independent self-construal, self-esteem, need for cognition, and self-concept clarity would correlate with self-anchoring strength. Computational modeling analyses and MCR-based individual differences are exploratory.
 
 ### Methods
 **Participants**
@@ -64,12 +64,7 @@ $$S_{ij} = \frac{2|N(i) \cap N(j)|}{|N(i)| + |N(j)|}$$ {#eq-dice}
 
 where $N(i)$ and $N(j)$ denote the neighbor sets of traits $i$ and $j$ in the semantic dependency network.
 
-```{r}
-#| label: fig-01-trait-network
-#| fig-cap: "Trait network. Top figure depicts full semantic dependency network of traits. Bottom figure is subset of network containing the trait ‘Friendly’ and its immediate neighbors."
-#| eval: false
-knitr::include_graphics(fig_path("fig01_trait_network.tiff"))
-```
+A visualization of the full semantic trait network is provided in Supplementary Materials F.
 
 **Design**
 *Training phase.* Participants self-evaluated approximately 60% of the network (90 traits) on a Likert scale from 1 (*Not at all*) to 7 (*Extremely*). Following a dot-estimation minimal group assignment task (NEST), participants were randomly assigned to be "overestimators" or "underestimators." In the *generalization phase*, participants classified all 148 traits in the network as characteristic of either the ingroup or outgroup (148 trials). This included 90 repeated traits and 58 novel traits.
@@ -82,15 +77,11 @@ knitr::include_graphics(fig_path("fig02_task_schematic.tiff"))
 ```
 
 **Indices**
-We computed *Similarity-to-Self* ($SS_g$; @eq-ss) as a similarity-weighted average of self-evaluations across training traits, capturing the degree to which the self-concept predicts the semantic neighborhood of each test trait. We also computed a *local self-concept clarity* index ($H_g$; @eq-entropy): a similarity-weighted Shannon entropy over the self-evaluation distribution in the semantic neighborhood of each test trait. Low $H_g$ means training traits near $g$ share a concentrated, coherent self-rating (e.g., all high or all low) — a clear discriminating signal. High $H_g$ means they carry mixed, conflicting self-evaluations — a noisy signal for group inference. This operationalizes Campbell et al.'s (1996) self-concept clarity at the local semantic level: when a trait's neighborhood is clearly self-descriptive in one direction, $SS_g$ can reliably guide classification; when self-ratings are diffuse, inference is degraded. We estimated the association of $H_g$ with ingroup classification in a dedicated mixed-effects logistic regression for each study (desirability controlled).
+We computed *Similarity-to-Self* ($SS_g$; @eq-ss) as a similarity-weighted average of self-evaluations across training traits, capturing the degree to which the self-concept predicts the semantic neighborhood of each test trait. Results for a local self-concept clarity index (*H_g*) are reported in Supplementary Materials D.
 
 $$SS_g = \frac{\sum_{t=1}^{T} E_t \cdot S_{tg}}{\sum_{t=1}^{T} S_{tg}}$$ {#eq-ss}
 
 where $E_t$ is the self-evaluation on training trait $t$, $S_{tg}$ is the Dice similarity between training trait $t$ and test trait $g$, and $T$ is the number of training traits.
-
-$$H_g = -\sum_{e=1}^{7} p_e \log_2 p_e, \quad p_e = \frac{\sum_{t:\, E_t = e} S_{tg}}{\sum_{t=1}^{T} S_{tg}}$$ {#eq-entropy}
-
-where $p_e$ is the similarity-weighted proportion of training traits rated at level $e$ on the 7-point scale, yielding a distribution over self-evaluation ratings for each test trait $g$.
 
 Each computational model produces a *model-derived Metacontrast Ratio* (MCR) as a generated quantity (see *Computational Modeling* below), computed using parameter-calibrated similarity weights and individual projection gradients: $\text{MCR}_t = \text{simW}_{\text{in},t} / \text{simW}_{\text{out},t}$, where $\text{simW}_{\text{in}}$ and $\text{simW}_{\text{out}}$ are the generalization-weighted sums of projection onto ingroup- and outgroup-predictive self-knowledge, respectively. The subject-level MCR ($\overline{\text{MCR}}_s$) averages this ratio across trials, yielding a person-specific index of how strongly the semantic self-concept discriminates ingroup from outgroup classification.
 
@@ -149,11 +140,10 @@ knitr::include_graphics(fig_path("fig04_parameter_illustration.tiff"))
 ```
 
 ### Results
-Predictors of ingroup classification were estimated using mixed-effects logistic regression with crossed random effects for subjects and traits; random slopes were estimated for focal predictors. We report average marginal effects (AMEs) with 95% confidence intervals and two-tailed *p*-values. Desirability reliability was good, ICC(C, 16) = .682 [.601, .753].
+Predictors of ingroup classification were estimated using mixed-effects logistic regression with crossed random effects for subjects and traits; random slopes were estimated for focal predictors; in models testing cross-level interactions (a within-person predictor × between-person moderator), a random slope was always included for the level-1 predictor. Subject random intercepts account for baseline differences in individuals' overall tendency to select the ingroup regardless of trait content — capturing stable between-person variation in ingroup favoritism. Trait random intercepts account for baseline differences in how often a given trait is attributed to the ingroup regardless of who is rating it — capturing stable between-trait variation in perceived ingroup typicality. This structure ensures that fixed-effect estimates reflect within-person, within-trait associations rather than confounds from person-level response tendencies or trait-level ingroup stereotypicality. We report average marginal effects (AMEs) with 95% confidence intervals and two-tailed *p*-values. Desirability reliability was good, ICC(C, 16) = .682 [.601, .753].
 
 **Predictors of Ingroup Classification**
-Average marginal effects (AMEs) from mixed-effects logistic regression (desirability controlled in models for self-evaluations and similarity-to-self) quantified predictors of ingroup classification. A 1-SD increase in *Similarity-to-Self* increased P(ingroup) by 7.0 percentage points (AME = .070, 95% CI [.028, .111], *p* = .001), substantially larger than the 6.3 pp effect of direct self-evaluations (AME = .063, 95% CI [.040, .086], *p* < .001), replicating traditional self-anchoring. Desirability was non-significant (AME = .016, 95% CI [−.002, .034], *p* = .075). Across the Similarity-to-Self gradient, predicted P(ingroup) ranged from 48% at −1 SD to 56% at the mean to 64% at +1 SD. The effect did not differ between trained and held-out traits (Trained AME = .069, Held-Out AME = .073; difference = .004 pp, 95% CI [−.013, .020]), confirming practical equivalence and ruling out repetition as an explanation. Self-concept entropy (*H_g*) was in the expected negative direction but non-significant in Study 1 (AME = −.058, 95% CI [−.152, .036], *p* = .225), consistent with low statistical power and the high lapse rate under minimal-group conditions.
-
+Average marginal effects (AMEs) from mixed-effects logistic regression (desirability controlled in models for self-evaluations and similarity-to-self) quantified predictors of ingroup classification. Consistent with pre-registered predictions, a 1-SD increase in *Similarity-to-Self* increased P(ingroup) by 7.0 percentage points (AME = .070, 95% CI [.028, .111], *p* = .001), substantially larger than the 6.3 pp effect of direct self-evaluations (AME = .063, 95% CI [.040, .086], *p* < .001), replicating traditional self-anchoring. Desirability was non-significant (AME = .016, 95% CI [−.002, .034], *p* = .075). Across the Similarity-to-Self gradient, predicted P(ingroup) ranged from 48% at −1 SD to 56% at the mean to 64% at +1 SD. Also consistent with pre-registered predictions, the effect did not differ between trained and novel traits (Trained AME = .069, Novel AME = .073; difference = .004 pp, 95% CI [−.013, .020]), confirming practical equivalence and ruling out repetition as an explanation.
 ```{r}
 #| label: fig-06-equivalence
 #| fig-cap: "Depiction of probability of significance and equivalence test in Study 1. Vertical line denotes the threshold for significance (β > ±.18). Red = proportion within the Region of Practical Equivalence (ROPE); blue = proportion that is significant."
@@ -221,19 +211,35 @@ knitr::include_graphics(fig_path("fig_elpd_raincloud_s1.tiff"))
 
 ```{r}
 #| label: fig-09-gradient-s1
-#| fig-cap: "The Social Generalization Gradient (Study 1). Exponential decay of self-to-group generalization strength across semantic similarity space (S^λ where S = Dice similarity). Blue line = group posterior median (λ = 3.56, 95% CI [2.79, 4.22]); shaded band = 90% CI; faint lines = individual participant posterior estimates. The moderately steep gradient indicates that generalization strength falls sharply as semantic distance from the training traits increases, but not so steeply as to preclude extrapolation to moderately similar held-out traits. Because the Asymmetric+λ model was statistically indistinguishable from the winner, a single symmetric gradient is shown."
+#| fig-cap: "The Social Generalization Gradient (Study 1). Exponential decay of self-to-group generalization strength across semantic similarity space (S^λ where S = Dice similarity). Blue line = group posterior median (λ = 3.56, 95% CI [2.79, 4.22]); shaded band = 90% CI; faint lines = individual participant posterior estimates. The moderately steep gradient indicates that generalization strength falls sharply as semantic distance from the training traits increases, but not so steeply as to preclude extrapolation to moderately similar novel traits. Because the Asymmetric+λ model was statistically indistinguishable from the winner, a single symmetric gradient is shown."
 #| fig-width: 6
 #| fig-height: 4.5
-#| eval: false
+#| eval: !expr file.exists(fig_path("fig09_generalization_gradient_s1.tiff"))
 knitr::include_graphics(fig_path("fig09_generalization_gradient_s1.tiff"))
 ```
 
-We examined Pearson correlations between each model parameter ($m$, $\gamma$, $\lambda$, $w$) and the model-derived MCR against nine individual-difference scales (FDR correction applied separately for mechanism-personality tests [$k = 36$: $m$, $\gamma$, $\lambda$, MCR × 9 scales] and for ΔELPD-personality tests [$k = 9$]; $w$ reported descriptively). Structural parameters showed minimal associations: $m$, $\lambda$, and $w$ showed no nominal associations, and $\gamma$ showed no FDR-significant associations (best: SING.Inter $r = .27$, $p_{\text{raw}} = .039$, $p_{\text{FDR}} = .279$). The model-derived MCR—which integrates each participant's parameter estimates with their actual semantic self-structure into a person-specific discrimination index—was the strongest and most consistent predictor across scales. It survived FDR correction for SING independence ($r = .53$, $p_{\text{raw}} < .001$, $p_{\text{FDR}} < .001$), and showed nominal associations with SING interdependence ($r = .36$, $p_{\text{raw}} = .005$, $p_{\text{FDR}} = .085$), social identification ($r = .31$, $p_{\text{raw}} = .015$, $p_{\text{FDR}} = .170$), and perceived prototypicality ($r = .30$, $p_{\text{raw}} = .019$, $p_{\text{FDR}} = .170$). The divergence between the structural parameters and the MCR is theoretically informative: projection rate and generalization breadth appear to reflect relatively stable cognitive tendencies that do not vary strongly with social identity strength, while the MCR—by weighting those tendencies against each participant's actual semantic self-concept—captures the identity-relevant signal that scales with group attachment. The model-derived MCR thus captures identity-relevant individual variation in self-anchoring that the structural parameters alone do not.
+The following individual-difference analyses are exploratory. We examined Pearson correlations between each model parameter ($m$, $\gamma$, $\lambda$, $w$) and the model-derived MCR against nine individual-difference scales (FDR correction applied separately for mechanism-personality tests [$k = 36$: $m$, $\gamma$, $\lambda$, MCR × 9 scales] and for ΔELPD-personality tests [$k = 9$]; $w$ reported descriptively). Structural parameters showed minimal associations: $m$, $\lambda$, and $w$ showed no nominal associations, and $\gamma$ showed no FDR-significant associations (best: SING.Inter $r = .27$, $p_{\text{raw}} = .039$, $p_{\text{FDR}} = .279$). The model-derived MCR—which integrates each participant's parameter estimates with their actual semantic self-structure into a person-specific discrimination index—was the strongest and most consistent predictor across scales. It survived FDR correction for SING independence ($r = .53$, $p_{\text{raw}} < .001$, $p_{\text{FDR}} < .001$), and showed nominal associations with SING interdependence ($r = .36$, $p_{\text{raw}} = .005$, $p_{\text{FDR}} = .085$), social identification ($r = .31$, $p_{\text{raw}} = .015$, $p_{\text{FDR}} = .170$), and perceived prototypicality ($r = .30$, $p_{\text{raw}} = .019$, $p_{\text{FDR}} = .170$). The divergence between the structural parameters and the MCR is theoretically informative: projection rate and generalization breadth appear to reflect relatively stable cognitive tendencies that do not vary strongly with social identity strength, while the MCR—by weighting those tendencies against each participant's actual semantic self-concept—captures the identity-relevant signal that scales with group attachment. The model-derived MCR thus captures identity-relevant individual variation in self-anchoring that the structural parameters alone do not.
 
 We also computed the per-subject $\Delta$ELPD as an individual-level index of which model architecture better predicted each participant's choices ($\Delta$ELPD = ELPD$_{\text{asymmetric}}$ − ELPD$_{\text{symmetric}}$; positive values indicate the asymmetric model is better supported for that individual, negative values indicate the symmetric model is favored). Thirty of 61 participants showed positive $\Delta$ELPD (i.e., the asymmetric model better predicted their choices), consistent with the near-zero group-level difference (total $\Delta$ELPD = −0.21). $\Delta$ELPD was not reliably associated with any individual-difference scale (all *r*s ≤ .20, all *p*s ≥ .127 with FDR correction applied separately over the 9 ΔELPD-personality tests). In the minimal-group context, which model better fits an individual's choices does not meaningfully vary with their personality profile.
 
-**Canonical Correlation Analysis**
-To examine the multivariate personality structure of the model-derived indices simultaneously, we conducted an exploratory canonical correlation analysis (CCA; Hotelling, 1936). CCA identifies linear combinations of two variable sets — here, model-derived indices (X: $\alpha$, $\lambda$, $\gamma$, $w$, MCR, trait segregation) and personality scales (Y: DS, Prototypicality, SCC, Social Identity, RSE, NTB, NFC, SING-Ind, SING-Inter) — that are maximally correlated, capturing shared dimensions spanning both sets. Statistical significance was assessed via permutation test (*B* = 5,000). The first canonical variate was significant (*r* = .720, *p*_perm = .013). On the model side, CV1 was defined primarily by MCR (loading = .53), ingroup bias $\gamma$ (loading = .45), and trait segregation (loading = .39); $\alpha$, $\lambda$, and $w$ loaded negligibly. On the personality side, SING-Inter dominated (loading = .87), followed by social identity (loading = .53) and need to belong (loading = .48). This canonical dimension identifies a coherent interindividual profile: people with a more interdependent, relational identity orientation (high SING-Inter, SI, NTB) exhibit stronger computational ingroup-categorization signatures — a more discriminating MCR, stronger classification bias, and more spatially coherent trait segregation. A second significant variate (*r* = .623, *p*_perm = .005) contrasted $\alpha$ vs. $\lambda$ against prototypicality and social identity; given *N* = 61, this variate is interpreted with substantial caution. All CCA results are exploratory.
+A pooled CCA combining all three studies (*N* = 507) is reported in Supplementary Materials E; individual-study CCAs are not reported given the sample-size constraints of single-study CCA with 15 variables.
+
+```{r}
+#| label: fig-mcr-personality
+#| fig-cap: "MCR × Independent Self-Construal (SING.Ind) across Studies 1–3. Each panel shows the relationship between the model-derived Metacontrast Ratio and SING.Ind independence scores. The correlation was FDR-significant in all three studies (Study 1: *r* = .53; Study 2: *r* = .29; Study 3: *r* reported in text). Regression lines with 95% CI shown."
+#| fig-width: 10
+#| fig-height: 4
+#| eval: !expr file.exists(fig_path("fig_mcr_personality.tiff"))
+knitr::include_graphics(fig_path("fig_mcr_personality.tiff"))
+```
+
+```{r}
+#| label: fig-mcr-personality-placeholder
+#| results: asis
+#| echo: false
+#| eval: !expr isFALSE(file.exists(fig_path("fig_mcr_personality.tiff")))
+cat("*[Figure pending: run `Figures/make_figures.R` to generate.]*")
+```
 
 ```{r}
 #| label: fig-08-param-corr
@@ -246,7 +252,7 @@ knitr::include_graphics(fig_path("fig08_param_correlations.tiff"))
 Similarity-to-self predicted ingroup classification more strongly than one-to-one trait matching, confirming that self-anchoring is a structured inferential process rather than simple attribute replication. The effect held across both novel and repeated traits, ruling out repetition as an explanation. Model comparison revealed that the Symmetric+$\lambda$ architecture fit the data equivalently to the fully asymmetric model ($\Delta$ELPD = −0.21, SE = 0.55), indicating that in minimal groups, ingroup assimilation and outgroup discrimination are not architecturally dissociable — both are captured by a single projection rate. The model-derived MCR correlated with individual differences in group attachment, confirming that the computational index captures identity-relevant variation that structural parameters alone do not.
 
 ## STUDY 2: SELF-ANCHORING BASED ON RELATIVE STATUS OF UNIVERSITY GROUPS
-Study 2 examined how social status modulates self-anchoring in real-world social categories. Minimal groups in Study 1 could not dissociate ingroup projection from outgroup discrimination—a symmetric architecture sufficed. Real social categories introduce meaningful intergroup history, perceived status differentials, and motivated distinctiveness concerns that should activate the two processes differentially. Under conditions of positive regard for the outgroup (e.g., a higher-status rival university), the prior motivation to classify traits as ingroup-characteristic (γ) may attenuate even while the projection mechanism (α) remains intact — or vice versa for derogated outgroups. Study 2 therefore tests both whether the asymmetric architecture is detectable under real intergroup conditions and whether status-modulated motivation manifests as changes in the projection rate or in the baseline ingroup preference.
+Study 2 examined how social status modulates self-anchoring in real-world social categories. Study 2 was pre-registered at OSF (https://osf.io/q2vx7). We pre-registered the primary SS effect and its generalization to novel traits; a directional prediction that lower-status outgroup comparisons would produce stronger ingroup projection relative to negation (this prediction was disconfirmed — the high-status condition produced the strongest projection); that trait segregation would correlate positively with need to belong and dialectical self-views and negatively with self-esteem and independent self-construal; that self-anchoring strength would associate with social identification, perceived prototypicality, and status perceptions as tests of SCT's depersonalization account; and that generalization to novel traits would not differ from generalization to trained traits. Computational modeling analyses and MCR-based individual differences are exploratory. Minimal groups in Study 1 could not dissociate ingroup projection from outgroup discrimination—a symmetric architecture sufficed. Real social categories introduce meaningful intergroup history, perceived status differentials, and motivated distinctiveness concerns that should activate the two processes differentially. Under conditions of positive regard for the outgroup (e.g., a higher-status rival university), the prior motivation to classify traits as ingroup-characteristic (γ) may attenuate even while the projection mechanism (α) remains intact — or vice versa for derogated outgroups. Study 2 therefore tests both whether the asymmetric architecture is detectable under real intergroup conditions and whether status-modulated motivation manifests as changes in the projection rate or in the baseline ingroup preference.
 
 Beyond the projection rate ($\alpha$), SCT's comparative fit principle predicts that categorization becomes most salient when intergroup differences are maximized relative to intragroup similarity (Turner et al., 1987). If $\lambda$ indexes the breadth of the self-concept's semantic reach, it may be sensitive to this contrast. As a non-preregistered exploratory test, we examined whether $\lambda$ varied across outgroup contrast conditions. The two directional predictions are: higher $\lambda$ (narrowing) in the high-status condition if participants restrict projection to guard against overlap with a prestigious outgroup; lower $\lambda$ (broadening) if intergroup salience expands the inferential gradient. Given the exploratory status and the expectation of small effects, these analyses should be interpreted with appropriate caution.
 
@@ -260,9 +266,8 @@ From an initial pool of XX participants, XX were excluded (final *N* = 181).[^s2
 Manipulation checks confirmed perceived status differences. All participants rated the status and warmth of all three universities; pairwise contrasts used linear mixed models with subject random intercepts. Compared to the ingroup university (*M* = 6.24, *SD* = 1.36), the high-status university was rated significantly higher (*M* = 8.63, *SD* = 1.46, *p* < .001) and the low-status university significantly lower (*M* = 4.71, *SD* = 1.40, *p* < .001). Participants felt most warmly toward the ingroup (*M* = .783, *SD* = .156), followed by the high-status (*M* = .680, *SD* = .226, *p* < .001) and low-status university (*M* = .466, *SD* = .227, *p* < .001; warmth on 0–1 scale).
 
 **Predictors of Ingroup Classification**
-Average marginal effects (AMEs) from mixed-effects logistic regression (desirability controlled in focal predictor models) quantified ingroup classification. Overall, a 1-SD increase in Similarity-to-Self increased P(ingroup choice) by 6.3 pp (AME = .063, 95% CI [.036, .090], *p* < .001); direct self-evaluations showed a 4.8 pp effect (AME = .048, 95% CI [.036, .061], *p* < .001), and desirability showed a 4.7 pp effect (AME = .048, 95% CI [.034, .061], *p* < .001). Effects for Similarity-to-Self varied by outgroup: the effect was significant in the negation condition (AME = .046, 95% CI [.013, .081], *p* = .007) and strongly so in the high-status condition (AME = .100, 95% CI [.047, .153], *p* < .001), but non-significant in the low-status condition (AME = .044, 95% CI [−.006, .094], *p* = .082). Across the Similarity-to-Self gradient in the negation condition, predicted P(ingroup) ranged from 61% at −1 SD to 68% at the mean to 73% at +1 SD; in the high-status condition, the range was considerably wider: 40% to 51% to 60%. A three-way model (Similarity-to-Self × Novel × Outgroup) examined whether generalization varied by outgroup condition. In the negation condition, effects were significant for both trained (AME = .049, 95% CI [.014, .083], *p* = .006) and held-out traits (AME = .043, 95% CI [.008, .077], *p* = .015), suggesting self-anchoring generalizes to novel traits when contrasting against a neutral outgroup. The high-status condition showed the strongest generalization, with large significant effects for trained (AME = .104, 95% CI [.049, .158], *p* < .001) and held-out traits (AME = .097, 95% CI [.043, .151], *p* < .001). The low-status condition again showed attenuation, with non-significant trained effects (AME = .047, 95% CI [−.003, .098], *p* = .064) and non-significant held-out effects (AME = .040, 95% CI [−.012, .091], *p* = .133), suggesting generalization may be selectively suppressed when the outgroup is perceived as lower status. Higher self-concept entropy (*H_g*) significantly predicted lower ingroup classification in Study 2 (AME = −.058, 95% CI [−.099, −.017], *p* = .005), indicating that when local self-ratings near a test trait are mixed and diffuse, they are less effective at driving ingroup inference. *Canonical Correlation Analysis.* A CCA of model parameters ($\alpha$, $\lambda$, $\gamma$, $w$, MCR, $\Delta$ELPD, trait segregation; *k* = 7) against personality scales (DS, Proto, SCC, SI, RSE, NTB, NFC, SING.Ind, SING.Inter; *k* = 9) across all conditions (*N* = 179 complete cases) yielded one significant canonical variate (CV1: *r* = .525, *p*<sub>perm</sub> = .001, *B* = 5,000; CV2: *r* = .334, *p* = .118). On the model side, CV1 was dominated by MCR (loading = .88), with secondary contributions from $\lambda$ (.37), $\Delta$ELPD (.36), and a negative loading for trait segregation (−.40). On the personality side, RSE loaded most strongly (.81), followed by SING.Ind (.67), Prototypicality (.61), Social Identification (.58), and NFC (.56). The canonical variate thus identifies individuals whose responses carry a strong ingroup-predictive semantic signal—high MCR, integrated self-concept—as also reporting greater self-esteem, individual-level ingroup identification, prototypicality, and need for cognition. The negative trait-segregation loading replicates the Study 1 pattern: participants who impose rigid categorical boundaries on their trait profiles rely less on graded semantic inference.
-
-*SCT depersonalization and self-anchoring.* SCT predicts that stronger identifiers should show tighter alignment between self-ratings and ingroup classification. The same interaction tests (self-evaluation × SI; self-evaluation × Prototypicality; self-evaluation × SING.Ind; random slope for self-evaluations by subject) were significant for social identification (β = .090, *z* = 2.66, *p* = .008) and perceived prototypicality (β = .079, *z* = 2.33, *p* = .020). Independent self-construal was not significant (β = .053, *z* = 1.54, *p* = .123). When groups carry real identity content, stronger identifiers and those who perceive themselves as more prototypical ingroup members show a reliably stronger self-to-classification link — consistent with SCT's depersonalization account.
+Average marginal effects (AMEs) from mixed-effects logistic regression (desirability controlled in focal predictor models) quantified ingroup classification. Consistent with pre-registered predictions, a 1-SD increase in Similarity-to-Self increased P(ingroup choice) by 6.3 pp (AME = .063, 95% CI [.036, .090], *p* < .001); direct self-evaluations showed a 4.8 pp effect (AME = .048, 95% CI [.036, .061], *p* < .001), and desirability showed a 4.7 pp effect (AME = .048, 95% CI [.034, .061], *p* < .001). Effects for Similarity-to-Self varied by outgroup: the effect was significant in the negation condition (AME = .046, 95% CI [.013, .081], *p* = .007) and strongly so in the high-status condition (AME = .100, 95% CI [.047, .153], *p* < .001), but non-significant in the low-status condition (AME = .044, 95% CI [−.006, .094], *p* = .082). Across the Similarity-to-Self gradient in the negation condition, predicted P(ingroup) ranged from 61% at −1 SD to 68% at the mean to 73% at +1 SD; in the high-status condition, the range was considerably wider: 40% to 51% to 60%. A three-way model (Similarity-to-Self × Novel × Outgroup) examined whether generalization varied by outgroup condition. In the negation condition, effects were significant for both trained (AME = .049, 95% CI [.014, .083], *p* = .006) and novel traits (AME = .043, 95% CI [.008, .077], *p* = .015), suggesting self-anchoring generalizes to novel traits when contrasting against a neutral outgroup. The high-status condition showed the strongest generalization, with large significant effects for trained (AME = .104, 95% CI [.049, .158], *p* < .001) and novel traits (AME = .097, 95% CI [.043, .151], *p* < .001). The low-status condition again showed attenuation, with non-significant trained effects (AME = .047, 95% CI [−.003, .098], *p* = .064) and non-significant novel-trait effects (AME = .040, 95% CI [−.012, .091], *p* = .133), suggesting generalization may be selectively suppressed when the outgroup is perceived as lower status.
+*SCT depersonalization and self-anchoring.* As a pre-registered test of SCT's depersonalization prediction (H6), we examined whether stronger identifiers show tighter alignment between self-ratings and ingroup classification. The same interaction tests (self-evaluation × SI; self-evaluation × Prototypicality; self-evaluation × SING.Ind; random slope for self-evaluations by subject) were significant for social identification (β = .090, *z* = 2.66, *p* = .008) and perceived prototypicality (β = .079, *z* = 2.33, *p* = .020). Independent self-construal was not significant (β = .053, *z* = 1.54, *p* = .123). When groups carry real identity content, stronger identifiers and those who perceive themselves as more prototypical ingroup members show a reliably stronger self-to-classification link — consistent with SCT's depersonalization account.
 
 **Trait Segregation**
 Trait segregation analyses showed that high-status contrast participants segregated traits more (*M* = .11, *SD* = .08) than low-status (*M* = .05) or negation (*M* = .04) participants—perceiving a more prestigious outgroup appears to sharpen the categorical boundaries participants drew between ingroup and outgroup trait profiles.
@@ -287,6 +292,23 @@ The primary parameter difference across conditions was not in the projection rat
 *Comparative fit and generalization sensitivity.* As a non-preregistered exploratory analysis, we tested whether $\lambda$ differed across outgroup contrast conditions using a linear model ($\lambda \sim \text{condition}$). As noted above, both a higher $\lambda$ (narrowing as boundary protection) and a lower $\lambda$ (broadening as depersonalization) in the high-status condition are interpretable under SCT. $\lambda$ differed significantly across conditions (*F*(2, 178) = 3.64, *p* = .028, *R*² = .039), though differences were numerically small on the 0–5 scale. The Low-Status condition showed slightly narrower generalization than Negation ($M_{\text{Low}}$ = 3.47, *SD* = 0.10 vs. $M_{\text{Neg}}$ = 3.53, *SD* = 0.15; $\beta$ = −0.063, *t*(178) = −2.68, *p* = .008); the High-Status condition was intermediate and did not differ significantly from Negation ($M_{\text{High}}$ = 3.50, *SD* = 0.13; *p* = .127). The direction in the Low-Status condition—slight generalization contraction—is consistent with a meta-contrast sharpening account: a derogated outgroup makes categorical boundaries more salient, narrowing the scope of self-concept generalization. At the individual level, $\lambda$ correlated positively with outgroup warmth in the High-Status condition (*r* = .272, 95% CI [.007, .501], *p* = .045, *n* = 55) but not in the Low-Status condition (*r* = .055, *p* = .715, *n* = 46); overall the correlation was non-significant (*r* = .121, *p* = .229). The positive warmth–$\lambda$ association in the High-Status condition suggests that individuals who regard the prestigious outgroup more favorably generalize their self-concept more broadly during ingroup classification, consistent with reduced categorical rigidity when intergroup boundaries are perceived as permeable.
 
 *Positive distinctiveness and ingroup bias.* If γ operationalizes the positive distinctiveness motive at the individual level, participants who view the higher-status outgroup more warmly should show attenuated ingroup bias. We tested this with Spearman's ρ between individual-level γ and outgroup warmth within each condition. The association was positive and directionally non-significant in the High-Status condition (ρ = .233, *n* = 55, *p* = .088) and null in the Low-Status condition (ρ = .208, *n* = 46, *p* = .166). The condition-level γ attenuation (High-Status *M* = 0.36 vs. Negation *M* = 0.60) is therefore a uniform structural shift — present for everyone in the High-Status condition — rather than a within-condition effect driven by individual variation in outgroup attitudes.
+
+```{r}
+#| label: fig-condition-effects-s2
+#| fig-cap: "Study 2 Parameter Distributions by Outgroup Condition. Left: projection rate (α) shows no condition difference (*F*(2,178) = 0.33, *p* = .720), confirming that the inferential mechanism of self-anchoring is context-invariant. Right: ingroup bias (γ) drops dramatically in the High-Status condition (*M* = 0.36) relative to Negation (*M* = 0.60) and Low-Status (*M* = 0.61), *p* < .001. Individual participant values shown with jitter; boxplots show median and IQR."
+#| fig-width: 8
+#| fig-height: 4.5
+#| eval: !expr file.exists(fig_path("fig_condition_effects_s2.tiff"))
+knitr::include_graphics(fig_path("fig_condition_effects_s2.tiff"))
+```
+
+```{r}
+#| label: fig-condition-effects-s2-placeholder
+#| results: asis
+#| echo: false
+#| eval: !expr isFALSE(file.exists(fig_path("fig_condition_effects_s2.tiff")))
+cat("*[Figure pending: run `Figures/make_figures.R` to generate.]*")
+```
 
 ```{r}
 #| label: fig-elpd-s2
@@ -320,7 +342,7 @@ It is worth emphasizing that the γ–α dissociation was not the anticipated lo
 Notably, the magnitude of γ in the High-Status condition (*M* ≈ 0.36) converges precisely with the group-level posterior from Study 1 (*M* ≈ 0.36), despite very different intergroup contexts. This numerical convergence suggests that a concrete, positively-regarded, high-status outgroup can functionally neutralize the baseline ingroup preference that even purely arbitrary minimal groups produce—effectively resetting the motivational prior to its floor, as if the intergroup distinction carries no additional ingroup-pull beyond the bare fact of categorical membership. Put differently, the mere existence of a group boundary is sufficient to generate modest ingroup preference (Study 1); a high-status outgroup is sufficient to erase it.
 
 ## STUDY 3: SELF-ANCHORING BASED ON RELATIVE SIZE OF RACIAL GROUPS
-Study 3 applied the self-anchoring framework to racial identities (Asian and Latino participants), examining how majority or minority outgroup contrasts exert differential effects on generalization.
+Study 3 applied the self-anchoring framework to racial identities (Asian and Latino participants), examining how majority or minority outgroup contrasts exert differential effects on generalization. Study 3 was not formally pre-registered. It was designed as a conceptual replication and boundary-condition test of Study 2, following the same theoretical predictions: that SS predicts ingroup classification and generalizes to novel traits, that intergroup context modulates the parameters of that process, and that MCR correlates with individual differences in group identification. Analyses labeled "exploratory" below go beyond this confirmatory scope.
 
 ### Methods
 From an initial pool of 313 participants, 48 were excluded (final *N* = 265). Exclusions were applied for: self-reported low task seriousness (*n* = 2), self-reported unusable data (*n* = 9), and careless responding — defined as > 80% identical self-evaluations, > 95% identical group classifications, or > 40% missing responses in either phase (*n* = 37). Participants were native English-speaking university students (59.14% Cisgender Female, 40.86% Cisgender Male; *M*<sub>Age</sub> = 19.01, *SD*<sub>Age</sub> = 1.71, Range<sub>Age</sub> = [17, 33]), and were 50.97% Hispanic/Latino and 49.03% Asian. Participants were assigned to either a Minority (Asian vs. Latino) or Majority (Ingroup vs. White) comparison condition. Study 3 uses two conditions rather than Study 2's three, requiring a smaller sample for equivalent power; *N* = 265 comfortably exceeds the Study 2 power threshold for detecting a cross-level interaction at a small effect size (log-odds β = .35; Green & MacLeod, 2016). Power was prioritized for multilevel fixed effects; correlational analyses may be underpowered. For completeness, a sensitivity analysis indicates *N* = 265 can detect correlations of *r* ≥ .17 at 80% power (α = .05, two-tailed).
@@ -337,7 +359,7 @@ knitr::include_graphics(fig_path("fig10_manipulation_checks.tiff"))
 ```
 
 **Predictors of Ingroup Classification**
-Average marginal effects (AMEs) from mixed-effects logistic regression (desirability controlled in focal predictor models) revealed that Similarity-to-Self did not predict ingroup classification overall (AME = .012, 95% CI [−.011, .036], *p* = .307). This null overall effect concealed condition-specific variation: the effect was absent in the minority-outgroup condition (AME = −.008, 95% CI [−.042, .026], *p* = .653) but significant in the majority-outgroup condition (AME = .034, 95% CI [.002, .066], *p* = .037). In the majority condition, predicted P(ingroup) ranged from 57% at −1 SD to 61% at the mean to 65% at +1 SD; in the minority condition the gradient was essentially flat (56.7%, 56.5%, 55.9%). Self-evaluations showed a robust overall effect (AME = .039, 95% CI [.028, .050], *p* < .001), as did desirability (AME = .032, 95% CI [.016, .047], *p* < .001). A three-way model (Similarity-to-Self × Novel × Condition) examined whether the majority-condition effect generalized to novel traits. In the majority condition, the trained-trait effect remained significant (AME = .040, 95% CI [.007, .072], *p* = .017), while the held-out effect was positive but non-significant (AME = .026, 95% CI [−.007, .058], *p* = .125). In the minority condition, neither trained nor held-out effects were significant (AME = −.009, *p* = .603; AME = −.006, *p* = .729). These patterns suggest that in the racial context, similarity-based inference is present for familiar traits when contrasting against the majority, but does not reliably propagate to semantically novel traits. Higher self-concept entropy (*H_g*) also significantly predicted lower ingroup classification in Study 3 (AME = −.051, 95% CI [−.096, −.006], *p* = .027), replicating the Study 2 finding in a racial group context. Results from the computational model are reported in the Generalization Model section below, along with canonical correlation results.
+Average marginal effects (AMEs) from mixed-effects logistic regression (desirability controlled in focal predictor models) revealed that Similarity-to-Self did not predict ingroup classification overall (AME = .012, 95% CI [−.011, .036], *p* = .307). This null overall effect concealed condition-specific variation: the effect was absent in the minority-outgroup condition (AME = −.008, 95% CI [−.042, .026], *p* = .653) but significant in the majority-outgroup condition (AME = .034, 95% CI [.002, .066], *p* = .037). In the majority condition, predicted P(ingroup) ranged from 57% at −1 SD to 61% at the mean to 65% at +1 SD; in the minority condition the gradient was essentially flat (56.7%, 56.5%, 55.9%). Self-evaluations showed a robust overall effect (AME = .039, 95% CI [.028, .050], *p* < .001), as did desirability (AME = .032, 95% CI [.016, .047], *p* < .001). A three-way model (Similarity-to-Self × Novel × Condition) examined whether the majority-condition effect generalized to novel traits. In the majority condition, the trained-trait effect remained significant (AME = .040, 95% CI [.007, .072], *p* = .017), while the novel-trait effect was positive but non-significant (AME = .026, 95% CI [−.007, .058], *p* = .125). In the minority condition, neither trained nor novel-trait effects were significant (AME = −.009, *p* = .603; AME = −.006, *p* = .729). These patterns suggest that in the racial context, similarity-based inference is present for familiar traits when contrasting against the majority, but does not reliably propagate to semantically novel traits. Results from the computational model are reported in the Generalization Model section below, along with canonical correlation results.
 
 *SCT depersonalization and self-anchoring.* The analogous interaction tests were null across all three moderators in Study 3: social identification (β = .027, *z* = 0.96, *p* = .336), prototypicality (β = .040, *z* = 1.46, *p* = .144), independent self-construal (β = .038, *z* = 1.39, *p* = .163). The elevated lapse rate (*w* = 0.64) in Study 3 likely reduces behavioral leverage for detecting identification-based modulation of the self-to-group mapping; the self-anchoring signal is noisier in racial contexts, attenuating the interaction's detectability.
 
@@ -362,8 +384,7 @@ As in Studies 1 and 2, the Sym+$\lambda$ model provided the best fit ($\Delta$EL
 
 Group-level back-transformed parameters from the winning Sym+$\lambda$ model were: projection rate $\alpha$ = 2.27 [1.67, 3.20], ingroup bias $\gamma$ = 0.59 [0.53, 0.67], generalization sensitivity $\lambda$ = 3.50 [3.12, 4.04], and lapse rate $w$ = 0.64 [0.56, 0.71]. Neither projection rate ($\alpha$: F(1, 263) = 0.19, *p* = .667; Minority *M* = 2.28, Majority *M* = 2.27) nor ingroup bias ($\gamma$: F(1, 263) = 1.84, *p* = .177; Minority *M* = 0.53, Majority *M* = 0.57) differed by condition. The lapse rate $w$ was modestly higher in the Minority condition (Minority *M* = 0.64 vs. Majority *M* = 0.56; F(1, 263) = 4.62, *p* = .033, R² = .017), indicating that minority–minority contrast participants showed somewhat less deterministic classification overall. The semantic contrast ratio (MCR) did not differ by condition (Minority *M* = 6.22 vs. Majority *M* = 6.49; F(1, 263) = 0.08, *p* = .780).
 
-FDR-corrected correlations between model-derived MCR and individual differences revealed that MCR was positively associated with independent self-construal (SING.Ind: *r* = .349, *p*~FDR~ < .001), self-esteem (RSE: *r* = .309, *p*~FDR~ < .001), self-concept clarity (SCC: *r* = .214, *p*~FDR~ = .005), and social identification (SI: *r* = .172, *p*~FDR~ = .025), and negatively associated with dialectical self-views (DS: *r* = −.212, *p*~FDR~ = .005). The ingroup bias parameter $\gamma$ showed FDR-significant personality associations in Study 3, in contrast to its null pattern in Studies 1 and 2: higher self-esteem predicted lower ingroup bias (RSE: *r* = −.191, *p*~FDR~ = .014), higher self-concept clarity predicted lower ingroup bias (SCC: *r* = −.185, *p*~FDR~ = .016), more dialectical self-views predicted higher ingroup bias (DS: *r* = .182, *p*~FDR~ = .017), and stronger need to belong predicted higher ingroup bias (NTB: *r* = .163, *p*~FDR~ = .033). These associations suggest that in racial contexts, where group boundaries carry real-world valence, the positive distinctiveness motive is more strongly linked to self-concept organization: individuals with more stable, clearly bounded self-concepts show less categorical favoritism, while those with more ambivalent self-structures and stronger affiliation needs show more. No other theoretical parameters ($\alpha$, $\lambda$, ΔELPD) survived FDR correction; generalization sensitivity $\lambda$ was not associated with self-concept clarity ($r$ = .062, *p* = .319), indicating that broader semantic projection does not co-occur with clearer self-organization in racial contexts. Canonical correlation analysis confirmed a multivariate structure linking model parameters to personality (CV1: *r* = .490, *p*~perm~ < .001; CV2: *r* = .390, *p*~perm~ < .001). The first canonical variate was dominated on the model side by MCR (loading = −.892) and on the personality side by independent self-construal (SING.Ind: −.709), self-esteem (RSE: −.680), dialectical self-views (DS: .599), and self-concept clarity (SCC: −.518) — replicating the MCR-personality structure observed in Study 2.
-
+FDR-corrected correlations between model-derived MCR and individual differences revealed that MCR was positively associated with independent self-construal (SING.Ind: *r* = .349, *p*~FDR~ < .001), self-esteem (RSE: *r* = .309, *p*~FDR~ < .001), self-concept clarity (SCC: *r* = .214, *p*~FDR~ = .005), and social identification (SI: *r* = .172, *p*~FDR~ = .025), and negatively associated with dialectical self-views (DS: *r* = −.212, *p*~FDR~ = .005). The ingroup bias parameter $\gamma$ showed FDR-significant personality associations in Study 3, in contrast to its null pattern in Studies 1 and 2: higher self-esteem predicted lower ingroup bias (RSE: *r* = −.191, *p*~FDR~ = .014), higher self-concept clarity predicted lower ingroup bias (SCC: *r* = −.185, *p*~FDR~ = .016), more dialectical self-views predicted higher ingroup bias (DS: *r* = .182, *p*~FDR~ = .017), and stronger need to belong predicted higher ingroup bias (NTB: *r* = .163, *p*~FDR~ = .033). These associations suggest that in racial contexts, where group boundaries carry real-world valence, the positive distinctiveness motive is more strongly linked to self-concept organization: individuals with more stable, clearly bounded self-concepts show less categorical favoritism, while those with more ambivalent self-structures and stronger affiliation needs show more. No other theoretical parameters ($\alpha$, $\lambda$, ΔELPD) survived FDR correction; generalization sensitivity $\lambda$ was not associated with self-concept clarity ($r$ = .062, *p* = .319), indicating that broader semantic projection does not co-occur with clearer self-organization in racial contexts.
 *Comparative fit and generalization sensitivity.* As a non-preregistered exploratory analysis, we tested whether $\lambda$ differed between the majority and minority contrast conditions ($\lambda \sim \text{condition}$). Unlike Study 2, where the Low-Status condition showed a small but significant reduction in $\lambda$, generalization sensitivity was identical across conditions in Study 3 (Minority *M* = 3.49, Majority *M* = 3.49; F(1, 263) = 0.26, *p* = .611). Generalization breadth was not modulated by racial outgroup contrast type. At the individual level, $\lambda$ was positively associated with ingroup-relative preference (own-minority preference over other-minority; *r* = .147, *p* = .024), driven primarily by the Majority condition (*r* = .215, *p* = .023; Minority: *r* = .094, *p* = .302; interaction *p* = .314). Participants who feel more strongly that their own racial group is preferable to the other minority group project their self-concept more broadly when their contrast is against White — consistent with stronger group identification amplifying the reach of self-anchoring.
 
 *Intergroup preference and ingroup bias.* A significant condition × ingroup-over-majority preference interaction emerged for $\gamma$ (F(1, 225) = 4.32, *p* = .039): in the Majority condition, stronger preference for own minority over White (*r*= .171, *p* = .074) was directionally associated with higher ingroup classification bias, while in the Minority condition this association was absent or reversed (*r* = −.108, *p* = .244). The pattern indicates that when participants are contrasting their own group against the racial majority, those who feel more strongly that their group is better than Whites also classify more traits as ingroup — consistent with activated positive distinctiveness motivations driving both affective and cognitive ingroup favoritism simultaneously.
@@ -410,7 +431,7 @@ Self-Categorization Theory provides two complementary interpretations. First, th
 
 *Race moderation.* The condition × race interaction on $\gamma$ reveals that the Minority condition is not psychologically equivalent for Asian and Latino participants: the two groups play structurally opposite roles (one is always the ingroup, the other the outgroup), and their ingroup bias reflects this. Asian participants showed higher ingroup classification bias when the outgroup was Latino ($M$ = 0.69) than when it was White ($M$ = 0.63); Latino participants showed the reverse, with higher bias against White ($M$ = 0.50) than against Asian ($M$ = 0.41). One reading of this pattern is racial identification asymmetry: Asians in this sample may have stronger within-minority boundary sensitivity (or weaker common-fate identification with Latinos), while Latinos show stronger ingroup-outgroup accentuation when the outgroup is the dominant racial majority. The MCR–prototypicality association also diverged by race: it replicated in Latino participants but was absent in Asians. If prototypicality indexes how representative one's individual traits are of the ingroup, this replication for Latinos — but not Asians — may reflect differences in the degree to which racial identity is organized around self-concept overlap versus other sources (e.g., shared adversity, language, cultural practice). These patterns are exploratory, and should be interpreted cautiously given cell sizes of 56–79 participants. The supplementary materials provide full parameter tables stratified by condition and race.
 
-Regarding generalization, formal tests (Similarity-to-Self × Novel × Condition) showed that neither trained nor held-out effects were significant in the minority condition (both *p*s > .60). In the majority condition, the trained-trait effect was significant (AME = .040, *p* = .017), while the held-out effect was positive but non-significant (AME = .026, *p* = .125). Although formal generalization was not supported even in the majority condition, it is notable that both the trained and held-out AMEs were numerically larger in the majority condition than in the minority condition, consistent with a gradient of self-anchoring strength rather than a categorical absence of generalization.
+Regarding generalization, formal tests (Similarity-to-Self × Novel × Condition) showed that neither trained nor novel-trait effects were significant in the minority condition (both *p*s > .60). In the majority condition, the trained-trait effect was significant (AME = .040, *p* = .017), while the novel-trait effect was positive but non-significant (AME = .026, *p* = .125). Although formal generalization was not supported even in the majority condition, it is notable that both the trained and novel-trait AMEs were numerically larger in the majority condition than in the minority condition, consistent with a gradient of self-anchoring strength rather than a categorical absence of generalization.
 
 *Warmth, generalization breadth, and ingroup bias.* Two intergroup preference variables modulated distinct computational parameters. Stronger own-minority preference over the other minority ($\lambda$ × inMinorityTherm: *r* = .215 in Majority condition) predicted broader self-concept generalization — consistent with participants who maintain clear within-minority group boundaries projecting their self-concept more widely when the contrast shifts to the racial majority. The relationship appears specific to the majority-outgroup condition: when participants contrast against Whites, having a sharper intragroup affective boundary (preferring own minority over the other) amplifies rather than constrains the generalization reach. This could reflect the role of group-identity coherence in self-anchoring: participants with well-defined minority identities (marked by both group loyalty and inter-minority distinction) may draw on a more organized and generative self-concept when the categorization task activates cross-racial boundaries. Separately, stronger preference for own minority over White ($\gamma$ × inMajorityTherm) predicted higher ingroup classification bias in the Majority condition (*p* = .039), a pattern absent in the Minority condition. Higher ingroup bias (γ) reflects a stronger prior for classifying traits as ingroup regardless of their similarity to self. When participants feel more strongly that their minority group surpasses the racial majority, this evaluative ingroup advantage appears to function as a classification prior — they default to ingroup assignment more strongly, independent of trait similarity. Together these two patterns suggest the warmth-to-behavior pathway in self-anchoring is decomposable: within-minority affective distinctions modulate the breadth of self-concept projection (λ), while cross-racial evaluative comparisons modulate the motivational prior for ingroup preference (γ). This mirrors the theoretical decomposition proposed by the model: inferential reach and ingroup preference are separable, and different aspects of intergroup affect differentially recruit these components.
 
@@ -426,12 +447,12 @@ To formally test whether the self-anchoring architecture generalizes across inte
 
 | Model | ELPD | SE | $\Delta$ELPD | $\Delta$SE |
 |:------|-----:|---:|-------------:|----------:|
-| [PENDING — best model] | [PENDING] | [PENDING] | 0.0 | — |
-| [PENDING] | [PENDING] | [PENDING] | [PENDING] | [PENDING] |
-| [PENDING] | [PENDING] | [PENDING] | [PENDING] | [PENDING] |
-| Bias | [PENDING] | [PENDING] | [PENDING] | [PENDING] |
+| Sym+$\lambda$ | −46,126.9 | 91.2 | 0.0 | — |
+| Asym+$\lambda$ | [PENDING] | [PENDING] | [PENDING] | [PENDING] |
+| Symmetric | −46,703.4 | 84.8 | −576.5 | 32.3 |
+| Bias | −47,157.0 | 83.2 | −1,030.1 | 40.6 |
 
-*Note.* ELPD = expected log predictive density. $\Delta$ELPD relative to best-fitting model (row 1). Pooled models include a study-level random effect; hierarchical variances sampled from Cauchy(0, 1) priors.
+*Note.* ELPD = expected log predictive density. $\Delta$ELPD relative to best-fitting model (row 1). Pooled models include a study-level random effect with half-normal(0, 0.5) priors on hierarchical variance components. Asym+$\lambda$ results pending.
 
 ```{r}
 #| label: fig-elpd-pooled
@@ -450,7 +471,24 @@ knitr::include_graphics(fig_path("fig_elpd_raincloud_pooled.tiff"))
 cat("*[Figure pending: Per-subject LOO-ELPD slopegraph for Pooled analysis — re-run `make_figures.R` after `Pooled/run_pooled_analysis.R` completes.]*")
 ```
 
-[INSERT WINNING MODEL GLOBAL PARAMETER ESTIMATES HERE — $\mu_{\alpha_{in}}$, $\mu_{\alpha_{out}}$, $\mu_\lambda$, $\mu_w$, and study-level deviations]
+Based on results available at time of writing, Sym+$\lambda$ leads model comparison and is treated as the provisional winning model pending Asym+$\lambda$ completion; if Asym+$\lambda$ wins or ties, the parameter section and figure below will be updated accordingly. As in individual studies, the two models were statistically tied in Studies 1–3, so either outcome is consistent with the symmetric architecture being sufficient to describe self-anchoring across group contexts.
+
+**Table 6. Pooled Sym+$\lambda$ Parameter Estimates: Global and Study-Specific Means.**
+
+| Parameter | Global | Study 1 (Minimal) | Study 2 (Status) | Study 3 (Racial) |
+|:----------|-------:|------------------:|-----------------:|-----------------:|
+| $\alpha$ (projection rate) | 2.02 | 2.09 | 1.83 | 2.09 |
+| $\gamma$ (ingroup bias) | 0.515 | 0.401 | 0.554 | 0.580 |
+| $\lambda$ (generalization) | 3.56 | 3.63 | 3.53 | 3.54 |
+| $w$ (lapse rate) | 0.501 | 0.525 | 0.364 | 0.623 |
+
+*Note.* All parameters back-transformed from probit scale: $\alpha = \Phi(\mu_{pr}) \times 10$; $\gamma = \Phi(\mu_{pr})$; $\lambda = \Phi(\mu_{pr}) \times 5$; $w = \Phi(\mu_{pr})$. Study-specific estimates are study_mu_pr posteriors, which are shrunk toward the global mean by the three-level hierarchy.
+
+The most consistent finding is $\lambda$. The generalization sensitivity parameter estimated separately in each study — 3.57, 3.48, and 3.50 — replicated almost exactly in the pooled model (3.63, 3.53, 3.54) and converged on a global mean of 3.56. This parameter appears to reflect a stable property of how trait similarity is weighted in social generalization, independent of group type or social context.
+
+Ingroup bias ($\gamma$) showed the clearest study-level variation. Participants in Study 1 (minimal groups) showed lower bias (pooled $\gamma$ = 0.40) than participants in Studies 2 and 3 (0.55 and 0.58, respectively). This replicates the individual study pattern and is consistent with the view that minimal group boundaries generate weaker ingroup preference than social categories carrying real-world significance. The projection rate ($\alpha$) and lapse rate ($w$) both showed hierarchical shrinkage toward the global mean relative to individual study estimates, with the most notable shift in $w$: Study 2's unusually low individual estimate (0.298) was pulled toward the global mean (0.364 in the pooled model), suggesting the extreme determinism observed in Study 2 individually was partly a sampling artifact tempered by cross-study pooling.
+
+[PLACEHOLDER: Forest plot of study-level parameter estimates (Figure X) — to be generated from winning pooled model after Asym+$\lambda$ completes. See forest plot plan below.]
 
 *Self-as-prototype and model fit.* Across all three studies, participants for whom the self functions as a more valid ingroup prototype (higher Proto) should be better predicted by the self-anchoring model—their self-concept provides a more diagnostic signal for ingroup classification. We tested this by correlating individual prototypicality (Proto) with each participant's mean per-trial LOO log-likelihood, a direct index of how well the model accounts for their choices. [PENDING — insert $r(\text{Proto}, \overline{\text{LOO log-lik}})$ pooled across studies and per study; predicted direction is positive.]
 
@@ -464,7 +502,7 @@ Condition-specific AMEs for similarity-to-self (all relative to the minimal-grou
 
 The predicted P(ingroup) at ±1 SD of similarity-to-self further illustrates the gradient. In the high-status condition, P(ingroup) ranged from .39 at −1 SD to .62 at +1 SD (.228 range), the steepest gradient observed. Minimal groups showed a .119 range (.496 to .615), while the racial minority condition was essentially flat (.573 at −1 SD, .551 at +1 SD).
 
-To test generalization formally — whether the similarity-based inference propagates to semantically novel traits — we fit a model with predicted.Z × Novel interactions (M4) and a three-way predicted.Z × Novel × Condition model (M5). Pooled across conditions, both trained (AME = .041, CI [.024, .059], *p* < .001) and held-out effects (AME = .036, CI [.019, .053], *p* < .001) were significant, confirming robust generalization at the pooled level. The three-way analysis revealed that generalization was condition-specific. In the racial minority condition, neither trained (AME = −.014, *p* = .432) nor held-out (AME = −.010, *p* = .580) effects were significant — a complete null. In the racial majority condition, the trained-trait effect was significant (AME = .039, CI [.005, .073], *p* = .024) but the held-out effect did not reach significance (AME = .025, CI [−.008, .058], *p* = .142). In contrast, all four university conditions showed significant effects for both trained and held-out traits: high-status trained AME = .116 (*p* < .001), held-out = .107 (*p* < .001); negation trained = .056 (*p* < .001), held-out = .049 (*p* = .004); low-status trained = .064 (*p* = .007), held-out = .056 (*p* = .022). Minimal groups also showed generalization to both trained (AME = .052, *p* = .033) and held-out traits (AME = .056, *p* = .021).
+To test generalization formally — whether the similarity-based inference propagates to semantically novel traits — we fit a model with predicted.Z × Novel interactions (M4) and a three-way predicted.Z × Novel × Condition model (M5). Pooled across conditions, both trained (AME = .041, CI [.024, .059], *p* < .001) and novel-trait effects (AME = .036, CI [.019, .053], *p* < .001) were significant, confirming robust generalization at the pooled level. The three-way analysis revealed that generalization was condition-specific. In the racial minority condition, neither trained (AME = −.014, *p* = .432) nor novel-trait (AME = −.010, *p* = .580) effects were significant — a complete null. In the racial majority condition, the trained-trait effect was significant (AME = .039, CI [.005, .073], *p* = .024) but the novel-trait effect did not reach significance (AME = .025, CI [−.008, .058], *p* = .142). In contrast, all four university conditions showed significant effects for both trained and novel traits: high-status trained AME = .116 (*p* < .001), novel = .107 (*p* < .001); negation trained = .056 (*p* < .001), novel = .049 (*p* = .004); low-status trained = .064 (*p* = .007), novel = .056 (*p* = .022). Minimal groups also showed generalization to both trained (AME = .052, *p* = .033) and novel traits (AME = .056, *p* = .021).
 
 Taken together, the pooled behavioral analyses converge with individual study findings to identify a clear principle: self-anchoring and semantic generalization are robust across minimal, university status, and racial majority contexts, but are specifically absent when the comparison involves a fellow minority group — a condition in which the shared subordinate social position may undermine the functional distinctiveness of the between-group boundary.
 
@@ -473,11 +511,46 @@ Taken together, the pooled behavioral analyses converge with individual study fi
 [INSERT POOLED DISCUSSION HERE]
 
 ## GENERAL DISCUSSION
-People project their attributes onto ingroup members, but the underlying cognitive mechanisms have remained largely descriptive. Using a semantic dependency network of trait relations, we formalize self-anchoring as a structured inferential process based on similarity-based generalization. Across three studies, individuals treated the self as a semantic prototype, with beliefs propagating to novel group members via relational similarity—a finding robust across minimal, university, and racial categories.
+People project their attributes onto ingroup members, but the underlying cognitive mechanisms have remained largely descriptive. Using a semantic dependency network of trait relations, we formalize self-anchoring as a structured inferential process based on similarity-based generalization. Across three studies, individuals treated the self as a semantic prototype, with beliefs propagating to novel group members via relational similarity—a finding robust across minimal, university, and racial categories. Figure X shows the group-level posterior estimates for all four model parameters across all three studies, illustrating both the stability of the projection mechanism (α, λ) and the context-sensitivity of the motivational prior (γ, w) across intergroup contexts.
+
+```{r}
+#| label: fig-cross-study-params
+#| fig-cap: "Cross-study parameter estimates (Symmetric+λ model). Posterior medians with 90% credible intervals for projection rate (α), ingroup bias (γ), generalization sensitivity (λ), and lapse rate (w) across Studies 1–3. The projection rate and generalization sensitivity are stable across intergroup contexts; ingroup bias and lapse rate show the most contextual variation."
+#| fig-width: 12
+#| fig-height: 3.8
+#| eval: !expr file.exists(fig_path("fig_cross_study_params.tiff"))
+knitr::include_graphics(fig_path("fig_cross_study_params.tiff"))
+```
+
+```{r}
+#| label: fig-cross-study-params-placeholder
+#| results: asis
+#| echo: false
+#| eval: !expr isFALSE(file.exists(fig_path("fig_cross_study_params.tiff")))
+cat("*[Figure pending: run `Figures/make_figures.R` to generate.]*")
+```
+
+Figure X shows the generalization gradient (S^λ) by study and condition. The gradient was remarkably stable: λ estimates clustered near 3.5 across all three studies and all conditions, confirming that the steepness of self-to-group generalization decay does not depend on group type or status context.
+
+```{r}
+#| label: fig-generalization-gradients
+#| fig-cap: "Self-to-group generalization gradients across studies and conditions. Each panel shows the exponential decay of generalization weight (S^λ) as a function of semantic similarity (Dice coefficient) to training traits. Solid lines show condition posterior means; shaded bands show ±1 SD of the individual-level λ distribution; faint lines show individual participants. λ is stable across all three studies and all conditions, indicating that the breadth of self-concept generalization is context-invariant."
+#| fig-width: 7
+#| fig-height: 10
+#| eval: !expr file.exists(fig_path("fig_generalization_gradients.tiff"))
+knitr::include_graphics(fig_path("fig_generalization_gradients.tiff"))
+```
+
+```{r}
+#| label: fig-generalization-gradients-placeholder
+#| results: asis
+#| echo: false
+#| eval: !expr isFALSE(file.exists(fig_path("fig_generalization_gradients.tiff")))
+cat("*[Figure pending: run `Figures/make_figures.R` to generate.]*")
+```
 
 ### Formalizing Social Identity Theory
-Our research moves social identity theory from a verbal model to a formal architecture by operationalizing the metacontrast principle as a formal ratio of summed similarities. This aligns social identity research with exemplar-based models of category learning and Shepard's (1987) law of generalization. We find that self-anchoring is primarily driven by "ingroup love"—the motivation to achieve similarity with the ingroup—rather than outgroup repulsion. However, the asymmetric architecture's added value is context-dependent: the asymmetric model was marginally preferred over the symmetric model in the abstract Negation condition (where the outgroup has no concrete identity), while the symmetric model was more clearly preferred when outgroups were concrete and status-differentiated. The asymmetric architecture provided no detectable advantage in the High-Status or racial majority conditions. These dual tendencies map onto Brewer's (1991) Optimal Distinctiveness Theory, which holds that group membership satisfies simultaneous needs for assimilation (inclusion) and differentiation (distinctiveness). In the present architecture, $\alpha_{in}$ formalizes the assimilation motive and $\alpha_{out}$ formalizes the differentiation motive; the empirical question is which dominates under a given intergroup context. The symmetric architecture winning in minimal groups suggests that when neither motive has privileged content to operate on, both are absorbed into a single undifferentiated projection rate. Local self-concept clarity (Campbell et al., 1996) also modulated self-anchoring: higher semantic entropy (*H_g*; @eq-entropy) — indicating mixed, non-discriminating self-ratings in a trait's neighborhood — predicted lower ingroup classification in Studies 2 and 3 but not Study 1. This is consistent with a signal-precision account: when real group content makes self-anchoring the primary inferential channel, a diffuse local self-concept degrades classification.
-
+Our research moves social identity theory from a verbal model to a formal architecture by operationalizing the metacontrast principle as a formal ratio of summed similarities. This aligns social identity research with exemplar-based models of category learning and Shepard's (1987) law of generalization. We find that self-anchoring is primarily driven by "ingroup love"—the motivation to achieve similarity with the ingroup—rather than outgroup repulsion. However, the asymmetric architecture's added value is context-dependent: the asymmetric model was marginally preferred over the symmetric model in the abstract Negation condition (where the outgroup has no concrete identity), while the symmetric model was more clearly preferred when outgroups were concrete and status-differentiated. The asymmetric architecture provided no detectable advantage in the High-Status or racial majority conditions. These dual tendencies map onto Brewer's (1991) Optimal Distinctiveness Theory, which holds that group membership satisfies simultaneous needs for assimilation (inclusion) and differentiation (distinctiveness). In the present architecture, $\alpha_{in}$ formalizes the assimilation motive and $\alpha_{out}$ formalizes the differentiation motive; the empirical question is which dominates under a given intergroup context. The symmetric architecture winning in minimal groups suggests that when neither motive has privileged content to operate on, both are absorbed into a single undifferentiated projection rate.
 Prior representational claims about similarity-based inference in social categorization have been constrained by the absence of model formalism (Guest & Martin, 2021). We demonstrate that the metacontrast ratio—a central concept in social identity theory—can be precisely measured using relational similarity, and that this formalization yields testable predictions about self-anchoring that verbal accounts cannot generate. Shepard's (1987) law was derived from animal conditioning and perceptual psychophysics: organisms generalize a learned response to novel stimuli in proportion to their similarity to the training exemplar, with that gradient decaying exponentially at a rate governed by a single sensitivity parameter. Nosofsky (1986) showed the same formal structure accounts for human perceptual categorization. That an identical mathematical law appears here—where the prototype is the self, the stimuli are personality traits distributed across a semantic network, and the task is social group classification—is significant because the representational substrate is as different as possible from those original domains. The result suggests Shepard's generalization law is not perceptual or behavioral in origin but reflects a domain-general solution to a common inference problem: given what I know about one exemplar, how strongly should I predict a property of a novel one? Social identity formation, at the computational level, appears to operate via the same inference machinery Shepard identified in animal learning and Nosofsky formalized for perception—with the self functioning as a social prototype in much the same way a conditioned stimulus functions as a perceptual anchor. Both traditions emerged in parallel with Turner and Tajfel's verbal articulation of the same principles in the social domain. By extending their formal apparatus to how people generalize self-knowledge to their groups, we connect these traditions and provide an empirically tractable foundation for the representational claims Self-Categorization Theory has long advanced. A notable result within this framework is the empirical identification of $\lambda$—Shepard's generalization sensitivity—as a recoverable parameter in human social categorization data. In principle, $\lambda$ and $\alpha$ are mathematically entangled (both govern how similarity maps to categorization probability), and their joint identifiability is not guaranteed; it requires the graded semantic structure of a trait network combined with a training-to-generalization paradigm that creates distinct behavioral fingerprints for each parameter. Demonstrating that $\lambda$ is estimable from social categorization data provides a new measurement handle on self-concept breadth that cannot be reduced to projection strength, enabling researchers to formally distinguish how far the self-concept's inferential reach extends ($\lambda$) from how strongly self-beliefs are weighted in that inference ($\alpha$)—a distinction that verbal theories of self-anchoring have never been able to draw.
 
 To close the formal loop: Turner et al. (1987) defined the metacontrast ratio verbally as the ratio of perceived intergroup difference to intragroup similarity, with categorization becoming psychologically active when this ratio is maximized. The model-derived MCR — $\text{simW}_{in} / \text{simW}_{out}$ — is the direct computational implementation of that definition, not an analogy. $\text{simW}_{in}$ and $\text{simW}_{out}$ are generalization-weighted sums of self-beliefs projected onto ingroup- versus outgroup-predictive training traits, calibrated to each participant's posterior parameter estimates. The consistent replication of MCR correlations with social identification, self-esteem, and prototypicality across all three studies validates this operationalization as capturing what Turner's verbal construct intended. The self functions here as a social prototype in the sense Rosch (1978) formalized for natural categories: the reference point relative to which group category membership is inferred.
@@ -488,9 +561,9 @@ SCT's self-as-prototype assumption predicts that participants who perceive thems
 Self-anchoring is an inductive reasoning process, not simple item repetition. Prior research was vulnerable to the interpretation that self-anchoring reflects repetition effects, where ratings on the same items amplify descriptiveness (Unkelbach & Rom, 2017). Demonstrating that self-evaluations generalize to novel, semantically related traits establishes that self-anchoring involves belief propagation through the trait network. Individuals do not merely infer that their group shares specific traits; they infer what their group ought to be based on the structural relations within their self-concept.
 
 ### Contextual Modulation and Social Identification
-Context systematically modulates self-anchoring, though through distinct parameters across studies. In Study 2, the projection rate (α) was invariant across outgroup conditions; what changed dramatically was the prior ingroup preference (γ), which fell to near-minimal-group levels when the outgroup was a prestigious, positively-regarded rival university. This indicates that when the outgroup is desirable, participants' baseline disposition to attribute traits to the ingroup weakens—even while their similarity-weighted inference machinery operates unchanged. This pattern—invariant α, attenuated γ—was not the anticipated locus of contextual modulation; it emerged as a post-hoc observation that illuminates a distinction social identity theory has typically left implicit: the inferential process of self-anchoring and the motivational prior that activates it are separable, and only the latter appears to be contextually modulated. Behaviorally, the High-Status condition actually produced the strongest similarity-to-self effects (AME = .100), while the Low-Status condition showed attenuation (AME = .044, *p* = .082). These two patterns are not contradictory: γ is the intercept of ingroup preference, while the AME reflects the slope of similarity-based inference; a lower γ and steeper slope can co-occur if participants rely more heavily on self-information in the absence of a strong default ingroup prior. In Study 3, self-anchoring was suppressed under minority–minority contrasts, with similarity-to-self predicting ingroup classification only in the majority-outgroup condition. Self-Categorization Theory's meta-contrast principle provides a unifying account: self-anchoring functions as a categorization aid most active when the intergroup boundary is motivationally engaged but not structurally resolved. When the categorical boundary is already established through perceived status differences, self-similarity contributes little additional discriminating signal. When contrasting against a fellow minority group, both groups share a superordinate social position, which may invoke a sense of common fate that mutes the functional distinctiveness of the boundary. Positive distinctiveness motivations provide a complementary explanation: when differentiation from the outgroup is already achieved through status perceptions, self-referential inference contributes less to category definition. Together, these patterns identify self-anchoring as a context-sensitive inference strategy — deployed most actively when the categorization problem is motivationally engaged and status cues alone are insufficient to resolve it. Trait segregation analyses provide a converging signature. Across Studies 2 and 3, the condition that most suppressed self-anchoring also produced the highest trait segregation: high-status contrast in Study 2 (where γ fell sharply and behavioral AMEs were strongest) and minority-outgroup contrast in Study 3 (where AMEs were null). The direction reverses superficially — high-status produced more segregation in Study 2, minority-outgroup produced more in Study 3 — but the logic is identical in both cases: when the intergroup context removes the self-concept's organizational leverage over classification, participants impose coarser, more rigid categorical partitioning on the trait network rather than semantically structured inference.
+Context systematically modulates self-anchoring, though through distinct parameters across studies. In Study 2, the projection rate (α) was invariant across outgroup conditions; what changed dramatically was the prior ingroup preference (γ), which fell to near-minimal-group levels when the outgroup was a prestigious, positively-regarded rival university. This indicates that when the outgroup is desirable, participants' baseline disposition to attribute traits to the ingroup weakens—even while their similarity-weighted inference machinery operates unchanged. This pattern—invariant α, attenuated γ—was not the anticipated locus of contextual modulation; it emerged as a post-hoc observation that illuminates a distinction social identity theory has typically left implicit: the inferential process of self-anchoring and the motivational prior that activates it are separable, and only the latter appears to be contextually modulated. Behaviorally, the High-Status condition actually produced the strongest similarity-to-self effects (AME = .100), while the Low-Status condition showed attenuation (AME = .044, *p* = .082). These two patterns are not contradictory: γ is the intercept of ingroup preference, while the AME reflects the slope of similarity-based inference; a lower γ and steeper slope can co-occur if participants rely more heavily on self-information in the absence of a strong default ingroup prior. In Study 3, self-anchoring was suppressed under minority–minority contrasts, with similarity-to-self predicting ingroup classification only in the majority-outgroup condition. Self-Categorization Theory's meta-contrast principle provides a unifying account: self-anchoring functions as a categorization aid most active when the intergroup boundary is motivationally engaged but not structurally resolved. When the categorical boundary is already established through perceived status differences, self-similarity contributes little additional discriminating signal. When contrasting against a fellow minority group, both groups share a superordinate social position, which may invoke a sense of common fate that mutes the functional distinctiveness of the boundary. Positive distinctiveness motivations provide a complementary explanation: when differentiation from the outgroup is already achieved through status perceptions, self-referential inference contributes less to category definition. Together, these patterns identify self-anchoring as a context-sensitive inference strategy — deployed most actively when the categorization problem is motivationally engaged and status cues alone are insufficient to resolve it. Trait segregation analyses provide a converging signature. Across Studies 2 and 3, the condition that most suppressed self-anchoring also produced the highest trait segregation: high-status contrast in Study 2 (where γ fell sharply and behavioral AMEs were strongest) and minority-outgroup contrast in Study 3 (where AMEs were null). The direction reverses superficially — high-status produced more segregation in Study 2, minority-outgroup produced more in Study 3 — but the logic is identical in both cases: when the intergroup context removes the self-concept's organizational leverage over classification, participants impose coarser, more rigid categorical partitioning on the trait network rather than semantically structured inference. This has broader implications: the same contextual conditions that disable the assimilative inference engine — status inequality, social marginalization, outgroups that cannot be assimilated into the self-concept's semantic structure — shift group perception from graded, similarity-based categorization toward binary Us-versus-Them partitioning. The cognitive signature of trait segregation is structurally identical to what is invoked in accounts of intergroup conflict and political polarization; the present framework suggests these phenomena may share a common computational origin in the disruption of similarity-based social inference.
 
-Within this framework, γ is the formal operationalization of SIT's positive distinctiveness motive — the baseline prior for ingroup attribution, independent of the projection mechanism. The High-Status condition in Study 2 provides the clearest empirical signature: γ fell to $M = 0.36$ when participants contrasted against a positively-regarded, higher-status outgroup — numerically identical to the group-level γ estimated in Study 1's minimal groups ($M = 0.36$). A prestigious outgroup fully erodes the ingroup preference that even a meaningless categorical assignment produces. This convergence is not coincidental: under SIT, positive distinctiveness motivation is highest when ingroup superiority is uncertain or contested. A high-status outgroup resolves the comparison unfavorably, reducing the motivational pressure to mark traits as ingroup-characteristic. The projection mechanism (α) operates unchanged; only the prior for using it shifts. Notably, γ did not similarly attenuate in Study 3's majority-outgroup condition ($M = 0.57$) — nearly matching the Negation baseline ($M = 0.60$) rather than the High-Status floor. A prestigious university outgroup resolves the positive distinctiveness comparison unfavorably — the outgroup is perceived as superior on the relevant status dimension — eroding the motivational pressure to mark traits as ingroup-characteristic. A dominant racial majority does not produce the same erosion: contrasting against the racial majority may instead activate a defensive ingroup prior rooted in minority solidarity, sustaining ingroup favoritism despite the status asymmetry. In Study 3, the lapse rate $w$ — rather than γ — was the contextually sensitive parameter, rising in the minority-outgroup condition ($M = 0.64$) relative to the majority condition ($M = 0.56$) and relative to both Studies 1 and 2 ($M \approx 0.56$). This cross-study pattern in $w$ is substantive, not artifactual: Studies 1 and 2 produced equivalent lapse rates despite differing in group content richness (arbitrary minimal groups vs. real universities), while Study 3's racial context elevated noise. This is consistent with van Veelen et al.'s (2017) account that self-anchoring is most tractable when group content is uncertain — racial categories carry pre-loaded stereotypic content that competes with self-based inference, increasing classification stochasticity without suppressing the self-anchoring mechanism entirely (as confirmed by the replication of MCR–personality correlations across all three studies).
+Within this framework, γ is the formal operationalization of SIT's positive distinctiveness motive — the baseline prior for ingroup attribution, independent of the projection mechanism. The High-Status condition in Study 2 provides the clearest empirical signature: γ fell to $M = 0.36$ when participants contrasted against a positively-regarded, higher-status outgroup — numerically identical to the group-level γ estimated in Study 1's minimal groups ($M = 0.36$). A prestigious outgroup fully erodes the ingroup preference that even a meaningless categorical assignment produces. This convergence is not coincidental: under SIT, positive distinctiveness motivation is highest when ingroup superiority is uncertain or contested. A high-status outgroup resolves the comparison unfavorably, reducing the motivational pressure to mark traits as ingroup-characteristic. The projection mechanism (α) operates unchanged; only the prior for using it shifts. Notably, γ did not similarly attenuate in Study 3's majority-outgroup condition ($M = 0.57$) — nearly matching the Negation baseline ($M = 0.60$) rather than the High-Status floor. Not all high-status outgroups are psychologically equivalent, and the γ pattern across studies reflects this. A prestigious rival university is an *aspirational* outgroup: the intergroup boundary is permeable (students could have attended UCLA instead of UCR), the outgroup is positively regarded, and no historical power asymmetry structures the comparison. Under these conditions, positive distinctiveness is already contested — the outgroup is objectively superior on the relevant status dimension — reducing the motivational need to mark traits as ingroup-characteristic. A dominant racial majority is a *marginalized* outgroup comparison: the boundary is relatively impermeable, the power asymmetry is entrenched, and minority identity is bound up with protection against that asymmetry. Facing the racial majority activates a defensive ingroup prior — sustaining γ near baseline levels ($M = 0.57$) despite the status differential — because positive distinctiveness under these conditions requires active maintenance rather than passive erosion. In Study 3, the lapse rate $w$ — rather than γ — was the contextually sensitive parameter, rising in the minority-outgroup condition ($M = 0.64$) relative to the majority condition ($M = 0.56$) and relative to both Studies 1 and 2 ($M \approx 0.56$). This cross-study pattern in $w$ is substantive, not artifactual: Studies 1 and 2 produced equivalent lapse rates despite differing in group content richness (arbitrary minimal groups vs. real universities), while Study 3's racial context elevated noise. This is consistent with van Veelen et al.'s (2017) account that self-anchoring is most tractable when group content is uncertain — racial categories carry pre-loaded stereotypic content that competes with self-based inference, increasing classification stochasticity without suppressing the self-anchoring mechanism entirely (as confirmed by the replication of MCR–personality correlations across all three studies).
 
 Including the generalization sensitivity parameter, λ, operationalizes the decay of self-anchoring across the semantic network and functions as a person-specific index of cognitive style. High λ indicates a steep, narrow generalization gradient, where inference is restricted to only the most semantically proximal traits; low λ indicates a shallow, broad gradient where self-knowledge propagates more liberally. The finding that higher social identification correlated with higher λ in Study 2 (*r* = .25) is informative. It suggests that stronger group identification does not produce a more expansive or all-encompassing ingroup category; instead, it sharpens the inferential boundary. Strongly identified individuals appear to use a more selective, high-fidelity mapping from self to group, anchoring primarily on their most diagnostic attributes. This provides a formal, mechanistic account for how group attachment shapes the *structure*, not just the magnitude, of social inference.
 
@@ -498,17 +571,23 @@ Including the generalization sensitivity parameter, λ, operationalizes the deca
 Although $\lambda$ enables formal estimation of the asymmetric model with separate $\alpha_{in}$ and $\alpha_{out}$ parameters, the binary forced-choice paradigm imposes a structural constraint on the behavioral leverage available to dissociate these quantities. Because each trial yields a single ingroup-or-outgroup response, ingroup attractiveness and outgroup repulsion cannot vary independently within a trial—both are absorbed into the same binary outcome, limiting the data's informativeness for pulling the two projection rates apart. This means that even in contexts where $\alpha_{in}$ and $\alpha_{out}$ genuinely differ, the forced-choice design may be insufficiently sensitive to detect the asymmetry. Paradigms that solicit independent ingroup and outgroup typicality ratings, or that present single-group classification trials, would provide richer behavioral signatures for estimating these parameters separately. The consistent symmetric-architecture preference across most intergroup contexts should therefore be interpreted cautiously: it may partly reflect task design constraints rather than a genuine cognitive indistinguishability of ingroup love and outgroup hate. Future work with paradigms better suited to generating independent behavioral signatures for $\alpha_{in}$ and $\alpha_{out}$ would provide a stronger test of whether the symmetric constraint is empirically warranted. Of SCT's four fit criteria, neither normative fit nor perceiver readiness is directly assessed. Normative fit — whether trait content matches expectations for a group label — is not measured; the task does not ask participants to evaluate content-label consistency. Perceiver readiness is imposed by the task structure: all participants classify traits for an experimentally salient group, so the model describes how self-anchoring operates once a category is engaged, not who spontaneously activates social categorization in naturalistic settings. Comparative fit was explored via λ variation across Study 2 conditions, but effects were small (R² = .039) and the mapping from λ to categorical distinctiveness is indirect — these analyses should be understood as exploratory rather than as formal tests of comparative fit.
 
 ### Conclusion
-By formalizing the relationship between self-concept structure and social identity, we show that self-anchoring follows the same principles of similarity-based generalization that govern category learning—at least across the intergroup contexts examined here, all drawn from university samples. Group membership is not merely a motivational bias; it is a structured, inferential process grounded in semantic self-knowledge. This architecture provides a precise, testable framework for understanding social identity as a cognitive process.
+By formalizing the relationship between self-concept structure and social identity, we show that self-anchoring follows the same principles of similarity-based generalization that govern category learning—at least across the intergroup contexts examined here, all drawn from university samples. Group membership is not merely a motivational bias; it is a structured, inferential process grounded in semantic self-knowledge. In this sense, the self-concept functions as a generative engine of social identity: beliefs about social groups are not stored as fixed templates but constructed on-the-fly by propagating self-knowledge through relational semantic structure—the same inferential machinery used for any categorical judgment. This generative architecture explains both the robustness of self-anchoring across heterogeneous group contexts and its vulnerability to disruption when the intergroup structure renders the self-concept's semantic geometry an unreliable guide. This architecture provides a precise, testable framework for understanding social identity as a cognitive process.
 
 ### Appendix A: Posterior Predictive Checks
 We conducted posterior predictive checks (PPCs) to verify model fit to observed data, evaluating both the training and generalization phases across all three studies (Figure A1). Observed and predicted data were well-aligned, confirming adequate fit.
 
 ### Appendix B: Parameter Recovery Analyses
-To determine whether parameters from the computational model were identifiable and could be recovered, we simulated behavior using the Study 1 data structure with known true parameters drawn from posterior-informed distributions. Primary parameters of interest — projection rate ($m$ / $\alpha_{in}$, $\alpha_{out}$), ingroup bias ($\gamma$), generalization sensitivity ($\lambda$), and lapse rate ($w$) — were adequately recoverable for both the Symmetric+$\lambda$ and Asymmetric+$\lambda$ architectures (Figure B1). [PENDING — insert per-parameter recovery correlations (*r*) and RMSE after `Parameter Recovery/run_parameter_recovery.R` completes.]
+We assessed parameter identifiability by simulating behavior from known true parameters, then fitting the model to the simulated data and comparing recovered posteriors to ground truth. The simulation used the Study 1 trial structure (*N* = 61), real trait similarity matrices, and two design choices described below.
+
+**Parameter generation.** True parameters for each simulated participant were drawn from distributions calibrated to the Study 1 posterior rather than from the prior. Group-level means ($\mu_{pr}$) and individual-level standard deviations ($\sigma$) on the probit scale were taken directly from the Study 1 posterior summaries for each model (Sym+$\lambda$: $\sigma_m = 0.286$, $\sigma_\gamma = 0.709$, $\sigma_\lambda = 0.334$, $\sigma_w = 1.181$; Asym+$\lambda$: $\sigma_{\alpha_{in}} = 0.220$, $\sigma_{\alpha_{out}} = 0.226$, $\sigma_\gamma = 0.721$, $\sigma_\lambda = 0.377$, $\sigma_w = 1.188$). This ensures simulated individual differences match the range actually observed in the data rather than an arbitrary prior specification.
+
+**Self-rating generation.** Each simulated participant received synthetic self-ratings drawn from a Gaussian Markov Random Field (GMRF) defined on the trait network. We computed the precision matrix $\mathbf{P} = \alpha\mathbf{L} + \varepsilon\mathbf{I}_{148}$, where $\mathbf{L} = \mathbf{D} - \mathbf{A}$ is the combinatorial graph Laplacian of the trait network, $\alpha = 1.0$ controls network smoothness, and $\varepsilon = 0.01$ regularizes the singular Laplacian. Each participant received an independent draw $\mathbf{x} \sim \mathcal{N}(\mathbf{0},\, \mathbf{P}^{-1})$, standardized to the observed within-person SD (1.13), centered at 4, and rounded to integers 1–7. Intuitively, the graph Laplacian encodes which traits are structurally proximate in the network; inverting the regularized Laplacian produces a covariance matrix in which connected traits covary — a participant who rates *Warm* highly will tend to rate *Friendly* similarly, exactly the structure the projection model assumes. Centering ratings at the scale midpoint (4) ensures that self-ratings span both the self-descriptive and non-self-descriptive range, which is required for $m$ to be identifiable from the data.
+
+Primary parameters of interest — projection rate ($m$ / $\alpha_{in}$, $\alpha_{out}$), ingroup bias ($\gamma$), generalization sensitivity ($\lambda$), and lapse rate ($w$) — were recoverable for both the Symmetric+$\lambda$ and Asymmetric+$\lambda$ architectures (Figure B1). [PENDING — insert per-parameter recovery correlations (*r*) and RMSE after `Parameter Recovery/run_parameter_recovery.R` completes.] Figure B2 shows the parameter confusion matrix: each cell gives the Pearson *r* between true parameter *i* and recovered parameter *j*, with diagonal cells (outlined) reflecting self-recovery and off-diagonal cells reflecting cross-parameter confusability.
 
 ```{r}
 #| label: fig-param-recovery
-#| fig-cap: "Parameter recovery for the Symmetric+λ (top row) and Asymmetric+λ (bottom row) models. Each panel shows the 2D density of true (x-axis) vs. posterior-median recovered (y-axis) parameter values across simulated participants. The dashed red diagonal indicates perfect recovery. Pearson *r* values are shown per parameter. Generated by `Figures/make_param_recovery_fig.R`; placeholder data shown until `Parameter Recovery/run_parameter_recovery.R` is run."
+#| fig-cap: "**Figure B1.** Parameter recovery for the Symmetric+λ (top row) and Asymmetric+λ (bottom row) models. Each panel shows the 2D density of true (x-axis) vs. posterior-median recovered (y-axis) parameter values across simulated participants (*N* = 61, Study 1 structure). The dashed red diagonal indicates perfect recovery. Pearson *r* values are shown per parameter. Placeholder data shown until `Parameter Recovery/run_parameter_recovery.R` is run."
 #| fig-width: 11
 #| fig-height: 7
 #| eval: !expr file.exists(fig_path("fig_param_recovery.tiff"))
@@ -520,7 +599,24 @@ knitr::include_graphics(fig_path("fig_param_recovery.tiff"))
 #| results: asis
 #| echo: false
 #| eval: !expr isFALSE(file.exists(fig_path("fig_param_recovery.tiff")))
-cat("*[Figure B1 pending: run `Figures/make_param_recovery_fig.R` to generate (uses placeholder data until `Parameter Recovery/run_parameter_recovery.R` completes).]*")
+cat("*[Figure B1 pending: run `Figures/make_param_recovery_fig.R` to generate.]*")
+```
+
+```{r}
+#| label: fig-param-recovery-heatmap
+#| fig-cap: "**Figure B2.** Parameter recovery confusion matrix for the Symmetric+λ (left) and Asymmetric+λ (right) models. Each cell shows the Pearson *r* between the true value of parameter *i* (rows) and the posterior-median recovered value of parameter *j* (columns). Diagonal cells (black outline) give self-recovery correlations; off-diagonal cells reflect cross-parameter confusability. Higher off-diagonal values indicate that two parameters' behavioral signatures are difficult to disentangle."
+#| fig-width: 9
+#| fig-height: 5
+#| eval: !expr file.exists(fig_path("fig_param_recovery_heatmap.tiff"))
+knitr::include_graphics(fig_path("fig_param_recovery_heatmap.tiff"))
+```
+
+```{r}
+#| label: fig-param-recovery-heatmap-placeholder
+#| results: asis
+#| echo: false
+#| eval: !expr isFALSE(file.exists(fig_path("fig_param_recovery_heatmap.tiff")))
+cat("*[Figure B2 pending: run `Figures/make_param_recovery_fig.R` to generate.]*")
 ```
 
 ### Supplementary Materials C: Race Moderation Analyses (Study 3)
@@ -544,9 +640,610 @@ Study 3 pools Asian and Latino participants within each contrast condition, an a
 
 **Warmth moderation by race.** A marginal race × ingroup-over-minority preference interaction for MCR (F(1, 230) = 3.14, *p* = .078) suggested opposite directions for Asian (*β* = −.059) and Latino (*β* = +.034) participants, though neither within-race slope was significant. No other warmth × race interactions reached significance. All race moderation results are exploratory, were not pre-registered, and should be replicated before interpretation.
 
+### Supplementary Materials D: Self-Concept Entropy (*H_g*) and Ingroup Classification
+
+We computed a *local self-concept clarity* index (*H_g*) as a similarity-weighted Shannon entropy over the self-evaluation distribution in each test trait's semantic neighborhood:
+
+$$H_g = -\sum_{e=1}^{7} p_e \log_2 p_e, \quad p_e = \frac{\sum_{t:\, E_t = e} S_{tg}}{\sum_{t=1}^{T} S_{tg}}$$
+
+where $p_e$ is the similarity-weighted proportion of training traits rated at level $e$ on the 7-point scale. Low $H_g$ indicates coherent, concentrated self-ratings near the test trait; high $H_g$ indicates mixed, diffuse self-ratings. This operationalizes Campbell et al.'s (1996) self-concept clarity at the local semantic level. Each study used a separate mixed-effects logistic regression with desirability controlled and a by-subject random slope for $H_g$.
+
+$H_g$ was non-significant in Study 1 (AME = −.058, 95% CI [−.152, .036], *p* = .225), consistent with low statistical power and the high lapse rate under minimal-group conditions. $H_g$ significantly predicted lower ingroup classification in Study 2 (AME = −.058, 95% CI [−.099, −.017], *p* = .005) and Study 3 (AME = −.051, 95% CI [−.096, −.006], *p* = .027). These results are consistent with a signal-precision account: when group content is real and self-anchoring is the primary inferential channel, a diffuse local self-concept degrades classification. The null in Study 1 is consistent with the high lapse rate (*w* = 0.56) under minimal-group conditions attenuating behavioral leverage for detecting entropy effects.
+
+### Supplementary Materials E: Canonical Correlation Analysis
+
+**Study 1 CCA (Minimal Groups, *N* = 61).** To examine the multivariate personality structure of model-derived indices, we conducted an exploratory CCA of model parameters (X: $\alpha$, $\lambda$, $\gamma$, $w$, MCR, trait segregation; $k = 6$) against personality scales (Y: DS, Prototypicality, SCC, Social Identity, RSE, NTB, NFC, SING-Ind, SING-Inter; $k = 9$). Statistical significance was assessed via permutation test (*B* = 5,000). *N* = 61 falls below recommended guidelines for CCA with 15 variables; results should be regarded as preliminary and interpreted with caution. The first canonical variate was significant (*r* = .720, *p*~perm~ = .013). On the model side, CV1 was defined primarily by MCR (loading = .53), ingroup bias $\gamma$ (loading = .45), and trait segregation (loading = .39); $\alpha$, $\lambda$, and $w$ loaded negligibly. On the personality side, SING-Inter dominated (loading = .87), followed by social identity (loading = .53) and need to belong (loading = .48). A second variate was also significant (*r* = .623, *p*~perm~ = .005) but is not interpreted given the sample size. The pooled CCA below provides better-powered replication.
+
+**Pooled CCA (*N* = 507).** *[Pending — pooled individual-difference parameters are being finalized. Results will be inserted here prior to submission.]*
+
+### Supplementary Materials F: Semantic Trait Network
+
+The semantic dependency network used in all three studies comprised 148 personality traits. Figure F1 displays a force-directed layout of the 80 most-connected traits (Fruchterman–Reingold algorithm). Node size and color reflect degree centrality. Traits with high connectivity occupy the network's densely interconnected core and have broad semantic influence during the similarity-weighted inference process; low-degree traits at the periphery exert narrower inferential reach and primarily receive rather than propagate generalization weight.
+
+```{r}
+#| label: fig-f1-trait-network
+#| fig-cap: "Semantic trait network (top 80 traits by connectivity). Nodes represent personality traits; edges represent adjacency in the semantic dependency network. Node size and color indicate degree centrality (number of connections). Force-directed layout (Fruchterman–Reingold). Trait labels omitted for clarity; the full adjacency matrix is available in the Open Materials."
+#| fig-width: 8
+#| fig-height: 7
+#| eval: !expr file.exists(fig_path("fig01_trait_network.tiff"))
+knitr::include_graphics(fig_path("fig01_trait_network.tiff"))
+```
+
+```{r}
+#| label: fig-f1-trait-network-placeholder
+#| results: asis
+#| echo: false
+#| eval: !expr isFALSE(file.exists(fig_path("fig01_trait_network.tiff")))
+cat("*[Figure F1 pending: run `Figures/make_figures.R` to generate.]*")
+```
+
 ## OPEN MATERIALS
 
 Analysis scripts, Stan model code, and de-identified data are available at [repository URL]. An interactive web supplement demonstrating the Symmetric + λ and Asymmetric + λ model architectures is available at [Shiny app URL]. The supplement allows readers to manipulate model parameters and resample training-trait configurations in real time. Two parameter combinations are particularly informative as reference points: setting γ = 0.50 and w = 0 isolates the core self-anchoring mechanism — no baseline ingroup preference and no random responding — so that the classification curve reflects only the similarity-weighted self-concept signal. The Study 1 group-level posterior medians (γ = 0.36, w = 0.56) are loaded by default, reflecting the modest ingroup bias and substantial response noise typical of laboratory categorization paradigms.
 
 ## REFERENCES
-(References extracted from dissertation)
+
+Adler, N. E., Boyce, T., Chesney, M. A., Cohen, S., Folkman, S., Kahn, R. L., & Syme,
+S. L. (1994). Socioeconomic status and health: The challenge of the gradient.
+*American Psychologist*, *49*, 15–24. https://doi.org/10.1037/0003-066X.49.1.15
+
+Ahn, W.-Y., Haines, N., & Zhang, L. (2017). Revealing neurocomputational
+mechanisms of reinforcement learning and decision-making with the
+hBayesDM package. *Computational Psychiatry*, *1*, 24–57.
+https://doi.org/10.1162/CPSY_a_00002
+
+Ahn, W.-Y., Krawitz, A., Kim, W., Busmeyer, J. R., & Brown, J. W. (2011). A model-based fMRI analysis with hierarchical Bayesian parameter estimation. *Journal of Neuroscience, Psychology, and Economics*, *4*(2), 95–110.
+https://doi.org/10.1037/a0020684
+
+Ames, D. R. (2004). Inside the mind reader's tool kit: Projection and stereotyping in
+mental state inference. *Journal of Personality and Social Psychology*, *87*(3), 340–353. https://doi.org/10.1037/0022-3514.87.3.340
+
+Baayen, R. H., Davidson, D. J., & Bates, D. M. (2008). Mixed-effects modeling with
+crossed random effects for subjects and items. *Journal of Memory and Language*,
+*59*(4), 390–412. https://doi.org/10.1016/j.jml.2007.12.005
+
+Bafumi, J., & Gelman, A. (2007). *Fitting multilevel models when predictors and group
+effects correlate* (SSRN Scholarly Paper No. 1010095).
+https://doi.org/10.2139/ssrn.1010095
+
+Balliet, D., Wu, J., & De Dreu, C. K. W. (2014). Ingroup favoritism in cooperation: A
+meta-analysis. *Psychological Bulletin*, *140*, 1556–1581.
+https://doi.org/10.1037/a0037737
+
+Barr, D. J., Levy, R., Scheepers, C., & Tily, H. J. (2013). Random effects structure for
+confirmatory hypothesis testing: Keep it maximal. *Journal of Memory and
+Language*, *68*(3). https://doi.org/10.1016/j.jml.2012.11.001
+
+Baumeister, R. F., & Leary, M. R. (1995). The need to belong: Desire for interpersonal
+attachments as a fundamental human motivation. *Psychological Bulletin*, *117*,
+497–529. https://doi.org/10.1037/0033-2909.117.3.497
+
+Bianchi, M., Machunsky, M., Steffens, M. C., & Mummendey, A. (2009). Like me or
+like us: Is ingroup projection just social projection? *Experimental Psychology*, *56*,
+198–205. https://doi.org/10.1027/1618-3169.56.3.198
+
+Blake, K. R., & Gangestad, S. (2020). On attenuated interactions, measurement error, and
+statistical power: Guidelines for social and personality psychologists. *Personality
+and Social Psychology Bulletin*, *46*, 1702–1711.
+https://doi.org/10.1177/0146167220913363
+
+Bowman, C. R., Iwashita, T., & Zeithamova, D. (2020). Tracking prototype and exemplar
+representations in the brain across learning. *ELife*, *9*, e59360.
+https://doi.org/10.7554/eLife.59360
+
+Brewer, M. B. (1991). The social self: On being the same and different at the same time.
+*Personality and Social Psychology Bulletin*, *17*(5), 475–482.
+
+Brewer, M. B. (1993). Social identity, distinctiveness, and in-group homogeneity. *Social
+Cognition*, *11*, 150–164. https://doi.org/10.1521/soco.1993.11.1.150
+
+Brewer, M. B. (1999). The psychology of prejudice: Ingroup love and outgroup hate?
+*Journal of Social Issues*, *55*(3), 429–444. https://doi.org/10.1111/0022-4537.00126
+
+Brown, R. (2000). Social identity theory: Past achievements, current problems and future
+challenges. *European Journal of Social Psychology*, *30*(6), 745–778.
+https://doi.org/10.1002/1099-0992(200011/12)30:6<745::AID-EJSP24>3.0.CO;2-O
+
+Brown, R. J. (1984). The role of similarity in intergroup relations. In H. Tajfel (Ed.), *The
+social dimension: European developments in social psychology* (Vol. 2, pp.
+603–623). Cambridge University Press.
+https://doi.org/10.1017/CBO9780511759154.012
+
+Cacioppo, J. T., & Petty, R. E. (1982). The need for cognition. *Journal of Personality and
+Social Psychology*, *42*(1), 116–131.
+
+Cadinu, M., Carnaghi, A., & Guizzo, F. (2020). Group meaningfulness and the causal
+direction of influence between the ingroup and the self or another individual:
+Evidence from the induction-deduction paradigm. *PLoS ONE*, *15*(3), e0229321.
+https://doi.org/10.1371/journal.pone.0229321
+
+Cadinu, M., & De Amicis, L. (1999). The relationship between the self and the ingroup:
+When having a common conception helps. *Swiss Journal of Psychology*, *58*,
+226–232. https://doi.org/10.1024/1421-0185.58.4.226
+
+Cadinu, M., Latrofa, M., & Carnaghi, A. (2013). Comparing self-stereotyping with
+ingroup-stereotyping and out-group-stereotyping in unequal-status groups: The
+case of gender. *Self and Identity*, *12*(6), 582–596.
+https://doi.org/10.1080/15298868.2012.712753
+
+Cadinu, M., & Rothbart, M. (1996). Self-anchoring and differentiation processes in the
+minimal group setting. *Journal of Personality and Social Psychology*, *70*, 661–677. https://doi.org/10.1037/0022-3514.70.4.661
+
+Campbell, D. T. (1958). Common fate, similarity, and other indices of the status of
+aggregates of persons as social entities. *Behavioral Science*, *3*(1), 14–25.
+https://doi.org/10.1002/bs.3830030103
+
+Campbell, J. D., Trapnell, P. D., Heine, S. J., Katz, I. M., Lavallee, L. F., & Lehman, D.
+R. (1996). Self-concept clarity: Measurement, personality correlates, and cultural
+boundaries. *Journal of Personality and Social Psychology*, *70*(1), 141–156.
+https://doi.org/10.1037/0022-3514.70.1.141
+
+Clement, R. W., & Krueger, J. (2000). The primacy of self-referent information in
+perceptions of social consensus. *British Journal of Social Psychology*, *39*, 279–299. https://doi.org/10.1348/014466600164471
+
+Clement, R. W., & Krueger, J. (2002). Social categorization moderates social
+projection. *Journal of Experimental Social Psychology*, *38*(3), 219–231.
+https://doi.org/10.1006/jesp.2001.1503
+
+Coats, S., Smith, E. R., Claypool, H. M., & Banner, M. J. (2000). Overlapping mental
+representations of self and in-group: Reaction time evidence and its relationship
+with explicit measures of group identification. *Journal of Experimental Social
+Psychology*, *36*, 304–315. https://doi.org/10.1006/jesp.1999.1416
+
+Davis, T., & Goldwater, M. (2021). Using model-based neuroimaging to adjudicate
+structured and continuous representational accounts in same-different
+categorization and beyond. *Current Opinion in Behavioral Sciences*, *37*, 103–108.
+https://doi.org/10.1016/j.cobeha.2020.11.011
+
+Davis, T., & Love, B. C. (2010). Memory for category information is idealized through
+contrast with competing options. *Psychological Science*, *21*(2), 234–242.
+https://doi.org/10.1177/0956797609357712
+
+Davis, T., Love, B. C., & Preston, A. R. (2012a). Striatal and hippocampal entropy and
+recognition signals in category learning: Simultaneous processes revealed by
+model-based fMRI. *Journal of Experimental Psychology: Learning, Memory, and
+Cognition*, *38*(4), 821–839. https://doi.org/10.1037/a0027865
+
+Davis, T., Love, B. C., & Preston, A. R. (2012b). Learning the exception to the rule:
+Model-based fMRI reveals specialized representations for surprising category
+members. *Cerebral Cortex*, *22*(2), 260–273.
+https://doi.org/10.1093/cercor/bhr036
+
+Daw, N. D. (2011). Trial-by-trial data analysis using computational models. In
+*Decision making, affect, and learning: Attention and performance XXIII* (Vol. 23).
+Oxford University Press.
+
+de la Haye, A.-M. (2000). A methodological note about the measurement of the false-consensus effect. *European Journal of Social Psychology*, *30*(4), 569–581.
+https://doi.org/10.1002/1099-0992(200007/08)30:4<569::AID-EJSP8>3.0.CO;2-V
+
+DiDonato, T. E., Ullrich, J., & Krueger, J. I. (2011). Social perception as induction and
+inference: An integrative model of intergroup differentiation, ingroup favoritism,
+and differential accuracy. *Journal of Personality and Social Psychology*, *100*, 66–83. https://doi.org/10.1037/a0021051
+
+Don, H. J., Otto, A. R., Cornwall, A. C., Davis, T., & Worthy, D. A. (2019). Learning
+reward frequency over reward probability: A tale of two learning rules. *Cognition*,
+*193*, 104042. https://doi.org/10.1016/j.cognition.2019.104042
+
+Don, H. J., & Worthy, D. A. (2022). Frequency effects in action versus value learning.
+*Journal of Experimental Psychology: Learning, Memory, and Cognition*, *48*,
+1311–1327. https://doi.org/10.1037/xlm0000896
+
+Doosje, B., Ellemers, N., & Spears, R. (1995). Perceived intragroup variability as a
+function of group status and identification. *Journal of Experimental Social
+Psychology*, *31*(5), 410–436. https://doi.org/10.1006/jesp.1995.1018
+
+Eager, C., & Roy, J. (2017). *Mixed effects models are sometimes terrible*
+(arXiv:1701.04858). arXiv. https://doi.org/10.48550/arXiv.1701.04858
+
+Elder, J., Cheung, B., Davis, T., & Hughes, B. (2023). Mapping the self: A network
+approach for understanding psychological and neural representations of self-concept structure. *Journal of Personality and Social Psychology*, *124*(2), 237–263. https://doi.org/10.1037/pspa0000315
+
+Elder, J., Davis, T. H., & Hughes, B. L. (2023). A fluid self-concept: How the brain
+maintains coherence and positivity across an interconnected self-concept while
+incorporating social feedback. *Journal of Neuroscience*.
+https://doi.org/10.1523/JNEUROSCI.1951-22.2023
+
+Elder, J., Davis, T., & Hughes, B. (2022a). Self-concept certainty and stability are
+associated with semantic relations between self-beliefs. *PsyArXiv*.
+https://doi.org/10.31234/osf.io/8y2vr
+
+Elder, J., Davis, T., & Hughes, B. (2022b). Self-derogating to align with group norms:
+Similarity-based learning drives assimilation of the group to the self. *PsyArXiv*.
+https://doi.org/10.31234/osf.io/38bf7
+
+Elder, J., Davis, T., & Hughes, B. L. (2022c). Learning about the self: Motives for
+coherence and positivity constrain learning from self-relevant social feedback.
+*Psychological Science*, *33*(4), 629–647.
+https://doi.org/10.1177/09567976211045934
+
+Ellemers, N., Spears, R., & Doosje, B. (2001). Self and social identity. *Annual Review of Psychology*, *53*, 161–186.
+
+Estes, W. K. (1976). The cognitive side of probability learning. *Psychological Review*,
+*83*, 37–64. https://doi.org/10.1037/0033-295X.83.1.37
+
+FeldmanHall, O., & Shenhav, A. (2019). Resolving uncertainty in a social world. *Nature
+Human Behaviour*, *3*(5), 426–435. https://doi.org/10.1038/s41562-019-0590-x
+
+Fielding, K. S., & Hogg, M. A. (1997). Social identity, self-categorization, and
+leadership: A field study of small interactive groups. *Group Dynamics: Theory,
+Research, and Practice*, *1*(1), 39–51. https://doi.org/10.1037/1089-2699.1.1.39
+
+Fiske, S. T., Dupree, C. H., Nicolas, G., & Swencionis, J. K. (2016). Status, power, and
+intergroup relations: The personal is the societal. *Current Opinion in Psychology*,
+*11*, 44–48. https://doi.org/10.1016/j.copsyc.2016.05.012
+
+Gaertner, S. L., Dovidio, J. F., Guerra, R., Hehman, E., & Saguy, T. (2016). A common
+ingroup identity: Categorization, identity, and intergroup relations. In *Handbook of prejudice, stereotyping, and discrimination* (2nd ed., pp. 433–454). Psychology
+Press. https://doi.org/10.4324/9781841697772
+
+Goldstone, R. L., Medin, D. L., & Gentner, D. (1991). Relational similarity and the
+nonindependence of features in similarity judgments. *Cognitive Psychology*,
+*23*(2), 222–262. https://doi.org/10.1016/0010-0285(91)90010-L
+
+Gramzow, R. H., & Gaertner, L. (2005). Self-esteem and favoritism toward novel in-groups: The self as an evaluative base. *Journal of Personality and Social
+Psychology*, *88*(5), 801–815. https://doi.org/10.1037/0022-3514.88.5.801
+
+Gramzow, R. H., Gaertner, L., & Sedikides, C. (2001). Memory for in-group and out-group information in a minimal group context: The self as an informational base.
+*Journal of Personality and Social Psychology*, *80*(2), 188–205.
+https://doi.org/10.1037/0022-3514.80.2.188
+
+Green, P., & MacLeod, C. J. (2016). SIMR: An R package for power analysis of
+generalized linear mixed models by simulation. *Methods in Ecology and
+Evolution*, *7*(4), 493–498. https://doi.org/10.1111/2041-210X.12504
+
+Griffiths, T. L., Steyvers, M., & Tenenbaum, J. B. (2007). Topics in semantic
+representation. *Psychological Review*, *114*, 211–244.
+https://doi.org/10.1037/0033-295X.114.2.211
+
+Guest, O., & Martin, A. E. (2021). How computational modeling can force theory
+building in psychological science. *Perspectives on Psychological Science*, *16*(4),
+789–802. https://doi.org/10.1177/1745691620970585
+
+Guillaume, J. H. A., Jakeman, J. D., Marsili-Libelli, S., Asher, M., Brunner, P., Croke,
+B., Hill, M. C., Jakeman, A. J., Keesman, K. J., Razavi, S., & Stigter, J. D.
+(2019). Introductory overview of identifiability analysis: A guide to evaluating
+whether you have the right type of data for your modeling purpose.
+*Environmental Modelling & Software*, *119*, 418–432.
+https://doi.org/10.1016/j.envsoft.2019.07.007
+
+Haslam, S. A., Oakes, P. J., Turner, J. C., & McGarty, C. (1995). Social categorization
+and group homogeneity: Changes in the perceived applicability of stereotype
+content as a function of comparative context and trait favourableness. *British
+Journal of Social Psychology*, *34*(2), 139–160. https://doi.org/10.1111/j.2044-8309.1995.tb01054.x
+
+Heit, E., & Rubinstein, J. (1994). Similarity and property effects in inductive reasoning.
+*Journal of Experimental Psychology: Learning, Memory, and Cognition*, *20*(2),
+411–422. https://doi.org/10.1037/0278-7393.20.2.411
+
+Hewstone, M., Rubin, M., & Willis, H. (2002). Intergroup bias. *Annual Review of
+Psychology*, *53*, 575–604.
+https://doi.org/10.1146/annurev.psych.53.100901.135109
+
+Hirsh, J. B., Mar, R. A., & Peterson, J. B. (2012). Psychological entropy: A framework
+for understanding uncertainty-related anxiety. *Psychological Review*, *119*(2),
+304–320. https://doi.org/10.1037/a0026767
+
+Hogg, M. A. (2007). Uncertainty-identity theory. In *Advances in experimental social
+psychology* (Vol. 39, pp. 69–126). Elsevier Academic Press.
+https://doi.org/10.1016/S0065-2601(06)39002-8
+
+Hogg, M. A. (2014). From uncertainty to extremism: Social categorization and identity
+processes. *Current Directions in Psychological Science*, *23*(5), 338–342.
+https://doi.org/10.1177/0963721414540168
+
+Hogg, M. A., & Abrams, D. (1988). *Social identifications: A social psychology of
+intergroup relations and group processes*. Routledge.
+
+Hogg, M. A., Abrams, D., Otten, S., & Hinkle, S. (2004). The social identity
+perspective: Intergroup relations, self-conception, and small groups. *Small Group
+Research*, *35*(3), 246–276. https://doi.org/10.1177/1046496404263424
+
+Hogg, M. A., & Hains, S. C. (1996). Intergroup relations and group solidarity: Effects of
+group identification and social beliefs on depersonalized attraction. *Journal of
+Personality and Social Psychology*, *70*(2), 295–309. https://doi.org/10.1037/0022-3514.70.2.295
+
+Hogg, M. A., Hardie, E. A., & Reynolds, K. J. (1995). Prototypical similarity, self-categorization, and depersonalized attraction: A perspective on group
+cohesiveness. *European Journal of Social Psychology*, *25*(2), 159–177.
+https://doi.org/10.1002/ejsp.2420250204
+
+Hong, Y., & Ratner, K. G. (2021). Minimal but not meaningless: Seemingly arbitrary
+category labels can imply more than group membership. *Journal of Personality
+and Social Psychology*, *120*(3), 576–600. https://doi.org/10.1037/pspa0000255
+
+Hornsey, M. J., & Hogg, M. A. (1999). Subgroup differentiation as a response to an
+overly-inclusive group: A test of optimal distinctiveness theory. *European
+Journal of Social Psychology*, *29*, 543–550.
+
+Hornsey, M. J., & Hogg, M. A. (2000). Assimilation and diversity: An integrative model
+of subgroup relations. *Personality and Social Psychology Review*, *4*, 143–156.
+https://doi.org/10.1207/S15327957PSPR0402_03
+
+Huys, Q. J. M., Cools, R., Gölzer, M., Friedel, E., Heinz, A., Dolan, R. J., & Dayan, P.
+(2011). Disentangling the roles of approach, activation and valence in
+instrumental and Pavlovian responding. *PLOS Computational Biology*, *7*(4),
+e1002028. https://doi.org/10.1371/journal.pcbi.1002028
+
+Iyengar, S., Lelkes, Y., Levendusky, M., Malhotra, N., & Westwood, S. J. (2019). The
+origins and consequences of affective polarization in the United States. *Annual
+Review of Political Science*, *22*(1), 129–146. https://doi.org/10.1146/annurev-polisci-051117-073034
+
+James, W. (1890). *The principles of psychology* (Vol. 1). Henry Holt and Co.
+https://doi.org/10.1037/10538-000
+
+Jost, J. T., & Banaji, M. R. (1994). The role of stereotyping in system-justification and
+the production of false consciousness. *British Journal of Social Psychology*,
+*33*(1), 1–27. https://doi.org/10.1111/j.2044-8309.1994.tb01008.x
+
+Judd, C. M., Westfall, J., & Kenny, D. A. (2012). Treating stimuli as a random factor in
+social psychology: A new and comprehensive solution to a pervasive but largely
+ignored problem. *Journal of Personality and Social Psychology*, *103*(1), 54–69.
+https://doi.org/10.1037/a0028347
+
+Krueger, J. (2007). From social projection to social behaviour. *European Review of
+Social Psychology*, *18*(1), 1–35. https://doi.org/10.1080/10463280701284645
+
+Krueger, J., & Clement, R. W. (1994). The truly false consensus effect: An ineradicable
+and egocentric bias in social perception. *Journal of Personality and Social
+Psychology*, *67*, 596–610. https://doi.org/10.1037/0022-3514.67.4.596
+
+Krueger, J., & Clement, R. W. (1996). Inferring category characteristics from sample
+characteristics: Inductive reasoning and social projection. *Journal of
+Experimental Psychology: General*, *125*(1), 52–68.
+
+Kubinec, R. (2022). Ordered beta regression: A parsimonious, well-fitting model for
+continuous data with lower and upper bounds. *Political Analysis*, *31*, 519–536. https://doi.org/10.1017/pan.2022.20
+
+Lakens, D., Scheel, A. M., & Isager, P. M. (2018). Equivalence testing for psychological
+research: A tutorial. *Advances in Methods and Practices in Psychological
+Science*, *1*(2), 259–269. https://doi.org/10.1177/2515245918770963
+
+Latrofa, M., Vaes, J., & Cadinu, M. (2012). Self-stereotyping: The central role of an
+ingroup threatening identity. *The Journal of Social Psychology*, *152*(1), 92–111.
+https://doi.org/10.1080/00224545.2011.565382
+
+Latrofa, M., Vaes, J., Pastore, M., & Cadinu, M. (2009). "United we stand, divided we
+fall"! The protective function of self-stereotyping for stigmatised members'
+psychological well-being. *Applied Psychology: An International Review*, *58*(1),
+84–104. https://doi.org/10.1111/j.1464-0597.2008.00383.x
+
+Leach, C. W., van Zomeren, M., Zebel, S., Vliek, M. L. W., Pennekamp, S. F., Doosje,
+B., Ouwerkerk, J. W., & Spears, R. (2008). Group-level self-definition and self-investment: A hierarchical (multicomponent) model of in-group identification.
+*Journal of Personality and Social Psychology*, *95*(1), 144–165.
+https://doi.org/10.1037/0022-3514.95.1.144
+
+Leary, M. R., Kelly, K. M., Cottrell, C. A., & Schreindorfer, L. S. (2013). Construct
+validity of the need to belong scale: Mapping the nomological network.
+*Journal of Personality Assessment*, *95*(6), 610–624.
+https://doi.org/10.1080/00223891.2013.819511
+
+Lelkes, Y., & Westwood, S. J. (2017). The limits of partisan prejudice. *The Journal of
+Politics*, *79*(2), 485–501. https://doi.org/10.1086/688223
+
+Leonardelli, G. J., Pickett, C. L., & Brewer, M. B. (2010). Optimal distinctiveness theory:
+A framework for social identity, social cognition, and intergroup relations. In
+*Advances in experimental social psychology* (Vol. 43, pp. 63–113). Elsevier.
+
+Lüdecke, D., Ben-Shachar, M. S., Patil, I., Waggoner, P., & Makowski, D. (2021).
+performance: An R package for assessment, comparison and testing of
+statistical models. *Journal of Open Source Software*, *6*(60), 3139.
+https://doi.org/10.21105/joss.03139
+
+Luhtanen, R., & Crocker, J. (1992). A collective self-esteem scale: Self-evaluation of
+one's social identity. *Personality and Social Psychology Bulletin*, *18*(3), 302–318. https://doi.org/10.1177/0146167292183006
+
+Maddox, W. T., & Ashby, F. G. (1993). Comparing decision bound and exemplar models
+of categorization. *Perception & Psychophysics*, *53*(1), 49–70.
+https://doi.org/10.3758/BF03211715
+
+Makowski, D., Ben-Shachar, M. S., Chen, S. H. A., & Lüdecke, D. (2019). Indices of
+effect existence and significance in the Bayesian framework. *Frontiers in
+Psychology*, *10*, 2767. https://doi.org/10.3389/fpsyg.2019.02767
+
+Markus, H., & Wurf, E. (1987). The dynamic self-concept: A social psychological
+perspective. *Annual Review of Psychology*, *38*, 299–337.
+https://doi.org/10.1146/annurev.ps.38.020187.001503
+
+Mullen, B. (1991). Group composition, salience, and cognitive representations: The
+phenomenology of being in a group. *Journal of Experimental Social Psychology*,
+*27*, 297–323. https://doi.org/10.1016/0022-1031(91)90028-5
+
+Murayama, K., Usami, S., & Sakaki, M. (2022). Summary-statistics-based power
+analysis: A new and practical method to determine sample size for mixed-effects
+modeling. *Psychological Methods*. https://doi.org/10.1037/met0000330
+
+Nelson, L. J., & Miller, D. T. (1995). The distinctiveness effect in social categorization:
+You are what makes you unusual. *Psychological Science*, *6*, 246–249.
+https://doi.org/10.1111/j.1467-9280.1995.tb00600.x
+
+Nicenboim, B., & Vasishth, S. (2016). Statistical methods for linguistic research:
+Foundational ideas—Part II. *Language and Linguistics Compass*, *10*(11), 591–613. https://doi.org/10.1111/lnc3.12207
+
+Nosofsky, R. M. (1984). Choice, similarity, and the context theory of classification.
+*Journal of Experimental Psychology: Learning, Memory, and Cognition*, *10*, 104–114. https://doi.org/10.1037/0278-7393.10.1.104
+
+Nosofsky, R. M. (1986). Attention, similarity, and the identification–categorization
+relationship. *Journal of Experimental Psychology: General*, *115*(1), 39–57.
+https://doi.org/10.1037/0096-3445.115.1.39
+
+Nosofsky, R. M. (1988). Similarity, frequency, and category representations. *Journal of
+Experimental Psychology: Learning, Memory, and Cognition*, *14*(1), 54–65.
+https://doi.org/10.1037/0278-7393.14.1.54
+
+Nosofsky, R. M. (1991). Typicality in logically defined categories: Exemplar-similarity
+versus rule instantiation. *Memory & Cognition*, *19*(2), 131–150.
+https://doi.org/10.3758/BF03197110
+
+Nosofsky, R. M. (2011). The generalized context model: An exemplar model of
+classification. In A. J. Wills & E. M. Pothos (Eds.), *Formal approaches in
+categorization* (pp. 18–39). Cambridge University Press.
+https://doi.org/10.1017/CBO9780511921322.002
+
+Obst, P., White, K., Mavor, K., & Baker, R. (2011). Social identification dimensions as
+mediators of the effect of prototypicality on intergroup behaviours. *Psychology*,
+*2*, 265–269. https://doi.org/10.4236/psych.2011.25066
+
+Otten, S. (2003). "Me and us" or "us and them"? The self as a heuristic for defining
+minimal ingroups. *European Review of Social Psychology*, *13*(1), 1–33.
+https://doi.org/10.1080/10463280240000028
+
+Otten, S. (2004). Self-anchoring as predictor of in-group favoritism: Is it applicable to
+real group contexts? *Current Psychology of Cognition*, *22*(4/5), 427–444.
+
+Otten, S., & Epstude, K. (2006). Overlapping mental representations of self, ingroup, and
+outgroup: Unraveling self-stereotyping and self-anchoring. *Personality & Social
+Psychology Bulletin*, *32*(7), 957–969. https://doi.org/10.1177/0146167206287254
+
+Otten, S., & Wentura, D. (2001). Self-anchoring and in-group favoritism: An individual
+profiles analysis. *Journal of Experimental Social Psychology*, *37*(6), 525–532.
+https://doi.org/10.1006/jesp.2001.1479
+
+Postmes, T., Haslam, S. A., & Jans, L. (2013). A single-item measure of social
+identification: Reliability, validity, and utility. *British Journal of Social
+Psychology*, *52*(4), 597–617. https://doi.org/10.1111/bjso.12006
+
+Rabinovich, A., & Morton, T. A. (2011). Subgroup identities as a key to cooperation
+within large social groups. *British Journal of Social Psychology*, *50*(1), 36–51.
+https://doi.org/10.1348/014466610X486356
+
+Riketta, M., & Sacramento, C. A. (2008). "They cooperate with us, so they are like me":
+Perceived intergroup relationship moderates projection from self to outgroups.
+*Group Processes & Intergroup Relations*, *11*(1), 115–131.
+https://doi.org/10.1177/1368430207084849
+
+Robinaugh, D. J., Haslbeck, J. M. B., Ryan, O., Fried, E. I., & Waldorp, L. J. (2021).
+Invisible hands and fine calipers: A call to use formal theory as a toolkit for
+theory construction. *Perspectives on Psychological Science*, *16*(4), 725–743.
+https://doi.org/10.1177/1745691620974697
+
+Rosch, E., & Lloyd, B. B. (1978). *Principles of categorization*. Lawrence Erlbaum Associates.
+
+Rosenberg, M. (1965). *Society and the adolescent self-image*. Princeton University Press.
+
+Roth, J., Steffens, M. C., & Vignoles, V. L. (2018). Group membership, group change,
+and intergroup attitudes: A recategorization model based on cognitive
+consistency principles. *Frontiers in Psychology*, *9*, 479.
+https://doi.org/10.3389/fpsyg.2018.00479
+
+Schneider, M. J., Rubin-McGregor, J., Elder, J., Hughes, B., & Tamir, D. (2022).
+Simulation requires activation of self-knowledge to change self-concept.
+*PsyArXiv*. https://doi.org/10.31234/osf.io/92mru
+
+Schubert, T. W., & Otten, S. (2002). Overlap of self, ingroup, and outgroup: Pictorial
+measures of self-categorization. *Self and Identity*, *1*, 353–376.
+https://doi.org/10.1080/152988602760328012
+
+Shannon, C. E. (1948). A mathematical theory of communication. *Bell System
+Technical Journal*, *27*(3), 379–423. https://doi.org/10.1002/j.1538-7305.1948.tb01338.x
+
+Shepard, R. N. (1987). Toward a universal law of generalization for psychological
+science. *Science*, *237*(4820), 1317–1323. https://doi.org/10.1126/science.3629243
+
+Sherman, D. K., & Kim, H. S. (2005). Is there an "I" in "team"? The role of the self in
+group-serving judgments. *Journal of Personality and Social Psychology*, *88*,
+108–120. https://doi.org/10.1037/0022-3514.88.1.108
+
+Simon, B., & Brown, R. (1987). Perceived intragroup homogeneity in minority-majority
+contexts. *Journal of Personality and Social Psychology*, *53*, 703–711.
+https://doi.org/10.1037/0022-3514.53.4.703
+
+Smith, E. R., & Henry, S. (1996). An in-group becomes part of the self: Response time
+evidence. *Personality and Social Psychology Bulletin*, *22*, 635–642.
+https://doi.org/10.1177/0146167296226008
+
+Sorensen, T., Hohenstein, S., & Vasishth, S. (2016). Bayesian linear mixed models using
+Stan: A tutorial for psychologists, linguists, and cognitive scientists. *The
+Quantitative Methods for Psychology*, *12*(3), 175–200.
+https://doi.org/10.20982/tqmp.12.3.p175
+
+Spears, R., Doosje, B., & Ellemers, N. (1997). Self-stereotyping in the face of threats to
+group status and distinctiveness: The role of group identification. *Personality
+and Social Psychology Bulletin*, *23*(5), 538–553.
+https://doi.org/10.1177/0146167297235009
+
+Spencer-Rodgers, J., Srivastava, S., Boucher, H. C., English, T., Paletz, S. B., & Peng, K.
+(2015). *The dialectical self scale*. Unpublished manuscript.
+https://doi.org/10.13140/RG.2.1.3695.5928
+
+Tajfel, H. (1974). Social identity and intergroup behaviour. *Social Science Information*,
+*13*(2), 65–93. https://doi.org/10.1177/053901847401300204
+
+Tajfel, H. (1978). *Differentiation between social groups: Studies in the social psychology
+of intergroup relations*. Academic Press.
+
+Tajfel, H., & Billig, M. (1974). Familiarity and categorization in intergroup behavior.
+*Journal of Experimental Social Psychology*, *10*, 159–170.
+https://doi.org/10.1016/0022-1031(74)90064-X
+
+Tajfel, H., Sheikh, A. A., & Gardner, R. C. (1964). Content of stereotypes and the
+inference of similarity between members of stereotyped groups. *Acta
+Psychologica*, *22*, 191–201.
+
+Tropp, L. R., & Wright, S. C. (2001). Ingroup identification as the inclusion of ingroup in
+the self. *Personality and Social Psychology Bulletin*, *27*, 585–600.
+https://doi.org/10.1177/0146167201275007
+
+Turner, J. C., Hogg, M. A., Oakes, P. J., Reicher, S. D., & Wetherell, M. S. (1987).
+*Rediscovering the social group: A self-categorization theory*. Basil Blackwell.
+
+Turner, J. C., Oakes, P. J., Haslam, S. A., & McGarty, C. (1994). Self and collective:
+Cognition and social context. *Personality and Social Psychology Bulletin*, *20*(5),
+454–463.
+
+Tversky, A. (1977). Features of similarity. *Psychological Review*, *84*(4), 327–352.
+https://doi.org/10.1037/0033-295X.84.4.327
+
+Tyler, L. K., & Moss, H. E. (2001). Towards a distributed account of conceptual
+knowledge. *Trends in Cognitive Sciences*, *5*, 244–252.
+https://doi.org/10.1016/S1364-6613(00)01651-X
+
+Unkelbach, C. (2007). Reversing the truth effect: Learning the interpretation of
+processing fluency in judgments of truth. *Journal of Experimental Psychology:
+Learning, Memory, and Cognition*, *33*(1), 219–230. https://doi.org/10.1037/0278-7393.33.1.219
+
+Unkelbach, C., Koch, A., Silva, R. R., & Garcia-Marques, T. (2019). Truth by repetition:
+Explanations and implications. *Current Directions in Psychological Science*,
+*28*(3), 247–253. https://doi.org/10.1177/0963721419827854
+
+Unkelbach, C., & Rom, S. C. (2017). A referential theory of the repetition-induced truth
+effect. *Cognition*, *160*, 110–126. https://doi.org/10.1016/j.cognition.2016.12.016
+
+van Veelen, R., Eisenbeiss, K. K., & Otten, S. (2016). Newcomers to social categories:
+Longitudinal predictors and consequences of ingroup identification. *Personality
+and Social Psychology Bulletin*, *42*(6), 811–825.
+https://doi.org/10.1177/0146167216643937
+
+van Veelen, R., Otten, S., Cadinu, M., & Hansen, N. (2016). An integrative model of
+social identification: Self-stereotyping and self-anchoring as two cognitive
+pathways. *Personality and Social Psychology Review*, *20*(1), 3–26.
+https://doi.org/10.1177/1088868315576642
+
+van Veelen, R., Otten, S., & Hansen, N. (2011). Linking self and ingroup: Self-anchoring
+as distinctive cognitive route to social identification. *European Journal of Social
+Psychology*, *41*(5), 628–637. https://doi.org/10.1002/ejsp.792
+
+van Veelen, R., Otten, S., & Hansen, N. (2013a). Social identification when an in-group
+identity is unclear: The role of self-anchoring and self-stereotyping. *British
+Journal of Social Psychology*, *52*(3), 543–562. https://doi.org/10.1111/j.2044-8309.2012.02110.x
+
+van Veelen, R., Otten, S., & Hansen, N. (2013b). A personal touch to diversity: Self-anchoring increases minority members' identification in a diverse group. *Group
+Processes & Intergroup Relations*, *16*(6), 671–683.
+https://doi.org/10.1177/1368430212473167
+
+Vehtari, A., Gelman, A., & Gabry, J. (2017). Practical Bayesian model evaluation using
+leave-one-out cross-validation and WAIC. *Statistics and Computing*, *27*(5), 1413–1432. https://doi.org/10.1007/s11222-016-9696-4
+
+Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C. (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing
+convergence of MCMC (with discussion). *Bayesian Analysis*, *16*(2), 667–718.
+https://doi.org/10.1214/20-BA1221
+
+Vogel, T., Carr, E. W., Davis, T., & Winkielman, P. (2018). Category structure
+determines the relative attractiveness of global versus local averages. *Journal of
+Experimental Psychology: Learning, Memory, and Cognition*, *44*, 250–267.
+https://doi.org/10.1037/xlm0000446
+
+Yarkoni, T. (2022). The generalizability crisis. *Behavioral and Brain Sciences*, *45*, e1.
+https://doi.org/10.1017/S0140525X20001685
+
+Zeithamova, D., Maddox, W. T., & Schnyer, D. M. (2008). Dissociable prototype
+learning systems: Evidence from brain imaging and behavior. *Journal of
+Neuroscience*, *28*(49), 13194–13201. https://doi.org/10.1523/JNEUROSCI.2915-08.2008

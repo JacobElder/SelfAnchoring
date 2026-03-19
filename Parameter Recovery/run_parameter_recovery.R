@@ -5,6 +5,7 @@ library(cmdstanr)
 library(tidyverse)
 library(here)
 library(igraph)
+library(MASS)
 
 set.seed(42)
 
@@ -48,11 +49,53 @@ for (i in seq_along(uIds)) {
 }
 message(sprintf("Data loaded: %d subjects, maxTrials=%d, maxTrain=%d", nSubjects, maxTrials, maxTrain))
 
+# ── 2. GMRF self-ratings ──────────────────────────────────────────────────────
+# Generate synthetic self-ratings that are (a) centered at 4 to avoid the GP
+# ceiling effect from real participants' positive self-enhancement bias, and
+# (b) smooth over the trait network so that similar traits receive similar
+# ratings, matching the model's projection assumption.
+#
+# Method: Gaussian Markov Random Field (GMRF) with precision = alpha*L + eps*I,
+# where L is the graph Laplacian. alpha controls network smoothness; eps
+# regularises the singular Laplacian. Ratings are standardised to within-person
+# SD ≈ 1.13 (matching real data) and centred at 4, then rounded to 1–7.
+#
+# Each simulated subject receives an independent GMRF draw, replacing the
+# repeated use of a fixed set of real participants' self-ratings.
+message("Generating GMRF self-ratings...")
+n_traits    <- nrow(as.matrix(posDf))           # 148
+L_mat       <- as.matrix(laplacian_matrix(posGraph))
+gmrf_alpha  <- 1.0    # smoothness (higher = more network-aligned ratings)
+gmrf_eps    <- 0.01   # regularisation to make L invertible
+Sigma_gmrf  <- solve(gmrf_alpha * L_mat + gmrf_eps * diag(n_traits))
+
+set.seed(77)
+gmrf_raw    <- mvrnorm(nSubjects, mu = rep(0, n_traits), Sigma = Sigma_gmrf)
+# Standardise each subject's vector: SD = 1.13, mean = 4, clamp to [1,7]
+gmrf_scaled <- t(apply(gmrf_raw, 1, function(x) {
+  pmin(pmax(round((x - mean(x)) / sd(x) * 1.13 + 4), 1), 7)
+}))  # nSubjects × n_traits integer matrix
+
+prevSelf_gmrf <- array(0, c(nSubjects, maxTrain))
+for (i in seq_along(uIds)) {
+  s_train <- filter(traindf, subID == uIds[i])
+  prevSelf_gmrf[i, 1:nrow(s_train)] <- gmrf_scaled[i, s_train$Idx]
+}
+
+# Diagnostic: confirm GP spread improves over real self-ratings
+gmrf_gp <- inv_logit(2.80 * (prevSelf_gmrf[prevSelf_gmrf != 0] - 4))
+message(sprintf(
+  "GMRF GP diagnostics (m=2.80): mean=%.3f, pct>0.7=%.1f%%, pct<0.3=%.1f%%",
+  mean(gmrf_gp), 100 * mean(gmrf_gp > 0.7), 100 * mean(gmrf_gp < 0.3)
+))
+message("GMRF self-ratings generated.")
+
 # ── Helper: draw synthetic parameters ────────────────────────────────────────
 draw_params_sym <- function(n, seed = 1) {
   set.seed(seed)
-  mu_pr <- c(m = qnorm(2.80/10), bias = qnorm(0.36), lambda = qnorm(3.56/5), w = qnorm(0.56))
-  sigma <- c(m = 0.5, bias = 0.4, lambda = 0.4, w = 0.4)
+  # mu_pr and sigma from real S1 sym_lambda posterior (param order: m, bias, lambda, w)
+  mu_pr <- c(m = -0.5744, bias = -0.3594, lambda = 0.5649, w = 0.1781)
+  sigma <- c(m = 0.2860, bias = 0.7091, lambda = 0.3343, w = 1.1808)
   pr    <- matrix(rnorm(n * 4), nrow = n)
   data.frame(
     subj_idx = 1:n,
@@ -64,9 +107,10 @@ draw_params_sym <- function(n, seed = 1) {
 }
 draw_params_asym <- function(n, seed = 2) {
   set.seed(seed)
-  mu_pr <- c(m_in = qnorm(3.5/10), m_out = qnorm(2.5/10),
-             bias = qnorm(0.36), lambda = qnorm(3.56/5), w = qnorm(0.56))
-  sigma <- c(m_in = 0.5, m_out = 0.5, bias = 0.4, lambda = 0.4, w = 0.4)
+  # mu_pr and sigma from real S1 asym_lambda posterior (param order: m_in, m_out, bias, lambda, w)
+  mu_pr <- c(m_in = -0.1106, m_out = -0.4780,
+             bias = -0.3794, lambda = 0.5162, w = 0.2069)
+  sigma <- c(m_in = 0.2200, m_out = 0.2261, bias = 0.7213, lambda = 0.3768, w = 1.1884)
   pr    <- matrix(rnorm(n * 5), nrow = n)
   data.frame(
     subj_idx = 1:n,
@@ -79,12 +123,12 @@ draw_params_asym <- function(n, seed = 2) {
 }
 
 # ── Helper: simulate choices ──────────────────────────────────────────────────
-simulate_choices_sym <- function(true_params) {
+simulate_choices_sym <- function(true_params, prevSelf = prevSelf_gmrf) {
   choices <- array(0L, c(nSubjects, maxTrials))
   for (i in 1:nSubjects) {
     tp  <- true_params[i, ]
     nt  <- nTrials_vec[i]; ntr <- nTrain_vec[i]
-    GP   <- inv_logit(tp$m * (prevSelf_real[i, 1:ntr] - 4))
+    GP   <- inv_logit(tp$m * (prevSelf[i, 1:ntr] - 4))
     PS   <- prevSim_real[i, 1:nt, 1:ntr] ^ tp$lambda
     simW_in  <- as.vector(PS %*% GP) + 1e-9
     simW_out <- as.vector(PS %*% (1 - GP)) + 1e-9
@@ -94,12 +138,12 @@ simulate_choices_sym <- function(true_params) {
   }
   choices
 }
-simulate_choices_asym <- function(true_params) {
+simulate_choices_asym <- function(true_params, prevSelf = prevSelf_gmrf) {
   choices <- array(0L, c(nSubjects, maxTrials))
   for (i in 1:nSubjects) {
     tp  <- true_params[i, ]
     nt  <- nTrials_vec[i]; ntr <- nTrain_vec[i]
-    self_i <- prevSelf_real[i, 1:ntr]
+    self_i <- prevSelf[i, 1:ntr]
     GPin    <- inv_logit( tp$m_in  * (self_i - 4))
     GPout   <- inv_logit(-tp$m_out * (self_i - 4))
     PS      <- prevSim_real[i, 1:nt, 1:ntr] ^ tp$lambda
@@ -113,11 +157,11 @@ simulate_choices_asym <- function(true_params) {
 }
 
 # ── Helper: assemble stan_data ────────────────────────────────────────────────
-make_stan_data <- function(sim_choices) {
+make_stan_data <- function(sim_choices, prevSelf = prevSelf_gmrf) {
   list(
     nSubjects = nSubjects, maxTrials = maxTrials, maxTrain = maxTrain,
     nTrain = nTrain_vec, nTrials = nTrials_vec, groupChoice = sim_choices,
-    prevSim = prevSim_real, prevSelf = prevSelf_real
+    prevSim = prevSim_real, prevSelf = prevSelf
   )
 }
 
