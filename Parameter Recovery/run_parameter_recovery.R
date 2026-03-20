@@ -65,7 +65,7 @@ message(sprintf("Data loaded: %d subjects, maxTrials=%d, maxTrain=%d", nSubjects
 message("Generating GMRF self-ratings...")
 n_traits    <- nrow(as.matrix(posDf))           # 148
 L_mat       <- as.matrix(laplacian_matrix(posGraph))
-gmrf_alpha  <- 1.0    # smoothness (higher = more network-aligned ratings)
+gmrf_alpha  <- 2.0    # smoothness (higher = more network-aligned ratings; increased from 1.0 to sharpen GP spread)
 gmrf_eps    <- 0.01   # regularisation to make L invertible
 Sigma_gmrf  <- solve(gmrf_alpha * L_mat + gmrf_eps * diag(n_traits))
 
@@ -95,7 +95,7 @@ draw_params_sym <- function(n, seed = 1) {
   set.seed(seed)
   # mu_pr and sigma from real S1 sym_lambda posterior (param order: m, bias, lambda, w)
   mu_pr <- c(m = -0.5744, bias = -0.3594, lambda = 0.5649, w = 0.1781)
-  sigma <- c(m = 0.2860, bias = 0.7091, lambda = 0.3343, w = 1.1808)
+  sigma <- c(m = 0.4000, bias = 0.7091, lambda = 0.3343, w = 1.1808)  # m sigma widened (0.2860→0.4000) to increase α spread
   pr    <- matrix(rnorm(n * 4), nrow = n)
   data.frame(
     subj_idx = 1:n,
@@ -110,7 +110,7 @@ draw_params_asym <- function(n, seed = 2) {
   # mu_pr and sigma from real S1 asym_lambda posterior (param order: m_in, m_out, bias, lambda, w)
   mu_pr <- c(m_in = -0.1106, m_out = -0.4780,
              bias = -0.3794, lambda = 0.5162, w = 0.2069)
-  sigma <- c(m_in = 0.2200, m_out = 0.2261, bias = 0.7213, lambda = 0.3768, w = 1.1884)
+  sigma <- c(m_in = 0.4000, m_out = 0.4000, bias = 0.7213, lambda = 0.3768, w = 1.1884)  # m_in/m_out sigma widened (0.22→0.40) to increase α spread
   pr    <- matrix(rnorm(n * 5), nrow = n)
   data.frame(
     subj_idx = 1:n,

@@ -32,7 +32,8 @@
       "WebFetch(domain:osf.io)",
       "WebFetch(domain:api.osf.io)",
       "WebSearch",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(sysctl:*)"
     ]
   }
 }
