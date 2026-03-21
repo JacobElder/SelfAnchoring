@@ -48,21 +48,16 @@ with simulated choices. Results saved to `Results/parameter_recovery_*_results.c
 
 **Run both models (S_Sym_Lambda and S_Asym_Lambda):**
 ```bash
-Rscript "Parameter Recovery/run_parameter_recovery.R"
+caffeinate -i sh -c 'Rscript "Parameter Recovery/run_parameter_recovery.R" setup && Rscript "Parameter Recovery/run_parameter_recovery.R"'
 ```
 
 **Run one model only:**
 ```bash
-Rscript "Parameter Recovery/run_parameter_recovery.R" sym_lambda
-Rscript "Parameter Recovery/run_parameter_recovery.R" asym_lambda
+caffeinate -i sh -c 'Rscript "Parameter Recovery/run_parameter_recovery.R" setup && Rscript "Parameter Recovery/run_parameter_recovery.R" sym_lambda'
+caffeinate -i sh -c 'Rscript "Parameter Recovery/run_parameter_recovery.R" setup && Rscript "Parameter Recovery/run_parameter_recovery.R" asym_lambda'
 ```
 
-**With caffeinate (recommended — prevents sleep during long sampling):**
-```bash
-caffeinate -i Rscript "Parameter Recovery/run_parameter_recovery.R"
-caffeinate -i Rscript "Parameter Recovery/run_parameter_recovery.R" sym_lambda
-caffeinate -i Rscript "Parameter Recovery/run_parameter_recovery.R" asym_lambda
-```
+**Why two processes?** macOS OOM-kills a single R process because R never returns heap pages to the OS after `gc()`. Running `setup` first (base R + `here` only, ~20 MB) lets the OS fully reclaim memory before the fit process loads cmdstanr. The `setup` arg generates GMRF self-ratings, draws true parameters, simulates choices, and saves `Parameter Recovery/pr_cache.rds`; the fit process loads the cache and runs Stan.
 
 ### Notes
 - `caffeinate -i` prevents macOS from sleeping during long-running fits
