@@ -45,10 +45,10 @@ pooled_maxTrials <- max(stan_data$nTrials)
 
 # 2. Define Models
 models <- list(
-  bias = "S_Pooled_Bias.stan",
-  symmetric = "S_Pooled_Symmetric.stan",
-  sym_lambda = "S_Pooled_Sym_Lambda.stan",
-  asym_lambda = "S_Pooled_Asym_Lambda.stan"
+  bias        = "S_Pooled_Bias_NoW.stan",
+  symmetric   = "S_Pooled_Symmetric_NoW.stan",
+  sym_lambda  = "S_Pooled_Sym_Lambda_NoW.stan",
+  asym_lambda = "S_Pooled_Asym_Lambda_NoW.stan"
 )
 
 # 3. Fit function (now saves to disk and returns nothing to save memory)

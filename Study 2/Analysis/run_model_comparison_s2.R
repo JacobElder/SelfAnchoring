@@ -74,10 +74,10 @@ compute_subj_pareto_k <- function(l, study_label, model_name, uIds, nTrials_vec,
 
 # 2. Define Models
 models <- list(
-  bias = "S_Bias.stan",
-  symmetric = "S_Symmetric.stan",
-  sym_lambda = "S_Sym_Lambda.stan",
-  asym_lambda = "S_Asym_Lambda.stan"
+  bias        = "S_Bias_NoW.stan",
+  symmetric   = "S_Symmetric_NoW.stan",
+  sym_lambda  = "S_Sym_Lambda_NoW.stan",
+  asym_lambda = "S_Asym_Lambda_NoW.stan"
 )
 
 # 3. Fit function (memory-efficient)

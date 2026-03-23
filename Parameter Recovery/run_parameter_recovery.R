@@ -311,8 +311,9 @@ if (run_now) {
   # Draw params (no w)
   draw_params_sym_now <- function(n, seed = 1) {
     set.seed(seed)
-    mu_pr <- c(m = -0.5744, bias = -0.3594, lambda = 0.5649)
-    sigma <- c(m = 0.4000,  bias =  0.7091, lambda = 0.3343)
+    # Calibrated to Study 1 NoW sym_lambda posterior (probit-scale medians)
+    mu_pr <- c(m = -1.8230, bias = -0.1208, lambda = 0.6478)
+    sigma <- c(m =  0.7323, bias =  0.3433, lambda = 0.0760)
     pr    <- matrix(rnorm(n * 3), nrow = n)
     data.frame(
       subj_idx = 1:n,
@@ -323,8 +324,9 @@ if (run_now) {
   }
   draw_params_asym_now <- function(n, seed = 2) {
     set.seed(seed)
-    mu_pr <- c(m_in = -0.1106, m_out = -0.4780, bias = -0.3794, lambda = 0.5162)
-    sigma <- c(m_in =  0.4000, m_out =  0.4000, bias =  0.7213, lambda = 0.3768)
+    # Best guess based on Study 1 NoW sym_lambda posterior; update when asym_lambda NoW fit completes
+    mu_pr <- c(m_in = -1.8230, m_out = -1.8230, bias = -0.1208, lambda = 0.6478)
+    sigma <- c(m_in =  0.7323, m_out =  0.7323, bias =  0.3433, lambda = 0.0760)
     pr    <- matrix(rnorm(n * 4), nrow = n)
     data.frame(
       subj_idx = 1:n,
