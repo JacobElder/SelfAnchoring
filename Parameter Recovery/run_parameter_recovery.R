@@ -312,8 +312,9 @@ if (run_now) {
   draw_params_sym_now <- function(n, seed = 1) {
     set.seed(seed)
     # Calibrated to Study 1 NoW sym_lambda posterior (probit-scale medians)
+    # sigma["lambda"] widened from posterior (0.076) to test recovery capacity
     mu_pr <- c(m = -1.8230, bias = -0.1208, lambda = 0.6478)
-    sigma <- c(m =  0.7323, bias =  0.3433, lambda = 0.0760)
+    sigma <- c(m =  0.7323, bias =  0.3433, lambda = 0.3000)
     pr    <- matrix(rnorm(n * 3), nrow = n)
     data.frame(
       subj_idx = 1:n,
@@ -325,8 +326,9 @@ if (run_now) {
   draw_params_asym_now <- function(n, seed = 2) {
     set.seed(seed)
     # Best guess based on Study 1 NoW sym_lambda posterior; update when asym_lambda NoW fit completes
+    # sigma["lambda"] widened from posterior (0.076) to test recovery capacity
     mu_pr <- c(m_in = -1.8230, m_out = -1.8230, bias = -0.1208, lambda = 0.6478)
-    sigma <- c(m_in =  0.7323, m_out =  0.7323, bias =  0.3433, lambda = 0.0760)
+    sigma <- c(m_in =  0.7323, m_out =  0.7323, bias =  0.3433, lambda = 0.3000)
     pr    <- matrix(rnorm(n * 4), nrow = n)
     data.frame(
       subj_idx = 1:n,

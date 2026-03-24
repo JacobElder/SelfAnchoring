@@ -29,7 +29,7 @@ params_file <- here("Results","params_ind_s1_sym_lambda.csv")
 if (!file.exists(params_file)) params_file <- here("Results","params_ind_s1_asym_lambda.csv")
 
 params_sl <- read.csv(params_file)
-params_sl <- params_sl[grepl("^(m|bias|lambda|w)\\[", params_sl$variable), ]
+params_sl <- params_sl[grepl("^(m|bias|lambda)\\[", params_sl$variable), ]
 params_sl$subj_idx <- as.integer(regmatches(params_sl$variable,
                                              regexpr("[0-9]+", params_sl$variable)))
 params_sl$param    <- sub("\\[.*", "", params_sl$variable)
@@ -37,11 +37,35 @@ params_wide <- reshape(params_sl[, c("subj_idx","param","median")],
   idvar="subj_idx", timevar="param", direction="wide")
 names(params_wide) <- sub("median\\.", "", names(params_wide))
 
-# MCR from asym_lambda
-params_al <- read.csv(here("Results","params_ind_s1_asym_lambda.csv"))
-mcr <- params_al[grepl("^subject_mcr\\[", params_al$variable), ]
-mcr$subj_idx <- as.integer(regmatches(mcr$variable, regexpr("[0-9]+", mcr$variable)))
-mcr <- mcr[, c("subj_idx","median")]; names(mcr)[2] <- "subject_mcr"
+# MCR computed analytically from asym_lambda posterior medians
+# (subject_mcr not in Stan output for NoW models; computed here from params)
+library(igraph)
+traindf_ts <- read.csv(here("Study 1/Cleaning/output/fullTrain.csv")) |>
+  filter(!is.na(selfResp), subID %in% uIds)
+posDf_ts   <- read.csv(here("Pooled/input/adjacencyMatrix_p.csv"))
+simMat_ts  <- similarity(graph_from_adjacency_matrix(as.matrix(posDf_ts), mode="max"),
+                         method="dice")
+params_al  <- read.csv(here("Results","params_ind_s1_asym_lambda.csv"))
+get_pv <- function(df, prefix) {
+  rows <- df[grepl(paste0("^", prefix, "\\["), df$variable), ]
+  rows$idx <- as.integer(regmatches(rows$variable, regexpr("[0-9]+", rows$variable)))
+  rows$median[order(rows$idx)]
+}
+m_in_v  <- get_pv(params_al, "m_in")
+m_out_v <- get_pv(params_al, "m_out")
+lam_v   <- get_pv(params_al, "lambda")
+mcr_vals <- sapply(seq_along(uIds), function(s) {
+  id <- uIds[s]
+  s_df    <- filter(fulldf,      subID == id)
+  s_train <- filter(traindf_ts,  subID == id)
+  GPin  <- plogis( m_in_v[s]  * (s_train$selfResp - 4))
+  GPout <- plogis(-m_out_v[s] * (s_train$selfResp - 4))
+  PS    <- simMat_ts[s_df$Idx, s_train$Idx]^lam_v[s]
+  simW_in  <- as.numeric(PS %*% GPin)  + 1e-9
+  simW_out <- as.numeric(PS %*% GPout) + 1e-9
+  mean(simW_in / simW_out)
+})
+mcr <- data.frame(subj_idx = seq_along(uIds), subject_mcr = mcr_vals)
 
 # ΔELPD
 loo_path_sym  <- here("Fits","loo_s1_sym_lambda.rds")
@@ -52,7 +76,7 @@ if (file.exists(loo_path_sym) && file.exists(loo_path_asym)) {
   traindf <- read.csv(here("Study 1/Cleaning/output/fullTrain.csv")) |>
     filter(!is.na(selfResp))
   common_ids <- sort(intersect(uIds, unique(traindf$subID)))
-  maxTrials <- max(fulldf$trialTotal, na.rm=TRUE)
+  maxTrials <- max(fulldf$trialTotalT2, na.rm=TRUE)
   nTrials_vec <- sapply(uIds, function(id) nrow(filter(fulldf, subID == id)))
   loo_sym  <- readRDS(loo_path_sym)
   loo_asym <- readRDS(loo_path_asym)
@@ -77,7 +101,7 @@ cat(sprintf("Merged N: %d\n", nrow(df)))
 #   Family 2: individual-difference scales
 # w is descriptive only.
 param_preds <- intersect(c("m","bias","lambda","subject_mcr","delta_elpd"), names(df))
-descr_preds <- intersect(c("w"), names(df))
+descr_preds <- character(0)  # w removed (NoW models)
 
 run_cors_1 <- function(pred_set, df) {
   rows <- list()
@@ -95,11 +119,9 @@ run_cors_1 <- function(pred_set, df) {
 
 res_params  <- run_cors_1(param_preds, df)
 res_scales  <- run_cors_1(avail_scales, df)
-res_descr   <- run_cors_1(descr_preds, df)
 res_params$p_fdr <- round(p.adjust(res_params$p_raw, method="BH"), 4)
 res_scales$p_fdr <- round(p.adjust(res_scales$p_raw, method="BH"), 4)
-res_descr$p_fdr  <- NA_real_
-res <- rbind(res_params, res_scales, res_descr)
+res <- rbind(res_params, res_scales)
 res <- res[order(res$p_raw), ]
 
 cat("\n=== Trait Segregation ~ Computational Params (FDR-corrected) ===\n")
@@ -110,8 +132,6 @@ cat("\n=== FDR-significant params ===\n")
 print(res_params[!is.na(res_params$p_fdr) & res_params$p_fdr < .05, ], row.names=FALSE)
 cat("\n=== FDR-significant scales ===\n")
 print(res_scales[!is.na(res_scales$p_fdr) & res_scales$p_fdr < .05, ], row.names=FALSE)
-cat("\n=== Descriptive: w (not FDR-corrected) ===\n")
-print(res_descr, row.names=FALSE)
 cat(sprintf("\nDescriptives: M = %.3f, SD = %.3f, range [%.3f, %.3f]\n",
   mean(df$groupHomoph, na.rm=TRUE), sd(df$groupHomoph, na.rm=TRUE),
   min(df$groupHomoph, na.rm=TRUE), max(df$groupHomoph, na.rm=TRUE)))

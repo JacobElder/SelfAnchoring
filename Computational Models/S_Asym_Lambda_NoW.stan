@@ -74,9 +74,10 @@ generated quantities {
   real<lower=0, upper=1>  mu_bias   = Phi_approx(mu_pr[3]);
   real<lower=0, upper=5>  mu_lambda = Phi_approx(mu_pr[4]) * 5;
 
-  vector[nSubjects * maxTrials] log_lik = rep_vector(0.0, nSubjects * maxTrials);
-  vector[nSubjects * maxTrials] p_pred  = rep_vector(0.0, nSubjects * maxTrials);
-  vector[nSubjects * maxTrials] mcr     = rep_vector(0.0, nSubjects * maxTrials);
+  vector[nSubjects * maxTrials] log_lik    = rep_vector(0.0, nSubjects * maxTrials);
+  vector[nSubjects * maxTrials] p_pred     = rep_vector(0.0, nSubjects * maxTrials);
+  vector[nSubjects * maxTrials] mcr        = rep_vector(0.0, nSubjects * maxTrials);
+  vector[nSubjects]             subject_mcr = rep_vector(0.0, nSubjects);
 
   for (s in 1:nSubjects) {
     vector[nTrain[s]] GPin;
@@ -85,6 +86,8 @@ generated quantities {
     vector[nTrials[s]] simW_in;
     vector[nTrials[s]] simW_out;
     vector[nTrials[s]] logit_p;
+    real mcr_sum = 0.0;
+    int  n_valid  = 0;
 
     GPin[1:nTrain[s]]  = inv_logit(m_in[s]  * (prevSelf[s, 1:nTrain[s]] - 4.0));
     GPout[1:nTrain[s]] = inv_logit(-m_out[s] * (prevSelf[s, 1:nTrain[s]] - 4.0));
@@ -100,7 +103,10 @@ generated quantities {
         log_lik[(s-1)*maxTrials + t] = bernoulli_logit_lpmf(groupChoice[s, t] - 1 | logit_p[t]);
         p_pred[(s-1)*maxTrials + t]  = inv_logit(logit_p[t]);
         mcr[(s-1)*maxTrials + t]     = simW_in[t] / simW_out[t];
+        mcr_sum += simW_in[t] / simW_out[t];
+        n_valid  += 1;
       }
     }
+    subject_mcr[s] = (n_valid > 0) ? mcr_sum / n_valid : 1.0;
   }
 }

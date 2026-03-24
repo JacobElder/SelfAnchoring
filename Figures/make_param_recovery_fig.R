@@ -21,8 +21,8 @@ TIFF_DPI   <- 300
 TIFF_UNITS <- "in"
 
 # ── Load or simulate data ─────────────────────────────────────────────────────
-sym_file  <- here("Results", "parameter_recovery_symlambda_results.csv")
-asym_file <- here("Results", "parameter_recovery_asymlambda_results.csv")
+sym_file  <- here("Results", "parameter_recovery_symlambdanow_results.csv")
+asym_file <- here("Results", "parameter_recovery_asymlambdanow_results.csv")
 
 using_placeholder <- FALSE
 
@@ -60,9 +60,9 @@ if (is.null(sym_data) || is.null(asym_data)) {
   message("  Recovery CSVs not found — using placeholder data.")
   message("  Run: caffeinate -i Rscript 'Parameter Recovery/run_parameter_recovery.R'")
   if (is.null(sym_data))
-    sym_data  <- gen_placeholder("Sym_Lambda",  c("m", "bias", "lambda", "w"),             seed = 42)
+    sym_data  <- gen_placeholder("Sym_Lambda_NoW",  c("m", "bias", "lambda"),             seed = 42)
   if (is.null(asym_data))
-    asym_data <- gen_placeholder("Asym_Lambda", c("m_in", "m_out", "bias", "lambda", "w"), seed = 43)
+    asym_data <- gen_placeholder("Asym_Lambda_NoW", c("m_in", "m_out", "bias", "lambda"), seed = 43)
 } else {
   message("  Loaded real recovery data from Results/")
 }
@@ -87,8 +87,8 @@ param_short_map <- c(
   w      = "w"
 )
 
-sym_order  <- c("m", "bias", "lambda", "w")
-asym_order <- c("m_in", "m_out", "bias", "lambda", "w")
+sym_order  <- c("m", "bias", "lambda")
+asym_order <- c("m_in", "m_out", "bias", "lambda")
 
 label_data <- function(df, param_order) {
   df |>
@@ -149,8 +149,8 @@ make_scatter_row <- function(df, r_df, row_title) {
     )
 }
 
-p_sym  <- make_scatter_row(sym_df,  r_sym,  "Symmetric + \u03bb  [\u03b1, \u03b3, \u03bb, w]")
-p_asym <- make_scatter_row(asym_df, r_asym, "Asymmetric + \u03bb  [\u03b1\u1d35\u207f, \u03b1\u1d52\u1d58\u1d57, \u03b3, \u03bb, w]")
+p_sym  <- make_scatter_row(sym_df,  r_sym,  "Symmetric + \u03bb  [\u03b1, \u03b3, \u03bb]")
+p_asym <- make_scatter_row(asym_df, r_asym, "Asymmetric + \u03bb  [\u03b1\u1d35\u207f, \u03b1\u1d52\u1d58\u1d57, \u03b3, \u03bb]")
 
 placeholder_note <- if (using_placeholder) {
   ggplot() + theme_void() +
