@@ -4,13 +4,19 @@
 
 library(tidyverse)
 library(here)
+library(igraph)
 
 # ── 1. Reconstruct subject trial counts ──────────────────────────────────────
 fulldf  <- read.csv(here("Study 3/Cleaning/output/fullTest_fixed.csv"))  |> filter(!is.na(ingChoiceN))
 traindf <- read.csv(here("Study 3/Cleaning/output/fullTrain_fixed.csv")) |> filter(!is.na(selfResp))
 
 common_ids <- sort(intersect(unique(fulldf$subID), unique(traindf$subID)))
-fulldf <- filter(fulldf, subID %in% common_ids)
+fulldf  <- filter(fulldf,  subID %in% common_ids)
+traindf <- filter(traindf, subID %in% common_ids)
+
+posDf  <- read.csv(here("Pooled/input/adjacencyMatrix_p.csv"))
+simMat <- similarity(graph_from_adjacency_matrix(as.matrix(posDf), mode = "max"),
+                     method = "dice")
 
 uIds      <- sort(common_ids)
 nSubjects <- length(uIds)
@@ -62,10 +68,28 @@ params_wide <- reshape(params_sl[, c("subj_idx","param","median")],
   idvar="subj_idx", timevar="param", direction="wide")
 names(params_wide) <- sub("median\\.", "", names(params_wide))
 
-params_al <- read.csv(here("Results","params_ind_s3_asym_lambda.csv"))
-mcr <- params_al[grepl("^subject_mcr\\[", params_al$variable), ]
-mcr$subj_idx <- as.integer(regmatches(mcr$variable, regexpr("[0-9]+", mcr$variable)))
-mcr <- mcr[, c("subj_idx","median")]; names(mcr)[2] <- "subject_mcr"
+# subject_mcr — analytical from sym_lambda posterior medians (winning model)
+get_pv <- function(df, prefix) {
+  rows <- df[grepl(paste0("^", prefix, "\\["), df$variable), ]
+  rows$idx <- as.integer(regmatches(rows$variable, regexpr("[0-9]+", rows$variable)))
+  rows$median[order(rows$idx)]
+}
+params_sl_raw <- read.csv(here("Results","params_ind_s3_sym_lambda.csv"))
+m_v   <- get_pv(params_sl_raw, "m")
+lam_v <- get_pv(params_sl_raw, "lambda")
+
+mcr_vals <- sapply(seq_along(uIds), function(s) {
+  id      <- uIds[s]
+  s_df    <- filter(fulldf,  subID == id)
+  s_train <- filter(traindf, subID == id)
+  GP       <- plogis(m_v[s] * (s_train$selfResp - 4))
+  PS       <- simMat[s_df$Idx, s_train$Idx]^lam_v[s]
+  simW_in  <- as.numeric(PS %*% GP) + 1e-9
+  simW_out <- as.numeric(PS %*% (1 - GP)) + 1e-9
+  mean(simW_in / simW_out)
+})
+mcr <- data.frame(subj_idx = seq_along(uIds), subject_mcr = mcr_vals)
+cat("\nsubject_mcr summary:\n"); print(summary(mcr$subject_mcr))
 
 scale_vars <- c("DS","Proto","SCC","SI","RSE","NTB","NFC","SING.Ind","SING.Inter")
 avail_scales <- intersect(scale_vars, names(fulldf))

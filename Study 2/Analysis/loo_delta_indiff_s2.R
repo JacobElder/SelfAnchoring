@@ -57,26 +57,26 @@ params_wide <- reshape(params_sl[, c("subj_idx","param","median")],
   idvar = "subj_idx", timevar = "param", direction = "wide")
 names(params_wide) <- sub("median\\.", "", names(params_wide))
 
-# ── 5. subject_mcr — analytical from asym_lambda posterior medians ────────────
-params_al <- read.csv(here("Results", "params_ind_s2_asym_lambda.csv"))
+# ── 5. subject_mcr — analytical from sym_lambda posterior medians (winning model)
+# Consistent with S1/S3. MCR derived from sym model params avoids relying on
+# the non-winning asym architecture.
 get_pv <- function(df, prefix) {
   rows <- df[grepl(paste0("^", prefix, "\\["), df$variable), ]
   rows$idx <- as.integer(regmatches(rows$variable, regexpr("[0-9]+", rows$variable)))
   rows$median[order(rows$idx)]
 }
-m_in_v  <- get_pv(params_al, "m_in")
-m_out_v <- get_pv(params_al, "m_out")
-lam_v   <- get_pv(params_al, "lambda")
+params_sl_raw <- read.csv(here("Results", "params_ind_s2_sym_lambda.csv"))
+m_v   <- get_pv(params_sl_raw, "m")
+lam_v <- get_pv(params_sl_raw, "lambda")
 
 mcr_vals <- sapply(seq_along(uIds), function(s) {
   id      <- uIds[s]
   s_df    <- filter(fulldf,  subID == id)
   s_train <- filter(traindf, subID == id)
-  GPin  <- plogis( m_in_v[s]  * (s_train$selfResp - 4))
-  GPout <- plogis(-m_out_v[s] * (s_train$selfResp - 4))
-  PS    <- simMat[s_df$Idx, s_train$Idx]^lam_v[s]
-  simW_in  <- as.numeric(PS %*% GPin)  + 1e-9
-  simW_out <- as.numeric(PS %*% GPout) + 1e-9
+  GP       <- plogis(m_v[s] * (s_train$selfResp - 4))
+  PS       <- simMat[s_df$Idx, s_train$Idx]^lam_v[s]
+  simW_in  <- as.numeric(PS %*% GP) + 1e-9
+  simW_out <- as.numeric(PS %*% (1 - GP)) + 1e-9
   mean(simW_in / simW_out)
 })
 mcr <- data.frame(subj_idx = seq_along(uIds), subject_mcr = mcr_vals)

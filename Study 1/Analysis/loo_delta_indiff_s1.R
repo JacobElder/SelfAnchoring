@@ -6,8 +6,10 @@
 # distinct ingroup/outgroup slopes; negative → symmetric projection is sufficient.
 #
 # subject_mcr is computed analytically from asym_lambda posterior medians
-# (m_in, m_out, lambda) applied to the actual trial data. This is equivalent
-# to the Stan generated quantity and avoids refitting the model.
+# (m_in, m_out, lambda) applied to the actual trial data. S1's asym fit
+# predates subject_mcr being added to S_Asym_Lambda_NoW.stan (2026-03-23),
+# so it is not available in params_ind_s1_asym_lambda.csv. S2 and S3 read
+# subject_mcr directly from their Stan CSV output.
 #
 # NOTE on padding: Stan initializes log_lik to 0 for unused trials
 # (groupChoice[s,t] = 0). These contribute 0 elpd_loo (approx) and must be
@@ -75,11 +77,12 @@ cat(sprintf("Subjects favoring asym_lambda (delta > 0): %d / %d\n",
             sum(subj_elpd$delta_elpd > 0), nSubjects))
 cat(sprintf("Total ΔELPD = %.3f (reference ≈ -8.31)\n", sum(subj_elpd$delta_elpd)))
 
-# ── 4. Compute subject_mcr analytically from asym_lambda posterior medians ────
-# MCR_i = mean_t( simW_in[t] / simW_out[t] ) using posterior medians of
-# m_in[i], m_out[i], lambda[i].  Matches the Stan generated quantity exactly.
+# ── 4. Compute subject_mcr from sym_lambda posterior medians (winning model) ───
+# MCR_i = mean_t( simW_in[t] / simW_out[t] ) using the winning model's m and
+# lambda. Consistent with S2/S3. Avoids deriving MCR from the non-winning
+# asym model.
 
-params_al_raw <- read.csv(here("Results", "params_ind_s1_asym_lambda.csv"))
+params_sl_raw <- read.csv(here("Results", "params_ind_s1_sym_lambda.csv"))
 
 get_param_vec <- function(df, prefix) {
   rows <- df[grepl(paste0("^", prefix, "\\["), df$variable), ]
@@ -87,36 +90,22 @@ get_param_vec <- function(df, prefix) {
   rows$median[order(rows$idx)]
 }
 
-m_in_vec    <- get_param_vec(params_al_raw, "m_in")
-m_out_vec   <- get_param_vec(params_al_raw, "m_out")
-lambda_vec  <- get_param_vec(params_al_raw, "lambda")
+m_vec   <- get_param_vec(params_sl_raw, "m")
+lam_vec <- get_param_vec(params_sl_raw, "lambda")
 
-compute_mcr <- function(s) {
+mcr_vals <- sapply(1:nSubjects, function(s) {
   id      <- uIds[s]
   s_df    <- filter(fulldf,  subID == id)
   s_train <- filter(traindf, subID == id)
-  nT      <- nrow(s_df)
-  nTr     <- nrow(s_train)
-
-  m_in_s  <- m_in_vec[s]
-  m_out_s <- m_out_vec[s]
-  lam_s   <- lambda_vec[s]
-
-  GPin  <- plogis( m_in_s  * (s_train$selfResp - 4))
-  GPout <- plogis(-m_out_s * (s_train$selfResp - 4))
-
-  PS <- simMat[s_df$Idx, s_train$Idx]^lam_s  # nT × nTr
-
-  simW_in  <- as.numeric(PS %*% GPin)  + 1e-9
-  simW_out <- as.numeric(PS %*% GPout) + 1e-9
-
+  GP       <- plogis(m_vec[s] * (s_train$selfResp - 4))
+  PS       <- simMat[s_df$Idx, s_train$Idx]^lam_vec[s]
+  simW_in  <- as.numeric(PS %*% GP) + 1e-9
+  simW_out <- as.numeric(PS %*% (1 - GP)) + 1e-9
   mean(simW_in / simW_out)
-}
-
-mcr_vals <- sapply(1:nSubjects, compute_mcr)
+})
 mcr <- data.frame(subj_idx = 1:nSubjects, subject_mcr = mcr_vals)
 
-cat(sprintf("\nsubject_mcr summary (computed analytically):\n"))
+cat(sprintf("\nsubject_mcr summary (sym_lambda model):\n"))
 print(summary(mcr$subject_mcr))
 
 # ── 5. Merge with structural params and MCR ───────────────────────────────────
