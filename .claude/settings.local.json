@@ -33,7 +33,8 @@
       "WebFetch(domain:api.osf.io)",
       "WebSearch",
       "Bash(git:*)",
-      "Bash(sysctl:*)"
+      "Bash(sysctl:*)",
+      "Bash(xargs basename:*)"
     ]
   }
 }

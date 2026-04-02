@@ -40,18 +40,17 @@ sample_traits <- function(n = 90, r_target = 0.70) {
 }
 
 # Symmetric + λ: one α converts self-ratings into group beliefs
-compute_sym <- function(x, traits, alpha, lambda, bias, w) {
+compute_sym <- function(x, traits, alpha, lambda, bias) {
   sim_raw  <- pmax(0, 1 - abs(x - traits$pos))
   G        <- inv_logit(alpha * (traits$self_rating - 4))
   simW_in  <- sum(sim_raw^lambda * G)       + 1e-9
   simW_out <- sum(sim_raw^lambda * (1 - G)) + 1e-9
-  p_model  <- inv_logit(logit(bias) + log(simW_in) - log(simW_out))
-  w * 0.5 + (1 - w) * p_model
+  inv_logit(logit(bias) + log(simW_in) - log(simW_out))
 }
 
 # Asymmetric + λ: separate α_in (ingroup assimilation) and α_out (outgroup repulsion)
 # component: "combined" | "ingroup_only" (α_out→0) | "outgroup_only" (α_in→0)
-compute_asym <- function(x, traits, alpha_in, alpha_out, lambda, bias, w,
+compute_asym <- function(x, traits, alpha_in, alpha_out, lambda, bias,
                           component = "combined") {
   sim_raw <- pmax(0, 1 - abs(x - traits$pos))
   Gin  <- if (component == "outgroup_only") rep(0.5, nrow(traits)) else
@@ -60,8 +59,7 @@ compute_asym <- function(x, traits, alpha_in, alpha_out, lambda, bias, w,
             inv_logit(-alpha_out * (traits$self_rating - 4))
   simW_in  <- sum(sim_raw^lambda * Gin)  + 1e-9
   simW_out <- sum(sim_raw^lambda * Gout) + 1e-9
-  p_model  <- inv_logit(logit(bias) + log(simW_in) - log(simW_out))
-  w * 0.5 + (1 - w) * p_model
+  inv_logit(logit(bias) + log(simW_in) - log(simW_out))
 }
 
 # ── Shared theme & constants ──────────────────────────────────────────────────
@@ -126,17 +124,15 @@ ui <- page_navbar(
         h6("Model Parameters", class = "text-primary fw-bold mt-1"),
         sliderInput("sym_alpha",
                     HTML("Projection rate (\u03b1)"),
-                    min = 0.1, max = 10, value = 2.8, step = 0.1),
+                    min = 0.1, max = 10, value = 3.2, step = 0.1),
         sliderInput("sym_lambda",
                     HTML("Generalization sensitivity (\u03bb)"),
-                    min = 0.1, max = 5, value = 3.6, step = 0.1),
+                    min = 0.1, max = 5, value = 3.3, step = 0.1),
         sliderInput("sym_bias",
                     HTML("Ingroup bias (\u03b3)"),
-                    min = 0.01, max = 0.99, value = 0.36, step = 0.01),
-        sliderInput("sym_w", "Lapse rate (w)",
-                    min = 0, max = 0.99, value = 0.56, step = 0.01),
+                    min = 0.01, max = 0.99, value = 0.49, step = 0.01),
         hr(),
-        actionButton("sym_reset",    "Reset to Study 1 estimates",
+        actionButton("sym_reset",    "Reset to pooled estimates",
                      class = "btn-sm btn-outline-primary w-100 mb-2"),
         hr(),
         h6("Training Trait Structure", class = "text-primary fw-bold"),
@@ -171,7 +167,8 @@ ui <- page_navbar(
              P(Ingroup) rises as the test trait falls closer to training traits
              on which the participant rated themselves highly.
              <b>\u03bb</b> sharpens the gradient; <b>\u03b1</b> converts self-ratings
-             into group beliefs; <b>w</b> compresses toward chance (0.50).
+             into group beliefs; <b>\u03b3</b> shifts the baseline probability of
+             ingroup classification.
              </small>"
           ))
         )
@@ -188,20 +185,18 @@ ui <- page_navbar(
         h6("Model Parameters", class = "fw-bold mt-1", style = "color:#CC79A7"),
         sliderInput("asym_alpha_in",
                     HTML("Ingroup projection (\u03b1<sub>in</sub>)"),
-                    min = 0.1, max = 10, value = 4.6, step = 0.1),
+                    min = 0.1, max = 10, value = 3.2, step = 0.1),
         sliderInput("asym_alpha_out",
                     HTML("Outgroup repulsion (\u03b1<sub>out</sub>)"),
                     min = 0.1, max = 10, value = 3.2, step = 0.1),
         sliderInput("asym_lambda",
                     HTML("Generalization sensitivity (\u03bb)"),
-                    min = 0.1, max = 5, value = 3.5, step = 0.1),
+                    min = 0.1, max = 5, value = 3.3, step = 0.1),
         sliderInput("asym_bias",
                     HTML("Ingroup bias (\u03b3)"),
-                    min = 0.01, max = 0.99, value = 0.35, step = 0.01),
-        sliderInput("asym_w", "Lapse rate (w)",
-                    min = 0, max = 0.99, value = 0.58, step = 0.01),
+                    min = 0.01, max = 0.99, value = 0.49, step = 0.01),
         hr(),
-        actionButton("asym_reset",    "Reset to Study 1 estimates",
+        actionButton("asym_reset",    "Reset to pooled estimates",
                      class = "btn-sm btn-outline-primary w-100 mb-2"),
         hr(),
         h6("Training Trait Structure", class = "fw-bold", style = "color:#CC79A7"),
@@ -303,14 +298,11 @@ ui <- page_navbar(
           tags$dt(HTML("\u03b3 \u2014 Ingroup bias")),
           tags$dd("Baseline probability of ingroup classification independent of
                    self-knowledge. Shifts the entire curve up or down."),
-          tags$dt("w \u2014 Lapse rate"),
-          tags$dd("Probability of a random response (P = 0.50). Compresses all
-                   predictions toward chance, modeling inattention or indecision.")
         ),
         hr(),
         p(em(
-          "Default parameter values are Study 1 group-level posterior medians
-           from the hierarchical Bayesian model."
+          "Default parameter values are pooled global posterior medians
+           from the hierarchical Bayesian model (Sym+\u03bb NoW)."
         ))
       )
     )
@@ -334,17 +326,15 @@ server <- function(input, output, session) {
 
   # Reset parameters (not traits)
   observeEvent(input$sym_reset, {
-    updateSliderInput(session, "sym_alpha",  value = 2.8)
-    updateSliderInput(session, "sym_lambda", value = 3.6)
-    updateSliderInput(session, "sym_bias",   value = 0.36)
-    updateSliderInput(session, "sym_w",      value = 0.56)
+    updateSliderInput(session, "sym_alpha",  value = 3.2)
+    updateSliderInput(session, "sym_lambda", value = 3.3)
+    updateSliderInput(session, "sym_bias",   value = 0.49)
   })
   observeEvent(input$asym_reset, {
-    updateSliderInput(session, "asym_alpha_in",  value = 4.6)
+    updateSliderInput(session, "asym_alpha_in",  value = 3.2)
     updateSliderInput(session, "asym_alpha_out", value = 3.2)
-    updateSliderInput(session, "asym_lambda",    value = 3.5)
-    updateSliderInput(session, "asym_bias",      value = 0.35)
-    updateSliderInput(session, "asym_w",         value = 0.58)
+    updateSliderInput(session, "asym_lambda",    value = 3.3)
+    updateSliderInput(session, "asym_bias",      value = 0.49)
   })
 
   # ── Scatter plots ─────────────────────────────────────────────────────────
@@ -365,8 +355,7 @@ server <- function(input, output, session) {
                 traits  = traits,
                 alpha   = input$sym_alpha,
                 lambda  = input$sym_lambda,
-                bias    = input$sym_bias,
-                w       = input$sym_w)
+                bias    = input$sym_bias)
 
     ggplot(data.frame(x = S_seq, P = P), aes(x, P)) +
       geom_hline(yintercept = 0.5, linetype = "dashed",
@@ -380,8 +369,8 @@ server <- function(input, output, session) {
         x = "Test Trait Semantic Position\n(0 = Distant from Prototype,  1 = Close)",
         y = "P(Ingroup Classification)",
         title = sprintf(
-          "\u03b1 = %.1f  |  \u03bb = %.1f  |  \u03b3 = %.2f  |  w = %.2f",
-          input$sym_alpha, input$sym_lambda, input$sym_bias, input$sym_w
+          "\u03b1 = %.1f  |  \u03bb = %.1f  |  \u03b3 = %.2f",
+          input$sym_alpha, input$sym_lambda, input$sym_bias
         )
       ) +
       theme_app()
@@ -399,7 +388,6 @@ server <- function(input, output, session) {
              alpha_out = input$asym_alpha_out,
              lambda    = input$asym_lambda,
              bias      = input$asym_bias,
-             w         = input$asym_w,
              component = comp)
 
     lab_combined <- "Combined"
@@ -439,9 +427,9 @@ server <- function(input, output, session) {
         x = "Test Trait Semantic Position\n(0 = Distant from Prototype,  1 = Close)",
         y = "P(Ingroup Classification)",
         title = sprintf(
-          "\u03b1\u1d35\u2099 = %.1f  |  \u03b1\u2092\u1d64\u209c = %.1f  |  \u03bb = %.1f  |  \u03b3 = %.2f  |  w = %.2f",
+          "\u03b1\u1d35\u2099 = %.1f  |  \u03b1\u2092\u1d64\u209c = %.1f  |  \u03bb = %.1f  |  \u03b3 = %.2f",
           input$asym_alpha_in, input$asym_alpha_out,
-          input$asym_lambda, input$asym_bias, input$asym_w
+          input$asym_lambda, input$asym_bias
         )
       ) +
       guides(linewidth = "none") +

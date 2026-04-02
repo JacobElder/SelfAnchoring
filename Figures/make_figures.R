@@ -951,7 +951,7 @@ convert_jpg_to_tiff(
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FIGURE — Cross-Study Parameter Forest Plot
-# Group-level posterior medians + 90% CIs for α, γ, λ, w across S1, S2, S3.
+# Group-level posterior medians + 90% CIs for α, γ, λ across S1, S2, S3.
 # Back-transforms mu_pr from probit scale using pnorm() * scale.
 # Shows parameter stability (or divergence) across intergroup contexts.
 # ══════════════════════════════════════════════════════════════════════════════
@@ -965,13 +965,12 @@ extract_group_params <- function(csv_path, study_label) {
     message("  Missing: ", csv_path); return(NULL)
   }
   sum_df <- read.csv(csv_path)
-  # mu_pr order for sym_lambda: [m, bias, lambda, w] → indices 1-4
-  # variables named "mu_pr[1]" through "mu_pr[4]"
+  # mu_pr order for sym_lambda NoW: [m, bias, lambda] → indices 1-3
+  # variables named "mu_pr[1]" through "mu_pr[3]"
   params <- list(
     list(name = "\u03b1",       idx = 1, scale = 10),
     list(name = "\u03b3",       idx = 2, scale = 1),
-    list(name = "\u03bb",       idx = 3, scale = 5),
-    list(name = "w",            idx = 4, scale = 1)
+    list(name = "\u03bb",       idx = 3, scale = 5)
   )
   do.call(rbind, lapply(params, function(p) {
     pat  <- paste0("mu_pr\\[", p$idx, "\\]")
@@ -1006,12 +1005,11 @@ if (!is.null(gp_all) && nrow(gp_all) > 0) {
     "Study 3\n(Racial Groups)"     = 15
   )
 
-  param_levels <- c("\u03b1", "\u03b3", "\u03bb", "w")
+  param_levels <- c("\u03b1", "\u03b3", "\u03bb")
   param_xlabs  <- c(
     "\u03b1" = "Projection Rate (\u03b1)\n[0 – 10]",
     "\u03b3" = "Ingroup Bias (\u03b3)\n[0 – 1]",
-    "\u03bb" = "Generalization Sensitivity (\u03bb)\n[0 – 5]",
-    "w"      = "Lapse Rate (w)\n[0 – 1]"
+    "\u03bb" = "Generalization Sensitivity (\u03bb)\n[0 – 5]"
   )
 
   gp_all$param  <- factor(gp_all$param,  levels = param_levels)
@@ -1190,7 +1188,7 @@ if (has_igraph) {
 
   adj_path <- here("Pooled","input","adjacencyMatrix_p.csv")
   if (file.exists(adj_path)) {
-    adj_mat   <- as.matrix(read.csv(adj_path, row.names = 1, check.names = FALSE))
+    adj_mat   <- as.matrix(read.csv(adj_path, check.names = FALSE))
     # Use first 80 most-connected traits for legibility
     deg       <- rowSums(adj_mat)
     top_idx   <- order(deg, decreasing = TRUE)[1:min(80, nrow(adj_mat))]

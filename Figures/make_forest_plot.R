@@ -10,7 +10,7 @@ library(ggplot2)
 # ── Helper: parse subject index from variable name ────────────────────────────
 parse_ind_params <- function(df, study_label) {
   df %>%
-    filter(str_detect(variable, "^(m|bias|lambda|w)\\[")) %>%
+    filter(str_detect(variable, "^(m|bias|lambda)\\[")) %>%
     mutate(
       param    = str_extract(variable, "^[^\\[]+"),
       subj_idx = as.integer(str_extract(variable, "[0-9]+"))
@@ -88,9 +88,9 @@ cond_summary <- params_all %>%
   mutate(is_pooled = FALSE, shape = "circle")
 
 # ── 5. Pooled global from summary_pooled_sym_lambda.csv ──────────────────────
-# global_mu_pr[1..4] in probit space; back-transform with Phi * scale
-# Parameter order: [m, bias, lambda, w]; scales [10, 1, 5, 1]
-scales <- c(m = 10, bias = 1, lambda = 5, w = 1)
+# global_mu_pr[1..3] in probit space; back-transform with Phi * scale
+# Parameter order: [m, bias, lambda]; scales [10, 1, 5]
+scales <- c(m = 10, bias = 1, lambda = 5)
 
 pooled_sum <- read.csv(here("Results", "summary_pooled_sym_lambda.csv"))
 global_rows <- pooled_sum %>%
@@ -100,7 +100,7 @@ global_rows <- pooled_sum %>%
 
 global_df <- data.frame(
   condition = "Pooled Global",
-  param     = c("m", "bias", "lambda", "w"),
+  param     = c("m", "bias", "lambda"),
   n         = NA_integer_,
   mean      = pnorm(global_rows$median) * scales,
   se        = NA_real_,
@@ -125,8 +125,7 @@ cond_levels <- c(
 param_labels <- c(
   m      = "\u03b1 (Projection Rate)",
   bias   = "\u03b3 (Ingroup Bias)",
-  lambda = "\u03bb (Similarity Weight)",
-  w      = "w (Lapse Rate)"
+  lambda = "\u03bb (Similarity Weight)"
 )
 
 plot_df <- plot_df %>%
