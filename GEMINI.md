@@ -7,11 +7,13 @@ Refining the dissertation manuscript for JPSP, strengthening the theoretical tie
 
 ## Technical Foundation & Lessons Learned
 - **Data Integrity:** Identified that `fullTrain.csv` in Study 2 and 3 were binary Parquet files mislabeled as `.csv`. Resolved by creating `fullTrain_fixed.csv` (Study 2/3) and `fullTest_fixed.csv` (Study 3). All analytical scripts must use the `_fixed` versions.
+- **Model Specification (NoW):** All results reported in the manuscript and used for model comparison are from the **NoW** (no lapse parameter $w$) versions of the models (e.g., `S_Sym_Lambda_NoW.stan`). Removing the lapse parameter significantly improved parameter identifiability (particularly for $\alpha$ and $\lambda$) and is the definitive architecture for the JPSP submission.
 - **Stan Optimization:**
     - Models are updated to **modern array syntax** (`array[N] int x`).
     - Likelihoods are **vectorized** using `bernoulli_logit` and matrix-vector multiplications (`matrix * vector`) for significant speedups.
     - Scripts use `cmdstanr` and `mclapply` for parallel fitting across models.
 - **Portability:** Moving away from reliance on `.rds` fit objects. Scripts now export `summary_sX_model.csv` and `params_ind_sX_model.csv` containing medians and diagnostics for cross-session analysis.
+- **Reporting Convention:** All group-level parameters reported in the manuscript are **Grand Means** (arithmetic means of individual-level posterior medians) to ensure consistency with condition-level visualizations and to avoid Jensen's inequality bias inherent in back-transforming group-level hyperparameters ($\Phi(\mu_{pr})$).
 
 ## Core Theoretical Framework
 - **Similarity-Based Generalization:** Self-anchoring propagates across a semantic network.
