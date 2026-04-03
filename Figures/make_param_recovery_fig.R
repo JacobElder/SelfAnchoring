@@ -278,3 +278,146 @@ ggsave(here("Figures", "fig_param_recovery_heatmap.tiff"),
        dpi = TIFF_DPI, units = TIFF_UNITS, compression = "lzw")
 message(sprintf("Saved: Figures/fig_param_recovery_heatmap.tiff  [%s]",
                 if (using_placeholder) "PLACEHOLDER" else "real data"))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE — Empirical Parameter Recovery (Confusion Matrix Heatmap)
+# Uses actual Study 1 participant posterior medians as true parameters,
+# then re-fits model on re-simulated data using actual self-ratings.
+# Reads: parameter_recovery_empirical_symlambdanow_results.csv
+#        parameter_recovery_empirical_asymlambdanow_results.csv
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Empirical Parameter Recovery Heatmap ──")
+
+emp_sym_file  <- here("Results", "parameter_recovery_empirical_symlambdanow_results.csv")
+emp_asym_file <- here("Results", "parameter_recovery_empirical_asymlambdanow_results.csv")
+
+emp_sym_data  <- load_csv(emp_sym_file)
+emp_asym_data <- load_csv(emp_asym_file)
+
+if (!is.null(emp_sym_data) && !is.null(emp_asym_data)) {
+
+  p_heat_emp_sym  <- make_heatmap_panel(
+    emp_sym_data,  sym_order,
+    "Symmetric + \u03bb  (Empirical Recovery)"
+  )
+  p_heat_emp_asym <- make_heatmap_panel(
+    emp_asym_data, asym_order,
+    "Asymmetric + \u03bb  (Empirical Recovery)"
+  )
+
+  fig_emp_heatmap <- (p_heat_emp_sym | p_heat_emp_asym) +
+    plot_annotation(
+      title    = "Empirical Parameter Recovery: Confusion Matrix",
+      subtitle = paste("True parameters = Study 1 participant posterior medians;",
+                       "each cell = r(true\u1d62, recovered\u2C7C). Diagonal (outlined) = self-recovery."),
+      theme    = theme(
+        plot.title    = element_text(face = "bold", size = 12, hjust = 0.5),
+        plot.subtitle = element_text(size = 8.5, colour = "grey40", hjust = 0.5),
+        plot.background = element_rect(fill = "white", colour = NA)
+      )
+    )
+
+  ggsave(here("Figures", "fig_param_recovery_empirical_heatmap.tiff"),
+         fig_emp_heatmap, width = 9, height = 5,
+         dpi = TIFF_DPI, units = TIFF_UNITS, compression = "lzw")
+  message("Saved: Figures/fig_param_recovery_empirical_heatmap.tiff")
+} else {
+  message("  Empirical recovery CSVs not found — skipping empirical heatmap")
+  message("  Run: Rscript 'Parameter Recovery/run_parameter_recovery.R'")
+}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE — Parameter Recovery: Bias and RMSE
+# Dot plot showing bias and RMSE per parameter for simulated vs. empirical
+# recovery, for both Sym+λ and Asym+λ models.
+# Bias = mean(recovered - true); RMSE = sqrt(mean((recovered - true)^2))
+# ══════════════════════════════════════════════════════════════════════════════
+message("\n── Parameter Recovery: Bias and RMSE ──")
+
+sim_sym_sum  <- load_csv(here("Results", "parameter_recovery_symlambdanow_summary.csv"))
+sim_asym_sum <- load_csv(here("Results", "parameter_recovery_asymlambdanow_summary.csv"))
+emp_sym_sum  <- load_csv(here("Results", "parameter_recovery_empirical_symlambdanow_summary.csv"))
+emp_asym_sum <- load_csv(here("Results", "parameter_recovery_empirical_asymlambdanow_summary.csv"))
+
+all_sums <- Filter(Negate(is.null), list(
+  if (!is.null(sim_sym_sum))  { sim_sym_sum$model_type  <- "Simulated"; sim_sym_sum$arch  <- "Sym+\u03bb";  sim_sym_sum },
+  if (!is.null(sim_asym_sum)) { sim_asym_sum$model_type <- "Simulated"; sim_asym_sum$arch <- "Asym+\u03bb"; sim_asym_sum },
+  if (!is.null(emp_sym_sum))  { emp_sym_sum$model_type  <- "Empirical"; emp_sym_sum$arch  <- "Sym+\u03bb";  emp_sym_sum },
+  if (!is.null(emp_asym_sum)) { emp_asym_sum$model_type <- "Empirical"; emp_asym_sum$arch <- "Asym+\u03bb"; emp_asym_sum }
+))
+
+if (length(all_sums) > 0) {
+  sum_df <- do.call(rbind, all_sums)
+
+  # Friendly param labels
+  sum_df$param_label <- dplyr::recode(sum_df$param,
+    m      = "\u03b1",
+    m_in   = "\u03b1[in]",
+    m_out  = "\u03b1[out]",
+    bias   = "\u03b3",
+    lambda = "\u03bb"
+  )
+
+  # Keep only params relevant to each arch
+  sum_df <- sum_df[
+    (sum_df$arch == "Sym+\u03bb"  & sum_df$param %in% c("m", "bias", "lambda")) |
+    (sum_df$arch == "Asym+\u03bb" & sum_df$param %in% c("m_in", "m_out", "bias", "lambda")),
+  ]
+
+  sum_df$model_type <- factor(sum_df$model_type, levels = c("Simulated", "Empirical"))
+  sum_df$arch       <- factor(sum_df$arch, levels = c("Sym+\u03bb", "Asym+\u03bb"))
+
+  type_cols <- c("Simulated" = "#4E9A9A", "Empirical" = "#C7522A")
+  type_shapes <- c("Simulated" = 16, "Empirical" = 17)
+
+  p_rmse <- ggplot(sum_df, aes(x = param_label, y = rmse,
+                                colour = model_type, shape = model_type)) +
+    geom_hline(yintercept = 0, linetype = "solid", colour = "grey80", linewidth = 0.4) +
+    geom_point(size = 3, position = position_dodge(width = 0.4)) +
+    scale_colour_manual(values = type_cols, name = "Recovery type") +
+    scale_shape_manual(values = type_shapes, name = "Recovery type") +
+    facet_wrap(~ arch, scales = "free_x") +
+    labs(x = "Parameter", y = "RMSE") +
+    theme_minimal(base_size = 10) +
+    theme(
+      panel.border     = element_rect(colour = "grey70", fill = NA, linewidth = 0.4),
+      panel.grid.minor = element_blank(),
+      strip.text       = element_text(face = "bold"),
+      legend.position  = "bottom"
+    )
+
+  p_bias <- ggplot(sum_df, aes(x = param_label, y = bias,
+                                colour = model_type, shape = model_type)) +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "firebrick",
+               linewidth = 0.55) +
+    geom_point(size = 3, position = position_dodge(width = 0.4)) +
+    scale_colour_manual(values = type_cols, name = "Recovery type") +
+    scale_shape_manual(values = type_shapes, name = "Recovery type") +
+    facet_wrap(~ arch, scales = "free_x") +
+    labs(x = "Parameter", y = "Bias (recovered \u2212 true)") +
+    theme_minimal(base_size = 10) +
+    theme(
+      panel.border     = element_rect(colour = "grey70", fill = NA, linewidth = 0.4),
+      panel.grid.minor = element_blank(),
+      strip.text       = element_text(face = "bold"),
+      legend.position  = "bottom"
+    )
+
+  fig_bias_rmse <- (p_rmse / p_bias) +
+    plot_annotation(
+      title = "Parameter Recovery: RMSE and Bias",
+      theme = theme(
+        plot.title      = element_text(face = "bold", size = 11, hjust = 0.5),
+        plot.background = element_rect(fill = "white", colour = NA)
+      )
+    )
+
+  ggsave(here("Figures", "fig_param_recovery_bias_rmse.tiff"),
+         fig_bias_rmse, width = 10, height = 7,
+         dpi = TIFF_DPI, units = TIFF_UNITS, compression = "lzw")
+  message("Saved: Figures/fig_param_recovery_bias_rmse.tiff")
+} else {
+  message("  Recovery summary CSVs not found — skipping bias/RMSE figure")
+}

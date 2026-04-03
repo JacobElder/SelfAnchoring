@@ -7,22 +7,29 @@ library(tidyverse)
 library(here)
 library(ggplot2)
 
-# ── Helper: parse subject index from variable name ────────────────────────────
-parse_ind_params <- function(df, study_label) {
+# ── 1. Load individual-level Stan posteriors from pooled model ────────────────
+# Pooled model stacks subjects: S1[1:61], S2[62:242], S3[243:507].
+# Using pooled (partially shrunk) estimates ensures forest plot reflects the
+# same hierarchical model as the global diamond.
+n1 <- 61; n2 <- 181; n3 <- 265
+
+pooled_raw <- read.csv(here("Results", "params_ind_pooled_sym_lambda.csv"))
+
+parse_pooled_params <- function(df, study_label, idx_lo, idx_hi, offset) {
   df %>%
-    filter(str_detect(variable, "^(m|bias|lambda)\\[")) %>%
+    filter(str_detect(variable, "^\"?(m|bias|lambda)\\[")) %>%
     mutate(
-      param    = str_extract(variable, "^[^\\[]+"),
+      param    = str_remove(str_extract(variable, "^\"?[^\\[]+"), "^\""),
       subj_idx = as.integer(str_extract(variable, "[0-9]+"))
     ) %>%
-    select(param, subj_idx, median) %>%
-    mutate(study = study_label)
+    filter(subj_idx >= idx_lo, subj_idx <= idx_hi) %>%
+    mutate(subj_idx = subj_idx - offset, study = study_label) %>%
+    select(param, subj_idx, median, study)
 }
 
-# ── 1. Load individual-level Stan posteriors (already back-transformed) ───────
-p1 <- parse_ind_params(read.csv(here("Results", "params_ind_s1_sym_lambda.csv")), "S1")
-p2 <- parse_ind_params(read.csv(here("Results", "params_ind_s2_sym_lambda.csv")), "S2")
-p3 <- parse_ind_params(read.csv(here("Results", "params_ind_s3_sym_lambda.csv")), "S3")
+p1 <- parse_pooled_params(pooled_raw, "S1", 1,          n1,          0)
+p2 <- parse_pooled_params(pooled_raw, "S2", n1 + 1,     n1 + n2,     n1)
+p3 <- parse_pooled_params(pooled_raw, "S3", n1 + n2 + 1, n1 + n2 + n3, n1 + n2)
 
 # ── 2. Build subject-to-condition maps (matching original model_comparison ordering) ─
 # Study 1: all Minimal Group (no condition split)
@@ -87,28 +94,26 @@ cond_summary <- params_all %>%
   ) %>%
   mutate(is_pooled = FALSE, shape = "circle")
 
-# ── 5. Pooled global from summary_pooled_sym_lambda.csv ──────────────────────
-# global_mu_pr[1..3] in probit space; back-transform with Phi * scale
-# Parameter order: [m, bias, lambda]; scales [10, 1, 5]
-scales <- c(m = 10, bias = 1, lambda = 5)
-
-pooled_sum <- read.csv(here("Results", "summary_pooled_sym_lambda.csv"))
-global_rows <- pooled_sum %>%
-  filter(str_detect(variable, "^global_mu_pr")) %>%
-  distinct(variable, .keep_all = TRUE) %>%     # deduplicate
-  arrange(variable)                              # [1],[2],[3],[4]
-
-global_df <- data.frame(
-  condition = "Pooled Global",
-  param     = c("m", "bias", "lambda"),
-  n         = NA_integer_,
-  mean      = pnorm(global_rows$median) * scales,
-  se        = NA_real_,
-  lo        = pnorm(global_rows$q5)     * scales,
-  hi        = pnorm(global_rows$q95)    * scales,
-  is_pooled = TRUE,
-  shape     = "diamond"
-)
+# ── 5. Pooled global — arithmetic mean of all 507 pooled individual estimates ─
+# Computed identically to condition-level summaries so the diamond and the
+# condition dots are on the same scale. Back-transforming global_mu_pr via
+# pnorm() would give a systematically lower value due to Jensen's inequality
+# (pnorm is concave in the lower tail; E[pnorm(X)] < pnorm(E[X])).
+global_df <- bind_rows(p1, p2, p3) %>%
+  group_by(param) %>%
+  summarise(
+    n    = n(),
+    mean = mean(median),
+    se   = sd(median) / sqrt(n()),
+    lo   = mean - 1.96 * se,
+    hi   = mean + 1.96 * se,
+    .groups = "drop"
+  ) %>%
+  mutate(
+    condition = "Pooled Global",
+    is_pooled = TRUE,
+    shape     = "diamond"
+  )
 
 plot_df <- bind_rows(cond_summary, global_df)
 
@@ -177,7 +182,7 @@ p <- ggplot(
   labs(
     x = "Posterior Median (individual-level)",
     y = NULL,
-    caption = "Points = condition means; bars = 95% CI; diamond = pooled global (90% CI)"
+    caption = "Points = condition means of pooled individual estimates; bars = 95% CI (±1.96 SE); diamond = grand mean across all N = 507 participants"
   ) +
   theme_bw(base_size = 10) +
   theme(
