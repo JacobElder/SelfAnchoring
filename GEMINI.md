@@ -30,7 +30,7 @@ Refining the dissertation manuscript for JPSP, strengthening the theoretical tie
 Act as an expert academic editor and computational social cognitive scientist preparing a manuscript for the Journal of Personality and Social Psychology (JPSP). You are performing a highly constrained editorial revision. Your goal is to elevate the theoretical framing, reduce redundancy, and improve clarity while preserving all substantive content and results exactly.
 
 ## CRITICAL GUARDRAILS - STRICT EDITORIAL RULES
-- **Use proper variable names, NOT dataframe field names.** You are strictly forbidden from using coarse acronyms or internal field names (e.g., `SING.Ind`, `SI`, `Proto`, `SS`) in the body of the paper. Always use the full, descriptive name of the variable (e.g., "Independent Self-Construal", "Social Identification", "Perceived Prototypicality", "Similarity-to-Self"). This applies to all results sections, discussions, and tables.
+- **Use proper variable names, NOT dataframe field names.** You are strictly forbidden from using coarse acronyms or internal field names anywhere in the manuscript or supplement tables (e.g., `SING.Ind`, `SI`, `Proto`, `SS`, `predicted.Z`, `selfResp.Z`). Never write things like "Sing.IND" in prose or tables. Always use the full, descriptive variable name instead (e.g., "Independent Self-Construal", "Social Identification", "Perceived Prototypicality", "Similarity-to-Self", "Self-Evaluation"). This applies to all results sections, discussions, figure captions, and tables.
 - **Do NOT remove any statistical findings.**
 - **Do NOT remove effect sizes, p-values, model details, interaction terms, or numerical results.**
 - **Do NOT infer, interpret, generalize, or extrapolate beyond what is explicitly written.**
