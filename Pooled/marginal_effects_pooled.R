@@ -6,10 +6,12 @@
 # as the reference category.
 #
 # Random effects:
-#   (1 | study)          — study-level intercept (3 levels; random to acknowledge
-#                           between-study variation beyond fixed condition contrasts)
-#   (predicted.Z | uid)  — subject slopes nested within study
-#   (1 | trait)          — crossed trait random intercept (shared trait pool)
+#   (1 | study)            — study-level intercept (3 levels; random to acknowledge
+#                             between-study variation beyond fixed condition contrasts)
+#   (focal | study:subID)  — subject intercepts and slopes nested within study
+#   (1 | study:trait)      — trait intercepts nested within study (same 148 traits
+#                             appear in each study but their ingroup-attribution
+#                             baselines differ across intergroup contexts)
 #
 # Conditions (reference = "Minimal_Groups"):
 #   S1: Minimal_Groups
@@ -68,8 +70,7 @@ pooled <- bind_rows(
 
 # ── 2. Prepare variables ──────────────────────────────────────────────────────
 
-# Unique subject ID (subjects nested within study)
-pooled$uid <- paste(pooled$study, pooled$subID, sep = "_")
+# study:subID interaction used directly in formulas for explicit nesting notation
 
 # Z-score predictors within study (so 1 unit = within-study SD for comparability)
 pooled <- pooled |>
@@ -91,7 +92,7 @@ cond_levels <- c("Minimal_Groups",
                  "Racial_Minority", "Racial_Majority")
 pooled$condition <- factor(pooled$condition, levels = cond_levels)
 
-message("Pooled N = ", length(unique(pooled$uid)), " subjects, ",
+message("Pooled N = ", length(unique(paste(pooled$study, pooled$subID))), " subjects, ",
         nrow(pooled), " observations")
 message("Conditions: ", paste(levels(pooled$condition), collapse = ", "))
 
@@ -103,7 +104,7 @@ ctrl <- glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 300000))
 message("Fitting M1: Desirability × Condition...")
 m1 <- glmer(
   ingChoiceN ~ desirability.Z * condition + (1 | study) +
-    (desirability.Z | uid) + (1 | trait),
+    (desirability.Z | study:subID) + (1 | study:trait),
   data = pooled, family = binomial, control = ctrl, nAGQ = 1
 )
 
@@ -111,7 +112,7 @@ m1 <- glmer(
 message("Fitting M2: Self-Evaluations × Condition...")
 m2 <- glmer(
   ingChoiceN ~ selfResp.Z * condition + desirability.Z + (1 | study) +
-    (selfResp.Z | uid) + (1 | trait),
+    (selfResp.Z | study:subID) + (1 | study:trait),
   data = pooled, family = binomial, control = ctrl, nAGQ = 1
 )
 
@@ -119,7 +120,7 @@ m2 <- glmer(
 message("Fitting M3: Similarity-to-Self × Condition...")
 m3 <- glmer(
   ingChoiceN ~ predicted.Z * condition + desirability.Z + (1 | study) +
-    (predicted.Z | uid) + (1 | trait),
+    (predicted.Z | study:subID) + (1 | study:trait),
   data = pooled, family = binomial, control = ctrl, nAGQ = 1
 )
 
@@ -127,7 +128,7 @@ m3 <- glmer(
 message("Fitting M4: Similarity-to-Self × Novel...")
 m4 <- suppressMessages(glmer(
   ingChoiceN ~ predicted.Z * novel + condition + desirability.Z + (1 | study) +
-    (predicted.Z + novel | uid) + (1 | trait),
+    (predicted.Z + novel | study:subID) + (1 | study:trait),
   data = pooled, family = binomial, control = ctrl, nAGQ = 1
 ))
 
@@ -135,7 +136,7 @@ m4 <- suppressMessages(glmer(
 message("Fitting M5: Similarity-to-Self × Novel × Condition (3-way)...")
 m5 <- suppressMessages(glmer(
   ingChoiceN ~ predicted.Z * novel * condition + desirability.Z + (1 | study) +
-    (predicted.Z + novel | uid) + (1 | trait),
+    (predicted.Z + novel | study:subID) + (1 | study:trait),
   data = pooled, family = binomial, control = ctrl, nAGQ = 1
 ))
 
