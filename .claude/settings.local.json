@@ -34,7 +34,11 @@
       "WebSearch",
       "Bash(git:*)",
       "Bash(sysctl:*)",
-      "Bash(xargs basename:*)"
+      "Bash(xargs basename:*)",
+      "Bash(pandoc:*)",
+      "Bash(which quarto && quarto --version 2>&1)",
+      "Bash(quarto --version && Rscript -e \"packageVersion\\('apaquarto'\\)\" 2>/dev/null)",
+      "Bash(echo Lambda warmth correlations check out:*)"
     ]
   }
 }
