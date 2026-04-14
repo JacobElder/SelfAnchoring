@@ -221,7 +221,48 @@ if ("lambda" %in% names(ind_df2)) {
   }
 }
 
-# ── 8. Projection rate by condition: α (or α_in / α_out) ─────────────────────
+# ── 8. γ (ingroup bias) × outgroup preference: lm(bias ~ condition * warmth) ──
+cat("\n=== γ × outgroup preference thermometer (High-Status + Low-Status only) ===\n")
+cat("outgroup_warmth = UCR thermometer minus outgroup thermometer (positive = prefer UCR over outgroup)\n\n")
+
+if ("outgroup_warmth" %in% names(ind_df2) && "bias" %in% names(ind_df2)) {
+  df_bias <- ind_df2 |>
+    filter(!is.na(outgroup_warmth), !is.na(bias),
+           condition %in% c("High-Status", "Low-Status")) |>
+    mutate(
+      condition = droplevels(condition),
+      outgroup_warmth.Z = as.numeric(scale(outgroup_warmth))
+    )
+
+  cat(sprintf("N = %d (High-Status: %d, Low-Status: %d)\n",
+    nrow(df_bias),
+    sum(df_bias$condition == "High-Status"),
+    sum(df_bias$condition == "Low-Status")))
+
+  mod_int  <- lm(bias ~ condition * outgroup_warmth.Z, data = df_bias)
+  mod_main <- lm(bias ~ condition + outgroup_warmth.Z, data = df_bias)
+  av <- anova(mod_main, mod_int)
+
+  cat(sprintf("\nInteraction: F(%.0f, %.0f) = %.3f, p = %.4f\n",
+    av$Df[2], av$Res.Df[2], av$F[2], av$`Pr(>F)`[2]))
+
+  cat("\nFull interaction model coefficients:\n")
+  print(round(summary(mod_int)$coefficients, 4))
+
+  cat("\nOverall warmth slope (main effects model):\n")
+  print(round(summary(mod_main)$coefficients["outgroup_warmth.Z", ], 4))
+
+  cat("\nWithin-condition slopes:\n")
+  for (cond in c("High-Status", "Low-Status")) {
+    sub <- filter(df_bias, condition == cond)
+    m <- lm(bias ~ outgroup_warmth.Z, data = sub)
+    co <- summary(m)$coefficients["outgroup_warmth.Z", ]
+    cat(sprintf("  %s (n=%d): b=%.4f, SE=%.4f, t(%.0f)=%.3f, p=%.4f\n",
+      cond, nrow(sub), co[1], co[2], df.residual(m), co[3], co[4]))
+  }
+}
+
+# ── 10. Projection rate by condition: α (or α_in / α_out) ────────────────────
 cat("\n=== Projection rate (α) by condition ===\n")
 m_cols <- intersect(c("m", "m_in", "m_out"), names(ind_df))
 for (mc in m_cols) {
@@ -248,7 +289,7 @@ if (winner == "asym_lambda" && all(c("m_in","m_out") %in% names(ind_df))) {
   }
 }
 
-# ── 9. MCR by condition ────────────────────────────────────────────────────────
+# ── 11. MCR by condition ──────────────────────────────────────────────────────
 if ("subject_mcr" %in% names(ind_df)) {
   cat("\n=== MCR by condition ===\n")
   fit_mcr <- lm(subject_mcr ~ condition, data = ind_df)
@@ -269,7 +310,7 @@ if ("subject_mcr" %in% names(ind_df)) {
   print(mcr_means, row.names = FALSE)
 }
 
-# ── 10. Save enriched individual differences ──────────────────────────────────
+# ── 12. Save enriched individual differences ──────────────────────────────────
 write.csv(desc_df,  here("Results", "param_by_condition_s2_desc.csv"), row.names = FALSE)
 write.csv(lm_df,    here("Results", "param_by_condition_s2_lm.csv"),   row.names = FALSE)
 write.csv(ind_df2,  here("Results", "ind_diffs_s2_full_enriched.csv"), row.names = FALSE)
