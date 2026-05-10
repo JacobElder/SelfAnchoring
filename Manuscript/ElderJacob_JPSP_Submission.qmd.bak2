@@ -106,63 +106,6 @@ $$G_{in,t} = \frac{1}{1 + e^{-\alpha_{in}(E_t-4)}} ; \quad G_{out,t} = \frac{1}{
 Novel traits—which have no training-phase self-evaluation and therefore carry only the $\lambda$-weighted similarity signal—provide the information needed to decouple $\alpha_{in}$ and $\alpha_{out}$ from each other and from the generalization sensitivity parameter ($\lambda$), allowing the model to separately estimate the assimilation and repulsion forces central to social identity theory.
 
 To ensure identifiability of these parameters within a 2AFC task, we leveraged three computational strategies. First, we exploited the unique information provided by novel versus repeated traits; while repeated traits primarily inform projection extremity ($\alpha$), novel traits isolate the signal for generalization sensitivity ($\lambda$) by forcing the model to rely entirely on the semantic similarity matrix ($S$), as there are no self-beliefs available for information to project to novel traits. Second, we implemented the dual latent belief structure described above, allowing the model to distinguish choices driven by ingroup similarity from those driven by outgroup dissimilarity. Finally, we used hierarchical Bayesian regularization to stabilize individual estimates: by sharing statistical strength across participants, individual parameter estimates are shrunk toward the group mean, preventing extreme estimates from subjects with noisy or sparse data from distorting inference. To address a structural identifiability tradeoff between $\alpha$ and $\lambda$ — both of which amplify the ingroup-over-outgroup evidence ratio and therefore partially compete for trial-by-trial variance — we assigned a tighter dispersion prior to the individual-level $\lambda$ standard deviation ($\sigma_\lambda \sim \text{Half-Normal}(0, 0.1)$) relative to the projection slope ($\sigma_\alpha \sim \text{Half-Normal}(0, 0.3)$). This targeted shrinkage stabilizes individual $\lambda$ estimates toward the group mean, directing residual variance toward $\alpha$ and improving its individual-level identifiability; a schematic of this leverage is shown in Supplementary Figure C5. The empirical basis for this choice is detailed in Supplementary Materials C. Parameter-recovery analyses using both simulated and empirical parameter settings further showed that the Symmetric+$\lambda$ model is adequately identifiable for the present design. The fully asymmetric architecture was less recoverable under random-parameter simulation, but recovered substantially better under empirical recovery when true parameters were set to participants' observed posterior medians and their observed self-rating structure was preserved, suggesting that the weak random-simulation recovery partly reflects unrealistic parameter combinations and the loss of empirically occurring structure between ingroup and outgroup projection components (Supplementary Materials C; Figures C1-C4). In addition to log-likelihood (used for LOO-CV model comparison), each model outputs, as generated quantities, trial-level predicted choice probabilities ($\hat{P}_t = P_{\text{model},t}$) and a model-derived Metacontrast Ratio ($\widehat{\text{MCR}}_t = \text{simW}_{in,t} / \text{simW}_{out,t}$), where $\text{simW}_{in,t}$ and $\text{simW}_{out,t}$ are the parameter-calibrated ingroup and outgroup similarity totals at trial $t$. This model-derived quantity is calibrated by each participant's posterior parameter estimates, incorporating both generalization sensitivity ($\lambda$), projection slope ($\alpha$), and the participant's actual self-rating profile, making it person-specific: two participants with identical mean self-evaluations but different semantic self-concept structure can yield different model MCRs.
-The MCR derivation pipeline is illustrated in @fig-mcr-schematic.
-
-```{r}
-#| label: fig-mcr-schematic
-#| fig-cap: "Derivation pipeline for the model-derived Metacontrast Ratio (MCR). Self-ratings are transformed via the projection-rate parameter into trial-level ingroup and outgroup belief strengths, weighted by semantic similarity raised to the generalization sensitivity parameter, accumulated into similarity-weighted evidence totals, converted to a trial-level metacontrast ratio, and averaged across trials to yield the subject-level MCR."
-#| fig-width: 10
-#| fig-height: 3.8
-library(ggplot2)
-
-schem <- data.frame(
-  xmin = c(0.0, 2.1, 4.2, 6.3, 8.4),
-  xmax = c(1.6, 3.7, 5.8, 7.9, 10.0),
-  ymin = c(0.2, 0.2, 0.2, 0.2, 0.2),
-  ymax = c(0.8, 0.8, 0.8, 0.8, 0.8),
-  lab = c(
-    "Self-ratings\nE_t",
-    "Projection\nG_t = logit^-1(alpha[E_t - 4])",
-    "Similarity weighting\nS_tg^lambda",
-    "Trial-level ratio\nMCR_t = simW_in / simW_out",
-    "Subject-level MCR\nmean_t(MCR_t)"
-  )
-)
-
-arrows <- data.frame(
-  x = c(1.6, 3.7, 5.8, 7.9),
-  xend = c(2.1, 4.2, 6.3, 8.4),
-  y = c(0.5, 0.5, 0.5, 0.5),
-  yend = c(0.5, 0.5, 0.5, 0.5)
-)
-
-ggplot() +
-  geom_rect(
-    data = schem,
-    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
-    fill = c("#DCEAF4", "#E5F0E8", "#F7ECD7", "#F8E0D6", "#E8E0F3"),
-    color = "black",
-    linewidth = 0.4
-  ) +
-  geom_segment(
-    data = arrows,
-    aes(x = x, xend = xend, y = y, yend = yend),
-    arrow = grid::arrow(length = grid::unit(0.18, "cm"), type = "closed"),
-    linewidth = 0.5
-  ) +
-  geom_text(
-    data = schem,
-    aes(x = (xmin + xmax) / 2, y = 0.5, label = lab),
-    size = 3.2,
-    lineheight = 0.95
-  ) +
-  annotate("text", x = 5.0, y = 0.05,
-           label = "simW_in = sum(S_tg^lambda * G_t);   simW_out = sum(S_tg^lambda * [1 - G_t])",
-           size = 3.1) +
-  coord_cartesian(xlim = c(-0.1, 10.2), ylim = c(0, 1), clip = "off") +
-  theme_void()
-```
-
 
 Group-level parameter estimates are reported as the arithmetic mean of individual-level posterior medians (grand means) throughout; see Supplementary Materials D for rationale.
 
@@ -219,7 +162,7 @@ knitr::include_graphics(fig_path("fig07_marginal_effects.tiff"))
 
 
 #### Trait Segregation
-*Trait segregation* (network nominal homophily) quantifies how much a participant's ingroup versus outgroup classifications cluster along the semantic similarity network (*M* = .09, *SD* = .08; range [−.04, .26]). This index was developed and validated as an exploratory network-based metric; full results across all three studies are reported in Supplementary Materials F. Local self-concept clarity (*H_g*) was not a significant predictor in Study 1 (AME = −.058, 95% CI [−.152, .036], *p* = .225; Supplementary Materials B), consistent with reduced inferential leverage when group boundaries carry no prior content.
+*Trait segregation* (network nominal homophily) quantifies how much a participant's ingroup versus outgroup classifications cluster along the semantic similarity network (*M* = .09, *SD* = .08; range [−.04, .26]). This index was developed and validated as an exploratory network-based metric; full results across all three studies are reported in Supplementary Materials F.
 
 #### Computational Model Comparison
 We compared four cognitive architectures of social inference: Bias, Symmetric, Symmetric+$\lambda$, and Asymmetric+$\lambda$ (see Table 1 for architecture summary). Model selection used leave-one-out cross-validation (LOO-CV; Vehtari et al., 2017), with models ranked by expected log predictive density (ELPD); $\Delta$ELPD is reported relative to the best-fitting model. Log-likelihood was stored at the trial level rather than the subject level, enabling observation-level LOO and reliable Pareto $k$ diagnostics; greater than 95% of trials had $k < 0.7$ across models, confirming the validity of the PSIS approximation (Vehtari et al., 2017). To complement the group-level comparison, we computed each participant's *per-subject LOO ELPD difference* (per-subject $\Delta$ELPD = $\text{ELPD}_{\text{asymmetric}} - \text{ELPD}_{\text{symmetric}}$), summing pointwise ELPD values across that participant's valid trials. A positive per-subject $\Delta$ELPD indicates the asymmetric architecture better predicts that individual's choices; a negative value indicates the symmetric architecture is favored. This person-specific index was examined against individual-difference measures to test whether particular psychological characteristics predict which model best accounts for a given participant's behavior.
@@ -283,7 +226,7 @@ The size of the Similarity-to-Self effect varied across outgroup contexts. The e
 In an overall model without condition terms, the Similarity-to-Self × Novel interaction was not significant ($b$ = −0.039, 90% CI [−0.09, 0.01], *p* = .165), and a TOST equivalence test supported practical equivalence within $|b| < 0.10$ (*p* = .016). Thus, across Study 2 as a whole, the Similarity-to-Self slope did not differ meaningfully between trained and novel traits. A three-way model (Similarity-to-Self × Novel × Outgroup) nevertheless showed that the size of the underlying Similarity-to-Self effect varied by outgroup context. In the negation condition, effects were significant for both trained (AME = .049, 95% CI [.014, .083], *z* = 2.76, *p* = .006) and novel traits (AME = .043, 95% CI [.008, .077], *z* = 2.43, *p* = .015), suggesting self-anchoring generalizes to novel traits when contrasting against a neutral outgroup. The high-status condition showed the strongest generalization, with large significant effects for trained (AME = .103, 95% CI [.049, .158], *z* = 3.75, *p* < .001) and novel traits (AME = .097, 95% CI [.044, .151], *z* = 3.55, *p* < .001). The low-status condition showed attenuation, with non-significant trained effects (AME = .047, 95% CI [−.003, .098], *z* = 1.85, *p* = .064) and non-significant novel-trait effects (AME = .040, 95% CI [−.012, .091], *z* = 1.50, *p* = .133), suggesting generalization may be selectively suppressed when the outgroup is perceived as lower status. Exploratory Similarity-to-Self moderation models were uniformly null in Study 2: neither self-esteem, social identification, perceived prototypicality, nor independent self-construal moderated the Similarity-to-Self slope in the negation condition, and no condition-specific three-way interactions were significant (all *p*s ≥ .149; Supplementary Materials E).
 
 #### Trait Segregation
-Trait segregation (network nominal homophily) varied across conditions; full results are reported in Supplementary Materials F. Local self-concept clarity (*H_g*) significantly predicted lower ingroup classification in Study 2 (AME = −.058, 95% CI [−.099, −.017], *p* = .005; Supplementary Materials B), suggesting that a diffuse local self-concept degrades classification when the group carries real semantic content.
+Trait segregation (network nominal homophily) varied across conditions; full results are reported in Supplementary Materials F.
 
 #### Computational Model Comparison
 
@@ -310,7 +253,7 @@ As a non-preregistered exploratory analysis, we tested whether $\lambda$ differe
 #### Parameter Estimates and Individual Differences
 As in Study 1, individual-difference analyses are exploratory; FDR correction was applied separately for mechanism-personality tests ($k$ = 36) and ΔELPD-personality tests ($k$ = 9). Individual-level MCR correlated with self-esteem (*r*(179) = .30, *p*<sub>FDR</sub> = .004), self-concept clarity (*r*(179) = .26, *p*<sub>FDR</sub> = .007), and need for cognition (*r*(179) = .21, *p*<sub>FDR</sub> = .049); generalization sensitivity ($\lambda$) independently correlated with social identification (*r*(179) = .23, *p*<sub>FDR</sub> = .024). The ingroup bias parameter $\gamma$ showed no FDR-significant personality associations (all *p*<sub>FDR</sub> > .50). At the individual level, $\lambda$ did not correlate significantly with outgroup warmth in either the High-Status condition (*r*(53) = .193, *p* = .157) or the Low-Status condition (*r*(44) = .066, *p* = .664); the overall correlation was non-significant (*r*(99) = .093, *p* = .353).
 
-As an exploratory test, we examined whether the γ condition effect reflects individual variation in ingroup preference motives, using $\gamma \sim \text{condition} \times \text{outgroup preference}$ where outgroup preference was the relative thermometer score (UCR warmth minus outgroup warmth, standardized; High-Status and Low-Status conditions only, *n* = 101; no outgroup warmth measure was collected in the Negation condition). The condition × warmth interaction was non-significant, *F*(1, 97) = 1.46, *p* = .230, and the overall warmth slope was null (*b* = 0.02, *SE* = 0.02, *t*(97) = 0.87, *p* = .389). The γ condition effect is therefore a uniform structural shift, not one driven by individual variation in outgroup attitudes.
+If γ operationalizes the positive distinctiveness motive at the individual level, participants who view the higher-status outgroup more warmly should show attenuated ingroup bias. We tested this with Spearman's ρ between individual-level γ and outgroup warmth within each condition. The association was positive and directionally non-significant in the High-Status condition (ρ = .233, *n* = 55, *p* = .088) and null in the Low-Status condition (ρ = .208, *n* = 46, *p* = .166). The condition-level γ attenuation (High-Status *M* = 0.39 vs. Negation *M* = 0.56) is therefore a uniform structural shift, present for everyone in the High-Status condition, rather than a within-condition effect driven by individual variation in outgroup attitudes.
 
 ```{r}
 #| label: fig-condition-effects-s2
@@ -359,7 +302,7 @@ Study 2's γ–α dissociation — stable projection machinery, context-sensitiv
 Study 3 applied the self-anchoring framework to racial identities (Asian and Latino participants), examining how majority or minority outgroup contrasts exert differential effects on generalization. Study 3 was not formally pre-registered. It was designed as a conceptual replication and boundary-condition test, following the same confirmatory predictions as Studies 1 and 2: that Similarity-to-Self predicts ingroup classification and generalizes to novel traits, that intergroup context modulates the parameters of that process, and that MCR correlates with individual differences in group identification. We expected these core features — the basic self-anchoring effect, semantic generalization, and the MCR–personality link — to replicate in the racial context. We did not expect Study 2's specific directional prediction (that low-status contrasts produce stronger projection than negation) to extend to race, as that prediction was disconfirmed even within Study 2, and the status dynamics of racial categories differ structurally from university rank. We were agnostic about directional predictions regarding the specific effect of Minority versus Majority outgroup contrast on model parameters: SCT offers competing accounts (shared subordinate status reducing distinctiveness motivation via common fate; vs. majority salience heightening the meta-contrast ratio and elevating γ). Analyses labeled "exploratory" go beyond this confirmatory scope.
 
 ### Methods
-From an initial pool of 313 participants, 48 were excluded (final *N* = 265). Exclusions were applied for: self-reported low task seriousness (*n* = 2), self-reported unusable data (*n* = 9), and careless responding — defined as > 80% identical self-evaluations, > 95% identical group classifications, or > 40% missing responses in either phase (*n* = 37). Participants were native English-speaking university students (59.14% Cisgender Female, 40.86% Cisgender Male; *M*<sub>Age</sub> = 19.01, *SD*<sub>Age</sub> = 1.71, Range<sub>Age</sub> = [17, 33]), and were 50.97% Hispanic/Latino and 49.03% Asian. Participants were assigned to either a Minority (Asian vs. Latino) or Majority (Ingroup vs. White) comparison condition. Primary analyses pool Asian and Latino participants within each condition, as both groups serve structurally equivalent ingroup roles; participant race is treated as an exploratory moderator to directly test this pooling assumption (Supplementary Materials G). Study 3 uses two conditions rather than Study 2's three, requiring a smaller sample for equivalent power; *N* = 265 comfortably exceeds the Study 2 power threshold for detecting a cross-level interaction at a small effect size (log-odds β = .35; Green & MacLeod, 2016). Power was prioritized for multilevel fixed effects; correlational analyses may be underpowered. For completeness, a sensitivity analysis indicates *N* = 265 can detect correlations of *r* ≥ .17 at 80% power (α = .05, two-tailed).
+From an initial pool of 313 participants, 48 were excluded (final *N* = 265). Exclusions were applied for: self-reported low task seriousness (*n* = 2), self-reported unusable data (*n* = 9), and careless responding — defined as > 80% identical self-evaluations, > 95% identical group classifications, or > 40% missing responses in either phase (*n* = 37). Participants were native English-speaking university students (59.14% Cisgender Female, 40.86% Cisgender Male; *M*<sub>Age</sub> = 19.01, *SD*<sub>Age</sub> = 1.71, Range<sub>Age</sub> = [17, 33]), and were 50.97% Hispanic/Latino and 49.03% Asian. Participants were assigned to either a Minority (Asian vs. Latino) or Majority (Ingroup vs. White) comparison condition. Study 3 uses two conditions rather than Study 2's three, requiring a smaller sample for equivalent power; *N* = 265 comfortably exceeds the Study 2 power threshold for detecting a cross-level interaction at a small effect size (log-odds β = .35; Green & MacLeod, 2016). Power was prioritized for multilevel fixed effects; correlational analyses may be underpowered. For completeness, a sensitivity analysis indicates *N* = 265 can detect correlations of *r* ≥ .17 at 80% power (α = .05, two-tailed).
 
 ### Results
 #### Manipulation Checks
@@ -381,7 +324,7 @@ That null overall effect concealed clear condition-specific variation. The Simil
 In an overall model without condition terms, the Similarity-to-Self × Novel interaction was not significant ($b$ = −0.016, 90% CI [−0.05, 0.02], *p* = .480), and a TOST equivalence test supported practical equivalence within $|b| < 0.10$ (*p* < .001). Thus, across Study 3 as a whole, the Similarity-to-Self slope did not differ meaningfully between trained and novel traits. A three-way model (Similarity-to-Self × Novel × Condition) nevertheless examined whether the majority-condition effect generalized to novel traits. In the majority condition, the trained-trait effect remained significant (AME = .040, 95% CI [.007, .072], *z* = 2.38, *p* = .017), while the novel-trait effect was positive but non-significant (AME = .026, 95% CI [−.007, .058], *z* = 1.53, *p* = .125). In the minority condition, neither trained (AME = −.009, 95% CI [−.043, .025], *z* = −0.52, *p* = .603) nor novel-trait (AME = −.006, 95% CI [−.041, .028], *z* = −0.35, *p* = .728) effects were significant. These patterns suggest that in the racial context, similarity-based inference is present for familiar traits when contrasting against the majority, but does not reliably propagate to semantically novel traits. Exploratory Similarity-to-Self moderation models were also uniformly null in Study 3: neither self-esteem, social identification, perceived prototypicality, nor independent self-construal moderated the Similarity-to-Self slope overall or specifically in the majority condition (all *p*s ≥ .309; Supplementary Materials E).
 
 #### Trait Segregation
-Trait segregation (network nominal homophily) differed by condition; full results are reported in Supplementary Materials F. Local self-concept clarity (*H_g*) again predicted lower ingroup classification (AME = −.051, 95% CI [−.096, −.006], *p* = .027; Supplementary Materials B), replicating the Study 2 pattern in a racial-group context.
+Trait segregation (network nominal homophily) differed by condition; full results are reported in Supplementary Materials F.
 
 
 #### Computational Model Comparison
@@ -411,7 +354,7 @@ FDR-corrected correlations between model parameters and individual differences r
 
 At the individual level, $\lambda$ was not associated with ingroup-relative preference in either condition (Overall *r*(232) = .106, *p* = .107; Minority *r*(120) = .073, *p* = .427; Majority *r*(110) = .154, *p* = .105; interaction *p* = .574). The condition × ingroup-over-majority preference interaction for $\gamma$ did not reach significance (Fisher *z* = −1.96, *p* = .050). Descriptively, in the Majority condition, stronger preference for own minority over White was positively associated with ingroup classification bias (*r*(108) = .186, *p* = .051), while in the Minority condition this association was absent (*r*(117) = −.075, *p* = .421).
 
-No condition × race interactions were significant for any parameter: ingroup bias $\gamma$, *F*(1, 261) = 2.28, *p* = .133; projection slope $\alpha$, *F*(1, 261) < 0.01, *p* = .885; generalization sensitivity $\lambda$, *F*(1, 261) < 0.01, *p* = .929; MCR, *F*(1, 261) = 2.22, *p* = .138; $\Delta$ELPD, *F*(1, 261) = 1.04, *p* = .310. Descriptively, Asian participants showed similar ingroup bias across conditions (Minority *M* = 0.555, Majority *M* = 0.556), while Latino participants showed somewhat lower bias in the Minority condition (Minority *M* = 0.434, Majority *M* = 0.484); the cross-over pattern did not reach significance. Within Latino participants, MCR was nominally associated with dialectical self-views (*r*(130) = −.235, *p* = .007), self-concept clarity (*r*(129) = .203, *p* = .020), and independent self-construal (*r*(129) = .207, *p* = .018); no comparable associations emerged in Asian participants. These are uncorrected *p*-values and should be interpreted descriptively given the null at the pooled level. Cell means for all parameters across condition × race are provided in Supplementary Materials G.
+The condition effect on $\gamma$ was not significantly moderated by participant race (*p* = .133). Asian participants showed directionally similar ingroup bias across conditions (Minority *M* = 0.555, Majority *M* = 0.556), while Latino participants showed somewhat lower bias in the Minority condition (Minority *M* = 0.434, Majority *M* = 0.484), but this cross-over pattern did not reach significance in the final model. Stratifying the MCR–personality correlations by race revealed that MCR was nominally associated with dialectical self-views (*r*(130) = −.235, *p* = .007), self-concept clarity (*r*(129) = .203, *p* = .020), and independent self-construal (*r*(129) = .207, *p* = .018) in Latino participants; no comparable associations emerged in Asian participants. These are uncorrected *p*-values and should be interpreted descriptively given the individual differences null at the pooled level. A full breakdown of condition × race interactions for all parameters is provided in Supplementary Materials G.
 
 ```{r}
 #| label: fig-elpd-s3
@@ -507,42 +450,6 @@ $\lambda$ showed the highest cross-study consistency. Grand means were 3.45 (min
 Ingroup bias ($\gamma$) was lower in Study 1 (minimal groups; grand mean $\gamma$ = 0.453) than in Studies 2 and 3 (0.508 and 0.505, respectively), replicating the individual study pattern and consistent with the view that minimal group boundaries generate weaker ingroup preference than socially meaningful categories. The projection slope ($\alpha$) showed modest cross-study variation intermediate between the relative stability of $\lambda$ and the pronounced contextual sensitivity of $\gamma$: grand means were 0.768 (status groups), 0.691 (minimal groups), and 0.638 (racial groups), a 0.13-unit range. University-status comparisons engaged the self-concept most actively as an inferential resource — likely because university identity is personally relevant but group content is sparse — while racial categories, carrying pre-established cultural content, produced the lowest projection slope. The hierarchical pooling model partially regularizes individual-study estimates toward the global mean, so the apparent between-study spread in $\alpha$ likely represents a lower bound on the true cross-context variability.
 
 **Individual Differences (Pooled CCA).** To assess whether model parameters were systematically associated with personality across all three studies, we conducted a canonical correlation analysis linking the four model parameters ($\alpha$, $\gamma$, $\lambda$, MCR) with nine personality scales in the pooled sample (*N* = 498 with complete personality data; nine Study 3 participants were excluded for missing personality scale responses, yielding *n* = 61, 181, and 256 from Studies 1–3; the full behavioral sample of *N* = 507 was used for all other pooled analyses). Only CV1 reached significance (*r* = .327, *p*$_{\text{perm}}$ < .001; CV2–4 all *p*s > .25). On the model side, MCR dominated CV1 (loading = .864), with smaller contributions from $\gamma$ (−.417), $\lambda$ (.270), and $\alpha$ (.128). On the personality side, self-esteem loaded most strongly (.817), followed by self-concept clarity (.685), dialectical self-views (−.654), need for cognition (.570), and independent self-construal (.536). This pooled CV1 reproduces the pattern from Studies 1 and 2: higher MCR is cross-contextually associated with higher self-esteem, clearer self-concept, and lower dialectical self-views. The dominance of MCR over model parameters in the pooled CCA is consistent with the individual study results and confirms that the metacontrast ratio — the ratio of self-concept similarity signal favoring the ingroup over the outgroup — is the primary computational carrier of personality variation in social generalization across intergroup contexts.
-
-The corresponding pooled within-study standardized bivariate correlations are shown in @tbl-pooled-corr (FDR correction applied within the 36-test mechanism-personality family; *k* = 4 parameters × 9 scales).
-
-```{r}
-#| label: tbl-pooled-corr
-#| tbl-cap: "Pooled Within-Study-Standardized Correlations Between Model-Derived Parameters and Personality Measures."
-#| results: asis
-#| echo: false
-pooled_corr_path <- here("Results", "correlations_pooled_standardized.csv")
-if (file.exists(pooled_corr_path)) {
-  x <- read.csv(pooled_corr_path)
-  x <- subset(x, family == "mechanism")
-  x$Parameter <- x$param
-  x$Parameter <- gsub("^m$", "Projection Slope", x$Parameter)
-  x$Parameter <- gsub("^bias$", "Ingroup Bias", x$Parameter)
-  x$Parameter <- gsub("^lambda$", "Generalization Sensitivity", x$Parameter)
-  x$Parameter <- gsub("^subject_mcr$", "Metacontrast Ratio", x$Parameter)
-  x$Scale <- x$scale
-  x$Scale <- gsub("^DS$", "Dialectical Self-Views", x$Scale)
-  x$Scale <- gsub("^Proto$", "Perceived Prototypicality", x$Scale)
-  x$Scale <- gsub("^SCC$", "Self-Concept Clarity", x$Scale)
-  x$Scale <- gsub("^SI$", "Social Identification", x$Scale)
-  x$Scale <- gsub("^RSE$", "Self-Esteem", x$Scale)
-  x$Scale <- gsub("^NTB$", "Need to Belong", x$Scale)
-  x$Scale <- gsub("^NFC$", "Need for Cognition", x$Scale)
-  x$Scale <- gsub("^SING\\.Ind$", "Independent Self-Construal", x$Scale)
-  x$Scale <- gsub("^SING\\.Inter$", "Interdependent Self-Construal", x$Scale)
-  x$p_raw <- ifelse(x$p_raw < .001, "< .001", sprintf("%.3f", x$p_raw))
-  x$p_fdr <- ifelse(x$p_fdr < .001, "< .001", sprintf("%.3f", x$p_fdr))
-  x <- x[, c("Parameter", "Scale", "r", "p_raw", "p_fdr", "n")]
-  knitr::kable(x, col.names = c("Parameter", "Scale", "r", "p", "FDR p", "N"))
-} else {
-  cat("*[Table pending: run `Rscript Pooled/pooled_param_indiff_correlations.R` to generate.]*")
-}
-```
-
 
 ```{r}
 #| label: fig-forest-pooled
@@ -945,7 +852,10 @@ Study 3 pools Asian and Latino participants within each contrast condition, an a
 
 **Warmth moderation by race.** The race × ingroup-over-minority preference interaction for MCR was not significant (*p* = .099). No warmth × race interactions reached significance for any parameter. All race moderation results are exploratory, were not pre-registered, and should be replicated before interpretation.
 
-### Supplementary Materials H: Canonical Correlation Analysis
+### Supplementary Materials H: Posterior Predictive Checks
+We conducted posterior predictive checks (PPCs) to verify model fit to observed data, evaluating both the training and generalization phases across all three studies. Observed and predicted data were well-aligned, confirming adequate fit.
+
+### Supplementary Materials I: Canonical Correlation Analysis
 
 **Study 1 CCA (Minimal Groups, *N* = 61).** To examine the multivariate personality structure of model-derived indices, we conducted an exploratory CCA of model parameters (X: $\alpha$, $\lambda$, $\gamma$, MCR, trait segregation; $k = 5$) against personality scales (Y: Dialectical Self-Views, Ingroup Prototypicality, Self-Concept Clarity, Social Identification, Self-Esteem, Need to Belong, Need for Cognition, Independent Self-Construal, Interdependent Self-Construal; $k = 9$). Statistical significance was assessed via permutation test (*B* = 5,000). *N* = 61 falls below recommended guidelines for CCA with 14 variables; results should be regarded as preliminary and interpreted with caution. The first canonical variate was significant (*r* = .720, *p*~perm~ = .013). On the model side, CV1 was defined primarily by MCR (loading = .53), ingroup bias $\gamma$ (loading = .45), and trait segregation (loading = .39); $\alpha$ and $\lambda$ loaded negligibly. On the personality side, interdependent self-construal dominated (loading = .87), followed by social identification (loading = .53) and need to belong (loading = .48). A second variate was also significant (*r* = .623, *p*~perm~ = .005) but is not interpreted given the sample size. The pooled CCA below provides better-powered replication.
 
@@ -953,9 +863,9 @@ Study 3 pools Asian and Latino participants within each contrast condition, an a
 
 The first canonical variate was significant (*r* = .327, *p*~perm~ < .001); CV2–CV4 were all non-significant (*p*s > .25). On the model side, CV1 was dominated by MCR (loading = .864); $\gamma$ ($-.417$), $\lambda$ (.270), and $\alpha$ (.128) loaded more weakly. On the personality side, self-esteem dominated (loading = .817), followed by self-concept clarity (.685), dialectical self-views (−.654), need for cognition (.570), independent self-construal (.536), social identification (.357), and ingroup prototypicality (.360); need to belong showed a negative loading (−.237) and interdependent self-construal was negligible (.014). This pattern — MCR as the primary model driver aligned with a self-esteem, self-concept clarity, and dialectical self-views cluster — replicates the individual-study structure and confirms that the metacontrast ratio captures a coherent individual-difference dimension that generalizes across intergroup contexts: participants with higher self-esteem, clearer self-concepts, and fewer dialectical self-views show stronger self-anchoring signal regardless of group type. Table K1 reports the corresponding pooled bivariate correlations using the same within-study standardization strategy.
 
-### Supplementary Materials I: Projection Slope (α) by Study and Condition
+### Supplementary Materials J: Projection Slope (α) by Study and Condition
 
-Figure I1 shows the distribution of individual-level projection slope (α) posterior medians from the pooled model, broken down by study and condition. In Study 2, α varied only modestly across conditions and no individual condition contrast reached significance after correction. In Study 3, α was similar in the Minority and Majority conditions (*p* = .532). This figure supplements the forest plot (@fig-forest-pooled) with individual-level distributions.
+Figure J1 shows the distribution of individual-level projection slope (α) posterior medians from the pooled model, broken down by study and condition. In Study 2, α varied only modestly across conditions and no individual condition contrast reached significance after correction. In Study 3, α was similar in the Minority and Majority conditions (*p* = .532). This figure supplements the forest plot (@fig-forest-pooled) with individual-level distributions.
 
 ```{r}
 #| label: fig-alpha-by-condition
@@ -971,7 +881,105 @@ knitr::include_graphics(fig_path("fig_alpha_by_condition.tiff"))
 #| results: asis
 #| echo: false
 #| eval: !expr isFALSE(file.exists(fig_path("fig_alpha_by_condition.tiff")))
-cat("*[Figure I1 pending: run `Figures/make_figures.R` to generate.]*")
+cat("*[Figure J1 pending: run `Figures/make_figures.R` to generate.]*")
+```
+
+### Supplementary Materials K: Pooled Parameter and Individual-Difference Correlations
+
+To clarify the pooled CCA, Table K1 reports pooled bivariate correlations between model-derived parameters and individual-difference measures after Z-scoring both sets of variables within study before pooling. This preserves the pooled analysis logic by isolating within-study individual differences rather than study-level mean shifts. Mechanism-personality correlations and model-preference correlations were false-discovery-rate corrected within their respective families.
+
+```{r}
+#| results: asis
+#| echo: false
+pooled_corr_path <- here("Results", "correlations_pooled_standardized.csv")
+if (file.exists(pooled_corr_path)) {
+  x <- read.csv(pooled_corr_path)
+  x <- subset(x, family == "mechanism")
+  x$Parameter <- x$param
+  x$Parameter <- gsub("^m$", "Projection Slope", x$Parameter)
+  x$Parameter <- gsub("^bias$", "Ingroup Bias", x$Parameter)
+  x$Parameter <- gsub("^lambda$", "Generalization Sensitivity", x$Parameter)
+  x$Parameter <- gsub("^subject_mcr$", "Metacontrast Ratio", x$Parameter)
+  x$Scale <- x$scale
+  x$Scale <- gsub("^DS$", "Dialectical Self-Views", x$Scale)
+  x$Scale <- gsub("^Proto$", "Perceived Prototypicality", x$Scale)
+  x$Scale <- gsub("^SCC$", "Self-Concept Clarity", x$Scale)
+  x$Scale <- gsub("^SI$", "Social Identification", x$Scale)
+  x$Scale <- gsub("^RSE$", "Self-Esteem", x$Scale)
+  x$Scale <- gsub("^NTB$", "Need to Belong", x$Scale)
+  x$Scale <- gsub("^NFC$", "Need for Cognition", x$Scale)
+  x$Scale <- gsub("^SING\\.Ind$", "Independent Self-Construal", x$Scale)
+  x$Scale <- gsub("^SING\\.Inter$", "Interdependent Self-Construal", x$Scale)
+  x$p_raw <- ifelse(x$p_raw < .001, "< .001", sprintf("%.3f", x$p_raw))
+  x$p_fdr <- ifelse(x$p_fdr < .001, "< .001", sprintf("%.3f", x$p_fdr))
+  x <- x[, c("Parameter", "Scale", "r", "p_raw", "p_fdr", "n")]
+  knitr::kable(
+    x,
+    col.names = c("Parameter", "Scale", "r", "p", "FDR p", "N"),
+    caption = "Table K1. Pooled Within-Study-Standardized Correlations Between Model-Derived Parameters and Individual Differences."
+  )
+} else {
+  cat("*[Table K1 pending: run `Rscript Pooled/pooled_param_indiff_correlations.R` to generate.]*")
+}
+```
+
+### Supplementary Materials L: Schematic of the Model-Derived Metacontrast Ratio
+
+Figure L1 illustrates how the model-derived MCR is constructed. Self-ratings are first transformed into projected ingroup and outgroup evidence through the projection-rate parameter, then weighted by semantic similarity through the generalization parameter. The trial-level metacontrast ratio is the ratio of accumulated ingroup to outgroup evidence, and the subject-level MCR is the average of that ratio across trials.
+
+```{r}
+#| label: fig-mcr-schematic
+#| fig-cap: "Schematic of the model-derived Metacontrast Ratio (MCR). Self-ratings are transformed into projected ingroup and outgroup evidence, weighted by semantic similarity, converted to a trial-level metacontrast ratio, and then averaged across trials to yield the subject-level MCR."
+#| fig-width: 10
+#| fig-height: 3.8
+library(ggplot2)
+
+schem <- data.frame(
+  xmin = c(0.0, 2.1, 4.2, 6.3, 8.4),
+  xmax = c(1.6, 3.7, 5.8, 7.9, 10.0),
+  ymin = c(0.2, 0.2, 0.2, 0.2, 0.2),
+  ymax = c(0.8, 0.8, 0.8, 0.8, 0.8),
+  lab = c(
+    "Self-ratings\nE_t",
+    "Projection\nG_t = logit^-1(alpha[E_t - 4])",
+    "Similarity weighting\nS_tg^lambda",
+    "Trial-level ratio\nMCR_t = simW_in / simW_out",
+    "Subject-level MCR\nmean_t(MCR_t)"
+  )
+)
+
+arrows <- data.frame(
+  x = c(1.6, 3.7, 5.8, 7.9),
+  xend = c(2.1, 4.2, 6.3, 8.4),
+  y = c(0.5, 0.5, 0.5, 0.5),
+  yend = c(0.5, 0.5, 0.5, 0.5)
+)
+
+ggplot() +
+  geom_rect(
+    data = schem,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = c("#DCEAF4", "#E5F0E8", "#F7ECD7", "#F8E0D6", "#E8E0F3"),
+    color = "black",
+    linewidth = 0.4
+  ) +
+  geom_segment(
+    data = arrows,
+    aes(x = x, xend = xend, y = y, yend = yend),
+    arrow = grid::arrow(length = grid::unit(0.18, "cm"), type = "closed"),
+    linewidth = 0.5
+  ) +
+  geom_text(
+    data = schem,
+    aes(x = (xmin + xmax) / 2, y = 0.5, label = lab),
+    size = 3.2,
+    lineheight = 0.95
+  ) +
+  annotate("text", x = 5.0, y = 0.05,
+           label = "simW_in = sum(S_tg^lambda * G_t);   simW_out = sum(S_tg^lambda * [1 - G_t])",
+           size = 3.1) +
+  coord_cartesian(xlim = c(-0.1, 10.2), ylim = c(0, 1), clip = "off") +
+  theme_void()
 ```
 
 ## OPEN MATERIALS
