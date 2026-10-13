@@ -100,7 +100,7 @@ SelfAnchoring/
 
 ## Run Commands
 
-All commands should be run from the project root (`/Users/jacobelder/Documents/GitHub/SelfAnchoring`).
+All commands should be run from the project root (`/Users/jacobelder/Developer/SelfAnchoring`).
 
 ### Step 1: Model Fitting
 
