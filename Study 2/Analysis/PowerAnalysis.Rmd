@@ -14,7 +14,7 @@ library(ggeffects)
 ```
 ```{r}
 # 1. Load the original dataset (do not duplicate or row-bind)
-fullTest <- read.csv("~/Documents/GitHub/SelfAnchoring/Study 1/Cleaning/output/fullTest.csv")
+fullTest <- read.csv("~/Developer/SelfAnchoring/Study 1/Cleaning/output/fullTest.csv")
 
 # 2. Pre-process and scale variables (subsetting to complete cases early saves memory)
 fullTest <- fullTest[!is.na(fullTest$predicted) & !is.na(fullTest$ingChoiceN), ]
